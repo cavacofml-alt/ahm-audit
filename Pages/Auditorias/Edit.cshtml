@@ -1,0 +1,194 @@
+@page
+@model AHM.Audit.Pages.Auditorias.EditModel
+@{
+    ViewData["Title"] = "Editar Auditoria";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2 class="mb-0"><i class="bi bi-pencil-square me-2"></i>Editar Auditoria</h2>
+    <a href="/Auditorias" class="btn btn-outline-secondary"><i class="bi bi-arrow-left me-1"></i>Voltar</a>
+</div>
+
+<form method="post">
+    <input type="hidden" asp-for="Auditoria.Id" />
+    <input type="hidden" asp-for="Auditoria.CreatedAt" />
+
+    <!-- Informação Geral -->
+    <div class="card mb-4">
+        <div class="card-header fw-bold"><i class="bi bi-info-circle me-2"></i>Informação Geral</div>
+        <div class="card-body">
+            <div class="row g-3">
+                <div class="col-md-4">
+                    <label class="form-label">Audit Agent</label>
+                    <select class="form-select" asp-for="Auditoria.Agent">
+                        <option value="">-- Selecionar --</option>
+                        @foreach (var a in Model.Agents)
+                        {
+                            if (Model.Auditoria.Agent == a)
+                            {
+                                <option value="@a" selected>@a</option>
+                            }
+                            else
+                            {
+                                <option value="@a">@a</option>
+                            }
+                        }
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">AHM Officer</label>
+                    <select class="form-select" asp-for="Auditoria.AhmOfficer">
+                        <option value="">-- Selecionar --</option>
+                        @foreach (var o in Model.Officers)
+                        {
+                            if (Model.Auditoria.AhmOfficer == o)
+                            {
+                                <option value="@o" selected>@o</option>
+                            }
+                            else
+                            {
+                                <option value="@o">@o</option>
+                            }
+                        }
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Ticket Number</label>
+                    <input class="form-control" asp-for="Auditoria.Ticket" />
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Date</label>
+                    <input class="form-control" type="date" asp-for="Auditoria.Date" />
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Airline</label>
+                    <input class="form-control" asp-for="Auditoria.Airline" />
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Aircraft Type</label>
+                    <input class="form-control" asp-for="Auditoria.Aircraft" />
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Registration</label>
+                    <input class="form-control" asp-for="Auditoria.Registration" />
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Revision Updates</label>
+                    <input class="form-control" asp-for="Auditoria.RevisionUpdates" />
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Checklist -->
+    <div class="card mb-4">
+        <div class="card-header fw-bold"><i class="bi bi-check2-square me-2"></i>Checklist W&B</div>
+        <div class="card-body">
+            <table class="table table-hover align-middle">
+                <thead class="table-dark">
+                    <tr>
+                        <th style="width:50%">Item</th>
+                        <th class="text-center">YES</th>
+                        <th class="text-center">NO</th>
+                        <th class="text-center">N/A</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @{
+                        var items = new[]
+                        {
+                            ("B1 - Standard units and codes",       "B1",             Model.Auditoria.B1),
+                            ("B2 - Crew and crew baggage weights",  "B2",             Model.Auditoria.B2),
+                            ("B3 - Passenger and baggage weights",  "B3",             Model.Auditoria.B3),
+                            ("C1 - Aircraft Type or fleet",         "C1",             Model.Auditoria.C1),
+                            ("C2 - Balance/Special info",           "C2",             Model.Auditoria.C2),
+                            ("C2.3 - Sup info",                     "C2_3",           Model.Auditoria.C2_3),
+                            ("C3 - Basic index/MAR RC Formula",     "C3",             Model.Auditoria.C3),
+                            ("C4.1 - Take-off",                     "C4_TakeOff",     Model.Auditoria.C4_TakeOff),
+                            ("C4.1 - Zero-Fuel",                    "C4_ZeroFuel",    Model.Auditoria.C4_ZeroFuel),
+                            ("C4.1 - Landing",                      "C4_Landing",     Model.Auditoria.C4_Landing),
+                            ("C4.1 - Inflight",                     "C4_Inflight",    Model.Auditoria.C4_Inflight),
+                            ("C4.1 - Ideal Trim",                   "C4_IdealTrim",   Model.Auditoria.C4_IdealTrim),
+                            ("C5 - Fuel",                           "C5",             Model.Auditoria.C5),
+                            ("C7.1 - Stab trim",                    "C7_1",           Model.Auditoria.C7_1),
+                            ("D1 - Dimensions and limits",          "D1",             Model.Auditoria.D1),
+                            ("D2 - Holds",                          "D2",             Model.Auditoria.D2),
+                            ("D3 - ULD",                            "D3",             Model.Auditoria.D3),
+                            ("D5.1 - Cabin",                        "D5_1",           Model.Auditoria.D5_1),
+                            ("D5.2 - Cabin Crew Seats",             "D5_2",           Model.Auditoria.D5_2),
+                            ("D6.2 - Seatmap",                      "D6_2",           Model.Auditoria.D6_2),
+                            ("E1 - DOW/DOI (BW/BI)",                "E1_DOW",         Model.Auditoria.E1_DOW),
+                            ("E1 - MRW",                            "E1_MRW",         Model.Auditoria.E1_MRW),
+                            ("E1 - MTOW",                           "E1_MTOW",        Model.Auditoria.E1_MTOW),
+                            ("E1 - MZFW",                           "E1_MZFW",        Model.Auditoria.E1_MZFW),
+                            ("E1 - MLAW",                           "E1_MLAW",        Model.Auditoria.E1_MLAW),
+                            ("E2.1 - Crew Codes",                   "E2_1",           Model.Auditoria.E2_1),
+                            ("E2.2 - Crew Distribution",            "E2_2",           Model.Auditoria.E2_2),
+                            ("E3.1 - Pantry Distribution",          "E3_1",           Model.Auditoria.E3_1),
+                            ("G1 - ULD Compatibility",              "G1",             Model.Auditoria.G1),
+                            ("Revision update was correct?",        "RevisionUpdate", Model.Auditoria.RevisionUpdate),
+                            ("LIR",                                 "LIR",            Model.Auditoria.LIR),
+                            ("LS",                                  "LS",             Model.Auditoria.LS),
+                            ("Database Printout",                   "DatabasePrintout", Model.Auditoria.DatabasePrintout),
+                        };
+                    }
+                    @foreach (var (label, field, value) in items)
+                    {
+                        <tr>
+                            <td>@label</td>
+                            <td class="text-center"><input type="radio" name="Auditoria.@field" value="YES" class="form-check-input" @(value == "YES" ? "checked" : "") /></td>
+                            <td class="text-center"><input type="radio" name="Auditoria.@field" value="NO"  class="form-check-input" @(value == "NO"  ? "checked" : "") /></td>
+                            <td class="text-center"><input type="radio" name="Auditoria.@field" value="N/A" class="form-check-input" @(value == "N/A" ? "checked" : "") /></td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Correções -->
+    <div class="card mb-4">
+        <div class="card-header fw-bold"><i class="bi bi-tools me-2"></i>Correções</div>
+        <div class="card-body">
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <label class="form-label">Correction Ticket</label>
+                    <input class="form-control" asp-for="Auditoria.CorrectionTicket" />
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">Reason for Re-certification</label>
+                    <input class="form-control" asp-for="Auditoria.ReasonForRecertification" />
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label fw-semibold">Corrections Made</label>
+                    <div class="d-flex gap-4 mt-1">
+                        <div class="form-check"><input class="form-check-input" type="radio" name="Auditoria.CorrectionsMade" value="YES" @(Model.Auditoria.CorrectionsMade == "YES" ? "checked" : "") /><label class="form-check-label">YES</label></div>
+                        <div class="form-check"><input class="form-check-input" type="radio" name="Auditoria.CorrectionsMade" value="NO"  @(Model.Auditoria.CorrectionsMade == "NO"  ? "checked" : "") /><label class="form-check-label">NO</label></div>
+                        <div class="form-check"><input class="form-check-input" type="radio" name="Auditoria.CorrectionsMade" value="N/A" @(Model.Auditoria.CorrectionsMade == "N/A" ? "checked" : "") /><label class="form-check-label">N/A</label></div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label fw-semibold">Aircraft Re-certified</label>
+                    <div class="d-flex gap-4 mt-1">
+                        <div class="form-check"><input class="form-check-input" type="radio" name="Auditoria.AircraftRecertified" value="YES" @(Model.Auditoria.AircraftRecertified == "YES" ? "checked" : "") /><label class="form-check-label">YES</label></div>
+                        <div class="form-check"><input class="form-check-input" type="radio" name="Auditoria.AircraftRecertified" value="NO"  @(Model.Auditoria.AircraftRecertified == "NO"  ? "checked" : "") /><label class="form-check-label">NO</label></div>
+                        <div class="form-check"><input class="form-check-input" type="radio" name="Auditoria.AircraftRecertified" value="N/A" @(Model.Auditoria.AircraftRecertified == "N/A" ? "checked" : "") /><label class="form-check-label">N/A</label></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Notas -->
+    <div class="card mb-4">
+        <div class="card-header fw-bold"><i class="bi bi-chat-left-text me-2"></i>Notas</div>
+        <div class="card-body">
+            <textarea class="form-control" asp-for="Auditoria.Notes" rows="4"></textarea>
+        </div>
+    </div>
+
+    <div class="d-flex gap-2">
+        <button class="btn btn-primary btn-lg"><i class="bi bi-save me-2"></i>Guardar Alterações</button>
+        <a href="/Auditorias" class="btn btn-outline-secondary btn-lg">Cancelar</a>
+    </div>
+</form>

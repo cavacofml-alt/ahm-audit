@@ -1,0 +1,292 @@
+@page
+@model AHM.Audit.Pages.IndexModel
+@{
+    ViewData["Title"] = "Dashboard";
+}
+
+<style>
+.db3{padding:16px;background:#f0f2f5;min-height:600px}
+.db3 .header{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+.db3 .title{font-size:17px;font-weight:500;color:var(--color-text-primary);display:flex;align-items:center;gap:6px}
+.db3 .title span{font-size:12px;color:var(--color-text-secondary);font-weight:400}
+.db3 .fbar{display:flex;gap:6px;align-items:center;background:#fff;border:0.5px solid var(--color-border-tertiary);border-radius:8px;padding:6px 12px}
+.db3 .fbar input{font-size:11px;padding:3px 6px;border:0.5px solid var(--color-border-secondary);border-radius:5px;background:var(--color-background-secondary);color:var(--color-text-primary);width:120px}
+.db3 .fbar button{font-size:11px;padding:3px 8px;border:none;border-radius:5px;cursor:pointer}
+.db3 .fbar .bp{background:#0078d4;color:#fff}
+.db3 .fbar .bs{background:var(--color-background-secondary);color:var(--color-text-secondary);border:0.5px solid var(--color-border-secondary)}
+.db3 .krow{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:12px}
+.db3 .kc{background:#fff;border-radius:8px;padding:12px 14px;border:0.5px solid var(--color-border-tertiary);display:flex;gap:12px;align-items:center}
+.db3 .kc .circle{width:44px;height:44px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0}
+.db3 .kc.tot .circle{background:#e6f1fb;color:#185fa5}
+.db3 .kc.ok .circle{background:#eaf3de;color:#3b6d11}
+.db3 .kc.no .circle{background:#fde7e9;color:#a32d2d}
+.db3 .kc.na .circle{background:#f1efe8;color:#5f5e5a}
+.db3 .kc .info .lbl{font-size:10px;text-transform:uppercase;letter-spacing:.5px;color:var(--color-text-secondary);margin-bottom:2px}
+.db3 .kc .info .val{font-size:22px;font-weight:500;line-height:1}
+.db3 .kc.tot .info .val{color:#185fa5}
+.db3 .kc.ok .info .val{color:#3b6d11}
+.db3 .kc.no .info .val{color:#a32d2d}
+.db3 .kc.na .info .val{color:#888780}
+.db3 .kc .info .sub{font-size:10px;color:var(--color-text-secondary);margin-top:1px}
+.db3 .main{display:grid;grid-template-columns:3fr 1fr;gap:8px;margin-bottom:12px}
+.db3 .card{background:#fff;border-radius:8px;border:0.5px solid var(--color-border-tertiary);padding:12px 14px}
+.db3 .ch{font-size:12px;font-weight:500;color:var(--color-text-primary);margin-bottom:10px;display:flex;align-items:center;justify-content:space-between}
+.db3 .ch select{font-size:10px;padding:2px 5px;border:0.5px solid var(--color-border-secondary);border-radius:4px;background:var(--color-background-secondary);color:var(--color-text-secondary)}
+.db3 .btm{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:8px}
+.db3 .qrow{display:grid;grid-template-columns:repeat(2,1fr);gap:6px}
+.db3 .qc{border-radius:6px;padding:8px 10px;background:var(--color-background-secondary)}
+.db3 .ql{font-size:10px;color:var(--color-text-secondary);margin-bottom:4px;font-weight:500}
+.db3 .qp{height:6px;background:var(--color-border-tertiary);border-radius:3px;overflow:hidden;margin-bottom:4px}
+.db3 .qf{height:100%;border-radius:3px}
+.db3 .qn{font-size:13px;font-weight:500}
+.db3 .leg{display:flex;gap:10px;margin-bottom:8px}
+.db3 .li{display:flex;align-items:center;gap:3px;font-size:10px;color:var(--color-text-secondary)}
+.db3 .ld{width:8px;height:8px;border-radius:2px}
+</style>
+
+<div class="db3">
+    <div class="header">
+        <div class="title">
+            <i class="bi bi-chart-bar" style="font-size:18px;color:#0078d4"></i>
+            Dashboard
+            <span>AHM Audit System</span>
+        </div>
+        <form method="get" class="fbar">
+            <i class="bi bi-calendar3" style="font-size:13px;color:var(--color-text-secondary)"></i>
+            <input type="date" name="from" value="@Model.FilterFrom?.ToString("yyyy-MM-dd")" />
+            <span style="font-size:11px;color:var(--color-text-secondary)">—</span>
+            <input type="date" name="to" value="@Model.FilterTo?.ToString("yyyy-MM-dd")" />
+            <button type="submit" class="bp"><i class="bi bi-funnel" style="font-size:11px"></i></button>
+            <a href="/" class="bs" style="padding:3px 8px;border-radius:5px;text-decoration:none;font-size:11px;border:0.5px solid var(--color-border-secondary)"><i class="bi bi-x" style="font-size:11px"></i></a>
+        </form>
+    </div>
+
+    @if (Model.FilterFrom.HasValue || Model.FilterTo.HasValue)
+    {
+        <div style="background:#e6f1fb;border-radius:6px;padding:6px 12px;margin-bottom:12px;font-size:12px;color:#185fa5;border:0.5px solid #b5d4f4">
+            <i class="bi bi-funnel-fill me-1"></i>
+            Período: <strong>@(Model.FilterFrom?.ToString("dd/MM/yyyy") ?? "início")</strong> — <strong>@(Model.FilterTo?.ToString("dd/MM/yyyy") ?? "hoje")</strong> · @Model.Total auditoria(s)
+        </div>
+    }
+
+    <!-- KPIs -->
+    <div class="krow">
+        <div class="kc tot">
+            <div class="circle"><i class="bi bi-clipboard-check"></i></div>
+            <div class="info">
+                <div class="lbl">Auditorias</div>
+                <div class="val">@Model.Total</div>
+                <div class="sub">este período</div>
+            </div>
+        </div>
+        <div class="kc ok">
+            <div class="circle"><i class="bi bi-check-circle"></i></div>
+            <div class="info">
+                <div class="lbl">Conformes (OK)</div>
+                <div class="val">@Model.PctYes%</div>
+                <div class="sub">@Model.TotalYes respostas</div>
+            </div>
+        </div>
+        <div class="kc no">
+            <div class="circle"><i class="bi bi-x-circle"></i></div>
+            <div class="info">
+                <div class="lbl">Não conformes (NOT OK)</div>
+                <div class="val">@Model.PctNo%</div>
+                <div class="sub">@Model.TotalNo respostas</div>
+            </div>
+        </div>
+        <div class="kc na">
+            <div class="circle"><i class="bi bi-dash-circle"></i></div>
+            <div class="info">
+                <div class="lbl">N/A</div>
+                <div class="val">@Model.PctNA%</div>
+                <div class="sub">@Model.TotalNA respostas</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Section chart + Global pie -->
+    <div class="main">
+        <div class="card">
+            <div class="ch">
+                Resultados por section (%)
+                <select id="sectionFilter" onchange="filterSections()">
+                    <option value="">Todas as sections</option>
+                    <option value="B">B - Standard/Crew/Pax Weights</option>
+                    <option value="C">C - Balance & Fuel</option>
+                    <option value="D">D - Dimensions & Cabin</option>
+                    <option value="E">E - DOW/Crew/Pantry</option>
+                    <option value="G">G - ULD Compatibility</option>
+                    <option value="H">H - Administrative</option>
+                </select>
+            </div>
+            <div class="leg">
+                <div class="li"><div class="ld" style="background:#3b6d11"></div>% OK</div>
+                <div class="li"><div class="ld" style="background:#d13438"></div>% NOT OK</div>
+            </div>
+            <div style="position:relative;height:190px">
+                <canvas id="sectionChart" role="img" aria-label="Section results bar chart">Section results</canvas>
+            </div>
+        </div>
+        <div class="card">
+            <div class="ch">
+                Conformidade global
+                <select id="officerFilter" onchange="filterOfficer()">
+                    <option value="">Todos officers</option>
+                    @foreach (var o in Model.OfficerLabels)
+                    {
+                        <option value="@o">@o</option>
+                    }
+                </select>
+            </div>
+            <div style="position:relative;height:140px">
+                <canvas id="resultChart" role="img" aria-label="Doughnut chart conformity">Conformidade global</canvas>
+            </div>
+            <div style="text-align:center;margin-top:8px">
+                <span id="conformityPct" style="font-size:22px;font-weight:500;color:#3b6d11">@Model.PctYes%</span>
+                <span style="font-size:10px;color:var(--color-text-secondary);margin-left:4px">conformidade</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bottom row -->
+    <div class="btm">
+        <!-- Target trimestral -->
+        <div class="card">
+            <div class="ch">Target trimestral</div>
+            <div class="qrow">
+                @foreach (var q in Model.QuarterProgress)
+                {
+                    var pct = Math.Min(q.Count * 100 / 30, 100);
+                    var color = q.Count >= 30 ? "#3b6d11" : q.Count >= 20 ? "#ba7517" : "#d13438";
+                    var width = pct;
+                    <div class="qc">
+                        <div class="ql">@q.Label</div>
+                        <div class="qp"><div class="qf" style="width:@width%;background:@color"></div></div>
+                        <div class="qn" style="color:@color">@q.Count<span style="font-size:9px;font-weight:400;color:var(--color-text-secondary)">/30</span></div>
+                    </div>
+                }
+            </div>
+        </div>
+
+        <!-- Por airline -->
+        <div class="card">
+            <div class="ch">
+                Por airline
+                <input type="text" id="airlineFilter" style="font-size:10px;padding:2px 5px;border:0.5px solid var(--color-border-secondary);border-radius:4px;background:var(--color-background-secondary);width:70px" placeholder="Filtrar..." oninput="filterAirline()" />
+            </div>
+            <div style="position:relative;height:140px">
+                <canvas id="airlineChart" role="img" aria-label="Airlines bar chart">Airlines</canvas>
+            </div>
+        </div>
+
+        <!-- Por agent -->
+        <div class="card">
+            <div class="ch">
+                Por audit agent
+                <input type="text" id="agentFilter" style="font-size:10px;padding:2px 5px;border:0.5px solid var(--color-border-secondary);border-radius:4px;background:var(--color-background-secondary);width:70px" placeholder="Filtrar..." oninput="filterAgent()" />
+            </div>
+            <div style="position:relative;height:140px">
+                <canvas id="agentChart" role="img" aria-label="Agents bar chart">Agents</canvas>
+            </div>
+        </div>
+
+        <!-- Conformidade AHM officer -->
+        <div class="card">
+            <div class="ch">Conformidade AHM officer</div>
+            <div style="position:relative;height:140px">
+                <canvas id="officerChart" role="img" aria-label="Officer conformity">Officers</canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+const sectionData      = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.SectionData));
+const allAirlineLabels = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.AirlineLabels));
+const allAirlineValues = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.AirlineValues));
+const allAgentLabels   = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.AgentLabels));
+const allAgentValues   = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.AgentValues));
+const officerLabels    = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.OfficerLabels));
+const officerConf      = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.OfficerConformity));
+const officerStats     = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.OfficerStats));
+
+const baseOpts = { responsive:true, maintainAspectRatio:false, plugins:{ legend:{ display:false } } };
+const gridColor = 'rgba(0,0,0,0.04)';
+
+function calcPct(s, type) {
+    const t = s.yes + s.no + s.na;
+    if (!t) return 0;
+    return Math.round(type === 'ok' ? s.yes*100/t : s.no*100/t);
+}
+
+let secFiltered = [...sectionData];
+
+let sectionChart = new Chart(document.getElementById('sectionChart'), {
+    type: 'bar',
+    data: {
+        labels: secFiltered.map(s => s.name),
+        datasets: [
+            { label:'% OK',     data: secFiltered.map(s=>calcPct(s,'ok')),  backgroundColor:'#3b6d1199', borderColor:'#3b6d11', borderWidth:1 },
+            { label:'% NOT OK', data: secFiltered.map(s=>calcPct(s,'no')),  backgroundColor:'#d1343899', borderColor:'#d13438', borderWidth:1 }
+        ]
+    },
+    options: { ...baseOpts, scales: { y:{ beginAtZero:true, max:100, ticks:{ callback:v=>v+'%', font:{size:9} }, grid:{ color:gridColor } }, x:{ ticks:{ font:{size:9} }, grid:{ display:false } } }, plugins:{ legend:{ display:false }, tooltip:{ callbacks:{ label: ctx => ctx.dataset.label+': '+ctx.raw+'%' } } } }
+});
+
+function filterSections() {
+    const f = document.getElementById('sectionFilter').value;
+    secFiltered = f ? sectionData.filter(s => s.key === f) : [...sectionData];
+    sectionChart.data.labels = secFiltered.map(s => s.name);
+    sectionChart.data.datasets[0].data = secFiltered.map(s=>calcPct(s,'ok'));
+    sectionChart.data.datasets[1].data = secFiltered.map(s=>calcPct(s,'no'));
+    sectionChart.update();
+}
+
+let resultChart = new Chart(document.getElementById('resultChart'), {
+    type: 'doughnut',
+    data: { labels:['OK','NOT OK','N/A'], datasets:[{ data:[@Model.TotalYes,@Model.TotalNo,@Model.TotalNA], backgroundColor:['#3b6d11','#d13438','#b4b2a9'], borderWidth:2, borderColor:'#fff' }] },
+    options: { ...baseOpts, cutout:'72%' }
+});
+
+function filterOfficer() {
+    const o = document.getElementById('officerFilter').value;
+    const s = !o ? { yes:@Model.TotalYes, no:@Model.TotalNo, na:@Model.TotalNA, pct:@Model.PctYes } : (officerStats[o]||{yes:0,no:0,na:0,pct:0});
+    resultChart.data.datasets[0].data = [s.yes, s.no, s.na];
+    resultChart.update();
+    document.getElementById('conformityPct').textContent = s.pct+'%';
+}
+
+let airlineChart = new Chart(document.getElementById('airlineChart'), {
+    type: 'bar',
+    data: { labels: allAirlineLabels, datasets:[{ data:allAirlineValues, backgroundColor:'#185fa599', borderColor:'#185fa5', borderWidth:1 }] },
+    options: { ...baseOpts, scales:{ y:{ beginAtZero:true, ticks:{ font:{size:9} }, grid:{ color:gridColor } }, x:{ ticks:{ font:{size:9} }, grid:{ display:false } } } }
+});
+function filterAirline() {
+    const f = document.getElementById('airlineFilter').value.toLowerCase();
+    const fil = allAirlineLabels.map((l,i)=>({l,v:allAirlineValues[i]})).filter(x=>x.l.toLowerCase().includes(f));
+    airlineChart.data.labels = fil.map(x=>x.l);
+    airlineChart.data.datasets[0].data = fil.map(x=>x.v);
+    airlineChart.update();
+}
+
+let agentChart = new Chart(document.getElementById('agentChart'), {
+    type: 'bar',
+    data: { labels: allAgentLabels, datasets:[{ data:allAgentValues, backgroundColor:'#53409999', borderColor:'#534099', borderWidth:1 }] },
+    options: { ...baseOpts, indexAxis:'y', scales:{ x:{ beginAtZero:true, ticks:{ font:{size:9} }, grid:{ color:gridColor } }, y:{ ticks:{ font:{size:9} }, grid:{ display:false } } } }
+});
+function filterAgent() {
+    const f = document.getElementById('agentFilter').value.toLowerCase();
+    const fil = allAgentLabels.map((l,i)=>({l,v:allAgentValues[i]})).filter(x=>x.l.toLowerCase().includes(f));
+    agentChart.data.labels = fil.map(x=>x.l);
+    agentChart.data.datasets[0].data = fil.map(x=>x.v);
+    agentChart.update();
+}
+
+new Chart(document.getElementById('officerChart'), {
+    type: 'bar',
+    data: { labels: officerLabels, datasets:[{ data:officerConf, backgroundColor: officerConf.map(v=>v>=80?'#3b6d1199':v>=60?'#ba751799':'#d1343899'), borderWidth:1 }] },
+    options: { ...baseOpts, scales:{ y:{ beginAtZero:true, max:100, ticks:{ callback:v=>v+'%', font:{size:9} }, grid:{ color:gridColor } }, x:{ ticks:{ font:{size:9} }, grid:{ display:false } } } }
+});
+</script>

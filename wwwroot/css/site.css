@@ -1,0 +1,17 @@
+body {
+    background-color: #f5f6fa;
+}
+
+.sidebar {
+    width: 240px;
+    min-height: 100vh;
+}
+
+.sidebar .nav-link {
+    font-size: 1.1rem;
+}
+
+.sidebar .nav-link:hover {
+    background-color: #495057;
+    border-radius: 5px;
+}

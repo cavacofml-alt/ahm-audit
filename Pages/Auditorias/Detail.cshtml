@@ -1,0 +1,88 @@
+@page
+@model AHM.Audit.Pages.Auditorias.DetailModel
+@{
+    ViewData["Title"] = "Detalhe da Auditoria";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2 class="mb-0"><i class="bi bi-clipboard2-check me-2"></i>@Model.Auditoria.Ticket</h2>
+    <div class="d-flex gap-2">
+        <a href="/Auditorias/Edit?id=@Model.Auditoria.Id" class="btn btn-warning"><i class="bi bi-pencil me-1"></i>Editar</a>
+        <a href="/Auditorias" class="btn btn-outline-secondary"><i class="bi bi-arrow-left me-1"></i>Voltar</a>
+    </div>
+</div>
+
+<div class="card mb-4">
+    <div class="card-header fw-bold"><i class="bi bi-info-circle me-2"></i>Section: Informação Geral</div>
+    <div class="card-body">
+        <div class="row g-3">
+            <div class="col-md-4"><label class="text-muted small">Audit Agent</label><div class="fw-semibold">@Model.Auditoria.Agent</div></div>
+            <div class="col-md-4"><label class="text-muted small">AHM Officer</label><div class="fw-semibold">@Model.Auditoria.AhmOfficer</div></div>
+            <div class="col-md-4"><label class="text-muted small">Ticket Number</label><div class="fw-semibold">@Model.Auditoria.Ticket</div></div>
+            <div class="col-md-4"><label class="text-muted small">Date</label><div class="fw-semibold">@Model.Auditoria.Date.ToString("dd/MM/yyyy")</div></div>
+            <div class="col-md-4"><label class="text-muted small">Airline</label><div class="fw-semibold">@Model.Auditoria.Airline</div></div>
+            <div class="col-md-4"><label class="text-muted small">Aircraft</label><div class="fw-semibold">@Model.Auditoria.Aircraft</div></div>
+            <div class="col-md-4"><label class="text-muted small">Registration</label><div class="fw-semibold">@Model.Auditoria.Registration</div></div>
+            <div class="col-md-4"><label class="text-muted small">Revision Updates</label><div class="fw-semibold">@Model.Auditoria.RevisionUpdates</div></div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-3 mb-4">
+    <div class="col-md-4">
+        <div class="card text-white bg-success text-center">
+            <div class="card-body"><h6>YES</h6><p class="display-6 fw-bold mb-0">@Model.CountYes</p></div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card text-white bg-danger text-center">
+            <div class="card-body"><h6>NO</h6><p class="display-6 fw-bold mb-0">@Model.CountNo</p></div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card text-white bg-secondary text-center">
+            <div class="card-body"><h6>N/A</h6><p class="display-6 fw-bold mb-0">@Model.CountNA</p></div>
+        </div>
+    </div>
+</div>
+
+<div class="card mb-4">
+    <div class="card-header fw-bold"><i class="bi bi-check2-square me-2"></i>Section: Checklist W&B</div>
+    <div class="card-body p-0">
+        <table class="table table-hover mb-0">
+            <thead class="table-dark">
+                <tr><th style="width:60%">Item</th><th class="text-center">Resultado</th></tr>
+            </thead>
+            <tbody>
+                @foreach (var item in Model.ChecklistItems)
+                {
+                    var badgeClass = item.Value == "YES" ? "bg-success" : item.Value == "NO" ? "bg-danger" : "bg-secondary";
+                    <tr class="@(item.Value == "NO" ? "table-danger" : "")">
+                        <td>@item.Label</td>
+                        <td class="text-center"><span class="badge @badgeClass">@item.Value</span></td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<div class="card mb-4">
+    <div class="card-header fw-bold"><i class="bi bi-tools me-2"></i>Section: Correções</div>
+    <div class="card-body">
+        <div class="row g-3">
+            <div class="col-md-6"><label class="text-muted small">Correction Ticket</label><div class="fw-semibold">@(string.IsNullOrEmpty(Model.Auditoria.CorrectionTicket) ? "-" : Model.Auditoria.CorrectionTicket)</div></div>
+            <div class="col-md-6"><label class="text-muted small">Reason for Re-certification</label><div class="fw-semibold">@(string.IsNullOrEmpty(Model.Auditoria.ReasonForRecertification) ? "-" : Model.Auditoria.ReasonForRecertification)</div></div>
+            <div class="col-md-6"><label class="text-muted small">Corrections Made</label><div><span class="badge @(Model.Auditoria.CorrectionsMade == "YES" ? "bg-success" : Model.Auditoria.CorrectionsMade == "NO" ? "bg-danger" : "bg-secondary")">@Model.Auditoria.CorrectionsMade</span></div></div>
+            <div class="col-md-6"><label class="text-muted small">Aircraft Re-certified</label><div><span class="badge @(Model.Auditoria.AircraftRecertified == "YES" ? "bg-success" : Model.Auditoria.AircraftRecertified == "NO" ? "bg-danger" : "bg-secondary")">@Model.Auditoria.AircraftRecertified</span></div></div>
+        </div>
+    </div>
+</div>
+
+@if (!string.IsNullOrEmpty(Model.Auditoria.Notes))
+{
+    <div class="card mb-4">
+        <div class="card-header fw-bold"><i class="bi bi-chat-left-text me-2"></i>Section: Notas</div>
+        <div class="card-body">@Model.Auditoria.Notes</div>
+    </div>
+}

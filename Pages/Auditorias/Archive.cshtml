@@ -1,0 +1,86 @@
+@page
+@model AHM.Audit.Pages.Auditorias.ArchiveModel
+@{
+    ViewData["Title"] = "Arquivo";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2 class="mb-0"><i class="bi bi-archive me-2"></i>Arquivo</h2>
+    <a href="/Auditorias" class="btn btn-outline-secondary"><i class="bi bi-arrow-left me-1"></i>Voltar</a>
+</div>
+
+<div class="card mb-4">
+    <div class="card-body">
+        <form method="get" class="d-flex align-items-center gap-3">
+            <label class="form-label mb-0 fw-semibold">Ano:</label>
+            <select class="form-select w-auto" name="year" onchange="this.form.submit()">
+                <option value="">-- Selecionar --</option>
+                @foreach (var year in Model.AvailableYears)
+                {
+                    if (Model.SelectedYear == year)
+                    {
+                        <option value="@year" selected>@year</option>
+                    }
+                    else
+                    {
+                        <option value="@year">@year</option>
+                    }
+                }
+            </select>
+            @if (Model.SelectedYear > 0)
+            {
+                <a href="/Auditorias/ExportArchive?year=@Model.SelectedYear" class="btn btn-outline-success">
+                    <i class="bi bi-file-earmark-excel me-1"></i>Exportar @Model.SelectedYear
+                </a>
+            }
+        </form>
+    </div>
+</div>
+
+@if (Model.SelectedYear > 0 && !Model.Auditorias.Any())
+{
+    <div class="alert alert-info">Não existem auditorias arquivadas para @Model.SelectedYear.</div>
+}
+
+@if (Model.Auditorias.Any())
+{
+    <div class="card">
+        <div class="card-header fw-bold">Auditorias de @Model.SelectedYear — @Model.Auditorias.Count registo(s)</div>
+        <div class="card-body p-0">
+            <table class="table table-hover mb-0">
+                <thead class="table-dark">
+                    <tr>
+                        <th>Ticket</th>
+                        <th>Agent</th>
+                        <th>AHM Officer</th>
+                        <th>Airline</th>
+                        <th>Aircraft</th>
+                        <th>Registration</th>
+                        <th>Date</th>
+                        <th class="text-center">YES</th>
+                        <th class="text-center">NO</th>
+                        <th class="text-center">N/A</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var item in Model.Auditorias)
+                    {
+                        var nos = Model.CountNo(item);
+                        <tr class="@(nos > 0 ? "table-danger" : "table-success")">
+                            <td><strong>@item.Ticket</strong></td>
+                            <td>@item.Agent</td>
+                            <td>@item.AhmOfficer</td>
+                            <td>@item.Airline</td>
+                            <td>@item.Aircraft</td>
+                            <td>@item.Registration</td>
+                            <td>@item.Date.ToString("dd/MM/yyyy")</td>
+                            <td class="text-center"><span class="badge bg-success">@Model.CountYes(item)</span></td>
+                            <td class="text-center"><span class="badge bg-danger">@nos</span></td>
+                            <td class="text-center"><span class="badge bg-secondary">@Model.CountNA(item)</span></td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+}

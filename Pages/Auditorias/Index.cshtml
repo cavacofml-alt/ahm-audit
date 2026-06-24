@@ -1,0 +1,175 @@
+@page
+@model AHM.Audit.Pages.Auditorias.IndexModel
+@{
+    ViewData["Title"] = "Auditorias";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2 class="mb-0"><i class="bi bi-clipboard-check me-2"></i>Auditorias</h2>
+    <div class="d-flex gap-2">
+        <a class="btn btn-outline-success" href="/Auditorias/Export"><i class="bi bi-file-earmark-excel me-1"></i>Exportar CSV</a>
+        <a class="btn btn-primary" href="/Auditorias/Create"><i class="bi bi-plus-circle me-1"></i>Nova Auditoria</a>
+    </div>
+</div>
+
+<!-- Filtros -->
+<div class="card mb-3">
+    <div class="card-body">
+        <div class="row g-2 align-items-end">
+            <div class="col-md-2">
+                <label class="form-label small">Ticket</label>
+                <input type="text" id="fTicket" class="form-control form-control-sm" placeholder="Filtrar..." />
+            </div>
+            <div class="col-md-2">
+                <label class="form-label small">Agent</label>
+                <input type="text" id="fAgent" class="form-control form-control-sm" placeholder="Filtrar..." />
+            </div>
+            <div class="col-md-2">
+                <label class="form-label small">Airline</label>
+                <input type="text" id="fAirline" class="form-control form-control-sm" placeholder="Filtrar..." />
+            </div>
+            <div class="col-md-2">
+                <label class="form-label small">Aircraft</label>
+                <input type="text" id="fAircraft" class="form-control form-control-sm" placeholder="Filtrar..." />
+            </div>
+            <div class="col-md-2">
+                <label class="form-label small">Registration</label>
+                <input type="text" id="fReg" class="form-control form-control-sm" placeholder="Filtrar..." />
+            </div>
+            <div class="col-md-1">
+                <label class="form-label small">De</label>
+                <input type="date" id="fDateFrom" class="form-control form-control-sm" />
+            </div>
+            <div class="col-md-1">
+                <label class="form-label small">Até</label>
+                <input type="date" id="fDateTo" class="form-control form-control-sm" />
+            </div>
+        </div>
+        <div class="mt-2">
+            <button class="btn btn-sm btn-outline-secondary" onclick="clearFilters()">
+                <i class="bi bi-x-circle me-1"></i>Limpar Filtros
+            </button>
+        </div>
+    </div>
+</div>
+
+@if (!Model.Auditorias.Any())
+{
+    <div class="alert alert-info">Ainda não existem auditorias registadas.</div>
+}
+else
+{
+    <div class="card">
+        <div class="card-body p-0">
+            <table class="table table-hover mb-0" id="auditTable">
+                <thead class="table-dark sticky-top">
+                    <tr>
+                        <th class="sortable" data-col="0">Ticket <i class="bi bi-arrow-down-up"></i></th>
+                        <th class="sortable" data-col="1">Agent <i class="bi bi-arrow-down-up"></i></th>
+                        <th class="sortable" data-col="2">Airline <i class="bi bi-arrow-down-up"></i></th>
+                        <th class="sortable" data-col="3">Aircraft <i class="bi bi-arrow-down-up"></i></th>
+                        <th class="sortable" data-col="4">Registration <i class="bi bi-arrow-down-up"></i></th>
+                        <th class="sortable" data-col="5">Date <i class="bi bi-arrow-down-up"></i></th>
+                        <th class="text-center sortable" data-col="6">YES <i class="bi bi-arrow-down-up"></i></th>
+                        <th class="text-center sortable" data-col="7">NO <i class="bi bi-arrow-down-up"></i></th>
+                        <th class="text-center sortable" data-col="8">N/A <i class="bi bi-arrow-down-up"></i></th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody id="tableBody">
+                    @foreach (var item in Model.Auditorias)
+                    {
+                        var nos = Model.CountNo(item);
+                        var rowClass = nos > 0 ? "table-danger" : "table-success";
+                        <tr class="@rowClass" data-date="@item.Date.ToString("yyyy-MM-dd")">
+                            <td><strong>@item.Ticket</strong></td>
+                            <td>@item.Agent</td>
+                            <td>@item.Airline</td>
+                            <td>@item.Aircraft</td>
+                            <td>@item.Registration</td>
+                            <td>@item.Date.ToString("dd/MM/yyyy")</td>
+                            <td class="text-center"><span class="badge bg-success">@Model.CountYes(item)</span></td>
+                            <td class="text-center"><span class="badge bg-danger">@nos</span></td>
+                            <td class="text-center"><span class="badge bg-secondary">@Model.CountNA(item)</span></td>
+                            <td class="text-nowrap">
+                                <a class="btn btn-sm btn-info text-white me-1" href="/Auditorias/Detail?id=@item.Id" title="Ver detalhe">
+                                    <i class="bi bi-eye"></i>
+                                </a>
+                                <a class="btn btn-sm btn-warning me-1" href="/Auditorias/Edit?id=@item.Id" title="Editar">
+                                    <i class="bi bi-pencil"></i>
+                                </a>
+                                @if (Model.IsAdmin)
+                                {
+                                    <form method="post" asp-page-handler="Delete" class="d-inline" onsubmit="return confirm('Tens a certeza que queres apagar esta auditoria?')">
+                                        <input type="hidden" name="id" value="@item.Id" />
+                                        <button class="btn btn-sm btn-danger" title="Apagar"><i class="bi bi-trash"></i></button>
+                                    </form>
+                                }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+}
+
+<style>
+.sortable { cursor: pointer; user-select: none; }
+.sortable:hover { background: #374151; }
+</style>
+
+<script>
+let sortDir = {};
+document.querySelectorAll('.sortable').forEach(th => {
+    th.addEventListener('click', () => {
+        const col = parseInt(th.dataset.col);
+        sortDir[col] = !sortDir[col];
+        const tbody = document.getElementById('tableBody');
+        const rows = Array.from(tbody.querySelectorAll('tr'));
+        rows.sort((a, b) => {
+            const aVal = a.cells[col]?.innerText.trim() || '';
+            const bVal = b.cells[col]?.innerText.trim() || '';
+            const n1 = parseFloat(aVal), n2 = parseFloat(bVal);
+            if (!isNaN(n1) && !isNaN(n2)) return sortDir[col] ? n1 - n2 : n2 - n1;
+            return sortDir[col] ? aVal.localeCompare(bVal) : bVal.localeCompare(aVal);
+        });
+        rows.forEach(r => tbody.appendChild(r));
+    });
+});
+
+function applyFilters() {
+    const fTicket  = document.getElementById('fTicket').value.toLowerCase();
+    const fAgent   = document.getElementById('fAgent').value.toLowerCase();
+    const fAirline = document.getElementById('fAirline').value.toLowerCase();
+    const fAcraft  = document.getElementById('fAircraft').value.toLowerCase();
+    const fReg     = document.getElementById('fReg').value.toLowerCase();
+    const fFrom    = document.getElementById('fDateFrom').value;
+    const fTo      = document.getElementById('fDateTo').value;
+
+    document.querySelectorAll('#tableBody tr').forEach(row => {
+        const cells = row.cells;
+        const rowDate = row.dataset.date;
+        const textMatch =
+            (!fTicket  || cells[0]?.innerText.toLowerCase().includes(fTicket)) &&
+            (!fAgent   || cells[1]?.innerText.toLowerCase().includes(fAgent)) &&
+            (!fAirline || cells[2]?.innerText.toLowerCase().includes(fAirline)) &&
+            (!fAcraft  || cells[3]?.innerText.toLowerCase().includes(fAcraft)) &&
+            (!fReg     || cells[4]?.innerText.toLowerCase().includes(fReg));
+        const dateMatch =
+            (!fFrom || rowDate >= fFrom) &&
+            (!fTo   || rowDate <= fTo);
+        row.style.display = (textMatch && dateMatch) ? '' : 'none';
+    });
+}
+
+function clearFilters() {
+    ['fTicket','fAgent','fAirline','fAircraft','fReg','fDateFrom','fDateTo'].forEach(id => {
+        document.getElementById(id).value = '';
+    });
+    applyFilters();
+}
+
+['fTicket','fAgent','fAirline','fAircraft','fReg','fDateFrom','fDateTo'].forEach(id =>
+    document.getElementById(id)?.addEventListener('input', applyFilters));
+</script>

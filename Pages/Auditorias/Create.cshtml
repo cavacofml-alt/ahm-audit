@@ -1,0 +1,236 @@
+@page
+@model AHM.Audit.Pages.Auditorias.CreateModel
+@{
+    ViewData["Title"] = "Nova Auditoria";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2 class="mb-0"><i class="bi bi-clipboard-plus me-2"></i>Nova Auditoria</h2>
+    <a href="/Auditorias" class="btn btn-outline-secondary"><i class="bi bi-arrow-left me-1"></i>Voltar</a>
+</div>
+
+@if (!string.IsNullOrEmpty(Model.ErrorMessage))
+{
+    <div class="alert alert-danger">@Model.ErrorMessage</div>
+}
+
+<!-- Registration duplicate warning modal -->
+<div class="modal fade" id="registrationWarning" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content border-warning">
+            <div class="modal-header bg-warning text-dark">
+                <h5 class="modal-title"><i class="bi bi-exclamation-triangle-fill me-2"></i>Atenção</h5>
+            </div>
+            <div class="modal-body">
+                <p>A matrícula <strong id="regValue"></strong> já foi auditada nos últimos 6 meses.</p>
+                <p>Tens a certeza que queres continuar?</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-warning" id="confirmSubmit">Continuar na mesma</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<form method="post" id="auditForm">
+
+    <!-- SECTION: Informação Geral -->
+    <div class="card mb-4">
+        <div class="card-header fw-bold"><i class="bi bi-info-circle me-2"></i>Section: Informação Geral</div>
+        <div class="card-body">
+            <div class="row g-3">
+                <div class="col-md-4">
+                    <label class="form-label">Audit Agent <span class="text-danger">*</span></label>
+                    <select class="form-select" asp-for="Auditoria.Agent" required>
+                        <option value="">-- Selecionar --</option>
+                        @foreach (var a in Model.Agents)
+                        {
+                            <option value="@a">@a</option>
+                        }
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">AHM Officer <span class="text-danger">*</span></label>
+                    <select class="form-select" asp-for="Auditoria.AhmOfficer" required>
+                        <option value="">-- Selecionar --</option>
+                        @foreach (var o in Model.Officers)
+                        {
+                            <option value="@o">@o</option>
+                        }
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Ticket Number <span class="text-danger">*</span></label>
+                    <input class="form-control" asp-for="Auditoria.Ticket" placeholder="#" required />
+                    <div class="form-text">Deve começar com # e ser único</div>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Date <span class="text-danger">*</span></label>
+                    <input class="form-control" type="date" asp-for="Auditoria.Date" required />
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Airline <span class="text-danger">*</span></label>
+                    <input class="form-control" asp-for="Auditoria.Airline" placeholder="Ex: TP, FR, TAP" required minlength="2" maxlength="3" style="text-transform:uppercase" />
+                    <div class="form-text">2 a 3 caracteres (código IATA/ICAO)</div>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Aircraft Type <span class="text-danger">*</span></label>
+                    <input class="form-control" asp-for="Auditoria.Aircraft" placeholder="Ex: A320, B737" required />
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Registration <span class="text-danger">*</span></label>
+                    <input class="form-control" asp-for="Auditoria.Registration" placeholder="Ex: CS-TNV" id="registrationInput" required />
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Revision Updates</label>
+                    <input class="form-control" asp-for="Auditoria.RevisionUpdates" placeholder="Ex: Rev 3.2" />
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- SECTION: Checklist W&B -->
+    <div class="card mb-4">
+        <div class="card-header fw-bold sticky-top" style="top:0;z-index:100;background:#f8fafc;">
+            <div class="row">
+                <div class="col-6"><i class="bi bi-check2-square me-2"></i>Section: Checklist W&B</div>
+                <div class="col-2 text-center text-success fw-bold">YES</div>
+                <div class="col-2 text-center text-danger fw-bold">NO</div>
+                <div class="col-2 text-center text-secondary fw-bold">N/A</div>
+            </div>
+        </div>
+        <div class="card-body p-0">
+            <table class="table table-hover align-middle mb-0">
+                <tbody>
+                    @{
+                        var items = new[]
+                        {
+                            ("B1 - Standard units and codes",       "B1"),
+                            ("B2 - Crew and crew baggage weights",  "B2"),
+                            ("B3 - Passenger and baggage weights",  "B3"),
+                            ("C1 - Aircraft Type or fleet",         "C1"),
+                            ("C2 - Balance/Special info",           "C2"),
+                            ("C2.3 - Sup info",                     "C2_3"),
+                            ("C3 - Basic index/MAR RC Formula",     "C3"),
+                            ("C4.1 - Take-off",                     "C4_TakeOff"),
+                            ("C4.1 - Zero-Fuel",                    "C4_ZeroFuel"),
+                            ("C4.1 - Landing",                      "C4_Landing"),
+                            ("C4.1 - Inflight",                     "C4_Inflight"),
+                            ("C4.1 - Ideal Trim",                   "C4_IdealTrim"),
+                            ("C5 - Fuel",                           "C5"),
+                            ("C7.1 - Stab trim",                    "C7_1"),
+                            ("D1 - Dimensions and limits",          "D1"),
+                            ("D2 - Holds",                          "D2"),
+                            ("D3 - ULD",                            "D3"),
+                            ("D5.1 - Cabin",                        "D5_1"),
+                            ("D5.2 - Cabin Crew Seats",             "D5_2"),
+                            ("D6.2 - Seatmap",                      "D6_2"),
+                            ("E1 - DOW/DOI (BW/BI)",                "E1_DOW"),
+                            ("E1 - MRW",                            "E1_MRW"),
+                            ("E1 - MTOW",                           "E1_MTOW"),
+                            ("E1 - MZFW",                           "E1_MZFW"),
+                            ("E1 - MLAW",                           "E1_MLAW"),
+                            ("E2.1 - Crew Codes",                   "E2_1"),
+                            ("E2.2 - Crew Distribution",            "E2_2"),
+                            ("E3.1 - Pantry Distribution",          "E3_1"),
+                            ("G1 - ULD Compatibility",              "G1"),
+                            ("Revision update was correct?",        "RevisionUpdate"),
+                            ("LIR",                                 "LIR"),
+                            ("LS",                                  "LS"),
+                            ("Database Printout",                   "DatabasePrintout"),
+                        };
+                    }
+                    @foreach (var (label, field) in items)
+                    {
+                        <tr>
+                            <td style="width:50%">@label</td>
+                            <td class="text-center" style="width:17%"><input type="radio" name="Auditoria.@field" value="YES" class="form-check-input" /></td>
+                            <td class="text-center" style="width:17%"><input type="radio" name="Auditoria.@field" value="NO" class="form-check-input" /></td>
+                            <td class="text-center" style="width:17%"><input type="radio" name="Auditoria.@field" value="N/A" class="form-check-input" checked /></td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- SECTION: Correções -->
+    <div class="card mb-4">
+        <div class="card-header fw-bold"><i class="bi bi-tools me-2"></i>Section: Correções</div>
+        <div class="card-body">
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <label class="form-label">Correction Ticket</label>
+                    <input class="form-control" asp-for="Auditoria.CorrectionTicket" placeholder="Nº do ticket de correção" />
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">Reason for Re-certification</label>
+                    <input class="form-control" asp-for="Auditoria.ReasonForRecertification" placeholder="Motivo" />
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label fw-semibold">Corrections Made</label>
+                    <div class="d-flex gap-4 mt-1">
+                        <div class="form-check"><input class="form-check-input" type="radio" name="Auditoria.CorrectionsMade" value="YES" /><label class="form-check-label">YES</label></div>
+                        <div class="form-check"><input class="form-check-input" type="radio" name="Auditoria.CorrectionsMade" value="NO" /><label class="form-check-label">NO</label></div>
+                        <div class="form-check"><input class="form-check-input" type="radio" name="Auditoria.CorrectionsMade" value="N/A" checked /><label class="form-check-label">N/A</label></div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label fw-semibold">Aircraft Re-certified</label>
+                    <div class="d-flex gap-4 mt-1">
+                        <div class="form-check"><input class="form-check-input" type="radio" name="Auditoria.AircraftRecertified" value="YES" /><label class="form-check-label">YES</label></div>
+                        <div class="form-check"><input class="form-check-input" type="radio" name="Auditoria.AircraftRecertified" value="NO" /><label class="form-check-label">NO</label></div>
+                        <div class="form-check"><input class="form-check-input" type="radio" name="Auditoria.AircraftRecertified" value="N/A" checked /><label class="form-check-label">N/A</label></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- SECTION: Notas -->
+    <div class="card mb-4">
+        <div class="card-header fw-bold"><i class="bi bi-chat-left-text me-2"></i>Section: Notas</div>
+        <div class="card-body">
+            <textarea class="form-control" asp-for="Auditoria.Notes" rows="4" placeholder="Observações adicionais..."></textarea>
+        </div>
+    </div>
+
+    <div class="d-flex gap-2 mb-5">
+        <button type="button" class="btn btn-success btn-lg" id="submitBtn"><i class="bi bi-save me-2"></i>Guardar Auditoria</button>
+        <a href="/Auditorias" class="btn btn-outline-secondary btn-lg">Cancelar</a>
+    </div>
+
+</form>
+
+<script>
+    const duplicateRegs = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.RecentRegistrations));
+
+    // Force # prefix on ticket
+    document.querySelector('input[name="Auditoria.Ticket"]').addEventListener('blur', function() {
+        if (this.value && !this.value.startsWith('#'))
+            this.value = '#' + this.value;
+    });
+
+    // Force uppercase on airline
+    document.querySelector('input[name="Auditoria.Airline"]').addEventListener('input', function() {
+        this.value = this.value.toUpperCase();
+    });
+
+    document.getElementById('submitBtn').addEventListener('click', function () {
+        const form = document.getElementById('auditForm');
+        if (!form.checkValidity()) { form.reportValidity(); return; }
+
+        const reg = document.getElementById('registrationInput').value.trim().toUpperCase();
+        if (reg && duplicateRegs.map(r => r.toUpperCase()).includes(reg)) {
+            document.getElementById('regValue').textContent = reg;
+            new bootstrap.Modal(document.getElementById('registrationWarning')).show();
+        } else {
+            form.submit();
+        }
+    });
+
+    document.getElementById('confirmSubmit').addEventListener('click', function () {
+        document.getElementById('auditForm').submit();
+    });
+</script>
