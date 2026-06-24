@@ -3,16 +3,17 @@ using AHM.Audit.Data;
 using AHM.Audit.Models;
 using System.Reflection;
 
+// Fix PostgreSQL DateTime compatibility
+AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehavior", true);
+
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddRazorPages();
 
-// Usa PostgreSQL se DATABASE_URL existir (Railway), senão usa SQL Server (local)
 var databaseUrl = Environment.GetEnvironmentVariable("DATABASE_URL");
 
 if (!string.IsNullOrEmpty(databaseUrl))
 {
-    // Converter URL do formato postgresql://user:pass@host:port/db para connection string Npgsql
     var uri = new Uri(databaseUrl);
     var userInfo = uri.UserInfo.Split(':');
     var npgsqlConn = $"Host={uri.Host};Port={uri.Port};Database={uri.AbsolutePath.TrimStart('/')};Username={userInfo[0]};Password={userInfo[1]};SSL Mode=Require;Trust Server Certificate=true";
@@ -22,7 +23,6 @@ if (!string.IsNullOrEmpty(databaseUrl))
 }
 else
 {
-    // SQL Server local
     builder.Services.AddDbContext<AuditDbContext>(options =>
         options.UseSqlServer(builder.Configuration.GetConnectionString("Default")));
 }
