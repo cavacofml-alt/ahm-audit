@@ -12,9 +12,13 @@ var databaseUrl = Environment.GetEnvironmentVariable("DATABASE_URL");
 
 if (!string.IsNullOrEmpty(databaseUrl))
 {
-    // Railway PostgreSQL
+    // Converter URL do formato postgresql://user:pass@host:port/db para connection string Npgsql
+    var uri = new Uri(databaseUrl);
+    var userInfo = uri.UserInfo.Split(':');
+    var npgsqlConn = $"Host={uri.Host};Port={uri.Port};Database={uri.AbsolutePath.TrimStart('/')};Username={userInfo[0]};Password={userInfo[1]};SSL Mode=Require;Trust Server Certificate=true";
+
     builder.Services.AddDbContext<AuditDbContext>(options =>
-        options.UseNpgsql(databaseUrl));
+        options.UseNpgsql(npgsqlConn));
 }
 else
 {
