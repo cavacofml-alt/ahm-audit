@@ -17,6 +17,7 @@
         .sidebar-header small { color: #94a3b8; }
         .nav-link { color: #cbd5e1; padding: 10px 20px; border-radius: 0; }
         .nav-link:hover { background: #334155; color: #fff; }
+        .nav-link.active { background: #0078d4; color: #fff; }
         .nav-section { color: #64748b; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 1px; padding: 12px 20px 4px; }
         .main-content { padding: 30px; min-height: 100vh; }
         .card { border: none; border-radius: 12px; }
@@ -29,6 +30,7 @@
         var sessionUser = Context.Session.GetString("User");
         var isAdmin = sessionUser != null && DbContext.Users.Any(u => u.Username == sessionUser && u.IsAdmin);
         var hasArchive = DbContext.AuditoriaArchives.Any();
+        var currentPath = Context.Request.Path.Value ?? "";
     }
 
     <div class="sidebar flex-shrink-0">
@@ -40,21 +42,18 @@
             <span class="nav-section">Principal</span>
             @if (isAdmin)
             {
-                <a class="nav-link" href="/"><i class="bi bi-speedometer2 me-2"></i>Dashboard</a>
+                <a class="nav-link @(currentPath == "/" ? "active" : "")" href="/"><i class="bi bi-speedometer2 me-2"></i>Dashboard</a>
             }
-            <a class="nav-link" href="/Auditorias"><i class="bi bi-clipboard-check me-2"></i>Auditorias</a>
-            <a class="nav-link" href="/Auditorias/Create"><i class="bi bi-plus-circle me-2"></i>Nova Auditoria</a>
-
-            @if (hasArchive)
-            {
-                <a class="nav-link" href="/Auditorias/Archive"><i class="bi bi-archive me-2"></i>Arquivo</a>
-            }
+            <a class="nav-link @(currentPath.StartsWith("/Auditorias") && !currentPath.Contains("Create") && !currentPath.Contains("Archive") ? "active" : "")" href="/Auditorias"><i class="bi bi-clipboard-check me-2"></i>Auditorias</a>
+            <a class="nav-link @(currentPath.Contains("Create") ? "active" : "")" href="/Auditorias/Create"><i class="bi bi-plus-circle me-2"></i>Nova Auditoria</a>
+            <a class="nav-link @(currentPath.Contains("Archive") ? "active" : "")" href="/Auditorias/Archive"><i class="bi bi-archive me-2"></i>Arquivo</a>
 
             @if (isAdmin)
             {
                 <span class="nav-section">Administração</span>
-                <a class="nav-link" href="/Admin/Users"><i class="bi bi-people me-2"></i>Utilizadores</a>
-                <a class="nav-link" href="/Admin/Persons"><i class="bi bi-person-badge me-2"></i>Agentes/Officers</a>
+                <a class="nav-link @(currentPath.Contains("/Admin/Users") ? "active" : "")" href="/Admin/Users"><i class="bi bi-people me-2"></i>Utilizadores</a>
+                <a class="nav-link @(currentPath.Contains("/Admin/Persons") ? "active" : "")" href="/Admin/Persons"><i class="bi bi-person-badge me-2"></i>Agentes/Officers</a>
+                <a class="nav-link @(currentPath.Contains("/Admin/Backup") ? "active" : "")" href="/Admin/Backup"><i class="bi bi-database me-2"></i>Backup & Restauro</a>
             }
 
             <span class="nav-section">Conta</span>
