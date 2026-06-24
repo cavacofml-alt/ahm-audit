@@ -35,6 +35,7 @@ namespace AHM.Audit.Pages
         private readonly AuditDbContext _context;
         public IndexModel(AuditDbContext context) { _context = context; }
 
+        public bool IsAdmin { get; set; }
         public int Total    { get; set; }
         public int TotalYes { get; set; }
         public int TotalNo  { get; set; }
@@ -43,12 +44,11 @@ namespace AHM.Audit.Pages
         public string PctNo  { get; set; } = "0";
         public string PctNA  { get; set; } = "0";
 
-        // Comparação ano anterior
-        public int PrevTotal    { get; set; }
+        public int PrevTotal     { get; set; }
         public string PrevPctYes { get; set; } = "0";
-        public int DiffTotal    { get; set; }
-        public int DiffPctYes   { get; set; }
-        public int CompareYear  { get; set; }
+        public int DiffTotal     { get; set; }
+        public int DiffPctYes    { get; set; }
+        public int CompareYear   { get; set; }
         public int CurrentDataYear { get; set; }
 
         public DateTime? FilterFrom { get; set; }
@@ -56,15 +56,15 @@ namespace AHM.Audit.Pages
         public int CurrentQuarter   { get; set; }
         public int CurrentYear      { get; set; }
 
-        public List<QuarterStat>  QuarterProgress  { get; set; } = new();
-        public List<string>       AirlineLabels    { get; set; } = new();
-        public List<int>          AirlineValues    { get; set; } = new();
-        public List<string>       AgentLabels      { get; set; } = new();
-        public List<int>          AgentValues      { get; set; } = new();
-        public List<string>       OfficerLabels    { get; set; } = new();
+        public List<QuarterStat>  QuarterProgress   { get; set; } = new();
+        public List<string>       AirlineLabels     { get; set; } = new();
+        public List<int>          AirlineValues     { get; set; } = new();
+        public List<string>       AgentLabels       { get; set; } = new();
+        public List<int>          AgentValues       { get; set; } = new();
+        public List<string>       OfficerLabels     { get; set; } = new();
         public List<int>          OfficerConformity { get; set; } = new();
-        public List<string>       SectionNames     { get; set; } = new();
-        public List<SectionStat>  SectionData      { get; set; } = new();
+        public List<string>       SectionNames      { get; set; } = new();
+        public List<SectionStat>  SectionData       { get; set; } = new();
         public Dictionary<string, OfficerStat> OfficerStats { get; set; } = new();
 
         private static readonly (string field, string sectionKey, string sectionName)[] ChecklistItems = new[]
@@ -125,6 +125,8 @@ namespace AHM.Audit.Pages
 
             var isAdmin = _context.Users.Any(u => u.Username == username && u.IsAdmin);
             if (!isAdmin) return RedirectToPage("/Auditorias/Index");
+
+            IsAdmin = true;
             ViewData["IsAdmin"] = true;
 
             FilterFrom = from;
@@ -134,7 +136,6 @@ namespace AHM.Audit.Pages
             CurrentQuarter = (now.Month - 1) / 3 + 1;
             CurrentYear    = now.Year;
 
-            // Quarter progress
             for (int q = 1; q <= 4; q++)
             {
                 var qStart = new DateTime(now.Year, (q - 1) * 3 + 1, 1);
@@ -160,7 +161,6 @@ namespace AHM.Audit.Pages
                 PctNA  = (TotalNA  * 100 / grand).ToString();
             }
 
-            // Comparação ano anterior — usa auditorias do ano anterior no arquivo
             var dataYear = from.HasValue ? from.Value.Year : now.Year;
             CurrentDataYear = dataYear;
             CompareYear = dataYear - 1;
@@ -198,9 +198,9 @@ namespace AHM.Audit.Pages
                 foreach (var (f, key, _) in ChecklistItems)
                 {
                     var val = typeof(Auditoria).GetProperty(f)?.GetValue(a)?.ToString() ?? "N/A";
-                    if (val == "YES") { sectionMap[key].yes++; }
-                    else if (val == "NO") { sectionMap[key].no++; }
-                    else { sectionMap[key].na++; }
+                    if (val == "YES") sectionMap[key].yes++;
+                    else if (val == "NO") sectionMap[key].no++;
+                    else sectionMap[key].na++;
                 }
 
             foreach (var s in sectionMap.Values)
