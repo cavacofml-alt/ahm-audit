@@ -27,14 +27,20 @@ namespace AHM.Audit.Pages.Auditorias
             return Page();
         }
 
-        public IActionResult OnPostDelete(int id)
+        public IActionResult OnPostDeleteSelected(string ids)
         {
             var username = HttpContext.Session.GetString("User");
             var isAdmin = _context.Users.Any(u => u.Username == username && u.IsAdmin);
             if (!isAdmin) return Forbid();
 
-            var audit = _context.Auditorias.Find(id);
-            if (audit != null) { _context.Auditorias.Remove(audit); _context.SaveChanges(); }
+            if (!string.IsNullOrEmpty(ids))
+            {
+                var idList = ids.Split(',').Select(s => int.TryParse(s.Trim(), out var n) ? n : 0).Where(n => n > 0).ToList();
+                var toDelete = _context.Auditorias.Where(a => idList.Contains(a.Id)).ToList();
+                _context.Auditorias.RemoveRange(toDelete);
+                _context.SaveChanges();
+            }
+
             return RedirectToPage();
         }
 

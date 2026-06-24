@@ -59,59 +59,82 @@
 }
 else
 {
-    <div class="card">
-        <div class="card-body p-0">
-            <table class="table table-hover mb-0" id="auditTable">
-                <thead class="table-dark sticky-top">
-                    <tr>
-                        <th class="sortable" data-col="0">Ticket <i class="bi bi-arrow-down-up"></i></th>
-                        <th class="sortable" data-col="1">Agent <i class="bi bi-arrow-down-up"></i></th>
-                        <th class="sortable" data-col="2">Airline <i class="bi bi-arrow-down-up"></i></th>
-                        <th class="sortable" data-col="3">Aircraft <i class="bi bi-arrow-down-up"></i></th>
-                        <th class="sortable" data-col="4">Registration <i class="bi bi-arrow-down-up"></i></th>
-                        <th class="sortable" data-col="5">Date <i class="bi bi-arrow-down-up"></i></th>
-                        <th class="text-center sortable" data-col="6">YES <i class="bi bi-arrow-down-up"></i></th>
-                        <th class="text-center sortable" data-col="7">NO <i class="bi bi-arrow-down-up"></i></th>
-                        <th class="text-center sortable" data-col="8">N/A <i class="bi bi-arrow-down-up"></i></th>
-                        <th></th>
-                    </tr>
-                </thead>
-                <tbody id="tableBody">
-                    @foreach (var item in Model.Auditorias)
-                    {
-                        var nos = Model.CountNo(item);
-                        var rowClass = nos > 0 ? "table-danger" : "table-success";
-                        <tr class="@rowClass" data-date="@item.Date.ToString("yyyy-MM-dd")">
-                            <td><strong>@item.Ticket</strong></td>
-                            <td>@item.Agent</td>
-                            <td>@item.Airline</td>
-                            <td>@item.Aircraft</td>
-                            <td>@item.Registration</td>
-                            <td>@item.Date.ToString("dd/MM/yyyy")</td>
-                            <td class="text-center"><span class="badge bg-success">@Model.CountYes(item)</span></td>
-                            <td class="text-center"><span class="badge bg-danger">@nos</span></td>
-                            <td class="text-center"><span class="badge bg-secondary">@Model.CountNA(item)</span></td>
-                            <td class="text-nowrap">
-                                <a class="btn btn-sm btn-info text-white me-1" href="/Auditorias/Detail?id=@item.Id" title="Ver detalhe">
-                                    <i class="bi bi-eye"></i>
-                                </a>
-                                <a class="btn btn-sm btn-warning me-1" href="/Auditorias/Edit?id=@item.Id" title="Editar">
-                                    <i class="bi bi-pencil"></i>
-                                </a>
-                                @if (Model.IsAdmin)
-                                {
-                                    <form method="post" asp-page-handler="Delete" class="d-inline" onsubmit="return confirm('Tens a certeza que queres apagar esta auditoria?')">
-                                        <input type="hidden" name="id" value="@item.Id" />
-                                        <button class="btn btn-sm btn-danger" title="Apagar"><i class="bi bi-trash"></i></button>
-                                    </form>
-                                }
-                            </td>
-                        </tr>
-                    }
-                </tbody>
-            </table>
+    <!-- Barra de ações para selecionados -->
+    <div id="selectionBar" class="alert alert-warning py-2 d-none d-flex align-items-center justify-content-between mb-2">
+        <span><i class="bi bi-check2-square me-2"></i><strong id="selCount">0</strong> auditoria(s) selecionada(s)</span>
+        <div class="d-flex gap-2">
+            <button class="btn btn-sm btn-outline-secondary" onclick="clearSelection()">Limpar seleção</button>
+            @if (Model.IsAdmin)
+            {
+                <button class="btn btn-sm btn-danger" onclick="deleteSelected()">
+                    <i class="bi bi-trash me-1"></i>Apagar selecionadas
+                </button>
+            }
         </div>
     </div>
+
+    <form method="post" asp-page-handler="DeleteSelected" id="deleteForm">
+        <div class="card">
+            <div class="card-body p-0">
+                <table class="table table-hover mb-0" id="auditTable">
+                    <thead class="table-dark sticky-top">
+                        <tr>
+                            <th style="width:40px">
+                                <input type="checkbox" class="form-check-input" id="selectAll" onchange="toggleAll(this)" />
+                            </th>
+                            <th class="sortable" data-col="1">Ticket <i class="bi bi-arrow-down-up"></i></th>
+                            <th class="sortable" data-col="2">Agent <i class="bi bi-arrow-down-up"></i></th>
+                            <th class="sortable" data-col="3">Airline <i class="bi bi-arrow-down-up"></i></th>
+                            <th class="sortable" data-col="4">Aircraft <i class="bi bi-arrow-down-up"></i></th>
+                            <th class="sortable" data-col="5">Registration <i class="bi bi-arrow-down-up"></i></th>
+                            <th class="sortable" data-col="6">Date <i class="bi bi-arrow-down-up"></i></th>
+                            <th class="text-center sortable" data-col="7">YES <i class="bi bi-arrow-down-up"></i></th>
+                            <th class="text-center sortable" data-col="8">NO <i class="bi bi-arrow-down-up"></i></th>
+                            <th class="text-center sortable" data-col="9">N/A <i class="bi bi-arrow-down-up"></i></th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody id="tableBody">
+                        @foreach (var item in Model.Auditorias)
+                        {
+                            var nos = Model.CountNo(item);
+                            var rowClass = nos > 0 ? "table-danger" : "table-success";
+                            <tr class="@rowClass" data-date="@item.Date.ToString("yyyy-MM-dd")">
+                                <td>
+                                    <input type="checkbox" class="form-check-input row-check" name="selectedIds" value="@item.Id" onchange="updateSelection()" />
+                                </td>
+                                <td><strong>@item.Ticket</strong></td>
+                                <td>@item.Agent</td>
+                                <td>@item.Airline</td>
+                                <td>@item.Aircraft</td>
+                                <td>@item.Registration</td>
+                                <td>@item.Date.ToString("dd/MM/yyyy")</td>
+                                <td class="text-center"><span class="badge bg-success">@Model.CountYes(item)</span></td>
+                                <td class="text-center"><span class="badge bg-danger">@nos</span></td>
+                                <td class="text-center"><span class="badge bg-secondary">@Model.CountNA(item)</span></td>
+                                <td class="text-nowrap">
+                                    <a class="btn btn-sm btn-info text-white me-1" href="/Auditorias/Detail?id=@item.Id" title="Ver detalhe">
+                                        <i class="bi bi-eye"></i>
+                                    </a>
+                                    <a class="btn btn-sm btn-warning me-1" href="/Auditorias/Edit?id=@item.Id" title="Editar">
+                                        <i class="bi bi-pencil"></i>
+                                    </a>
+                                    @if (Model.IsAdmin)
+                                    {
+                                        <button type="button" class="btn btn-sm btn-danger" title="Apagar"
+                                            onclick="deleteSingle(@item.Id)">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    }
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <input type="hidden" name="ids" id="hiddenIds" />
+    </form>
 }
 
 <style>
@@ -120,6 +143,7 @@ else
 </style>
 
 <script>
+// Sorting
 let sortDir = {};
 document.querySelectorAll('.sortable').forEach(th => {
     th.addEventListener('click', () => {
@@ -138,6 +162,7 @@ document.querySelectorAll('.sortable').forEach(th => {
     });
 });
 
+// Filtering
 function applyFilters() {
     const fTicket  = document.getElementById('fTicket').value.toLowerCase();
     const fAgent   = document.getElementById('fAgent').value.toLowerCase();
@@ -151,11 +176,11 @@ function applyFilters() {
         const cells = row.cells;
         const rowDate = row.dataset.date;
         const textMatch =
-            (!fTicket  || cells[0]?.innerText.toLowerCase().includes(fTicket)) &&
-            (!fAgent   || cells[1]?.innerText.toLowerCase().includes(fAgent)) &&
-            (!fAirline || cells[2]?.innerText.toLowerCase().includes(fAirline)) &&
-            (!fAcraft  || cells[3]?.innerText.toLowerCase().includes(fAcraft)) &&
-            (!fReg     || cells[4]?.innerText.toLowerCase().includes(fReg));
+            (!fTicket  || cells[1]?.innerText.toLowerCase().includes(fTicket)) &&
+            (!fAgent   || cells[2]?.innerText.toLowerCase().includes(fAgent)) &&
+            (!fAirline || cells[3]?.innerText.toLowerCase().includes(fAirline)) &&
+            (!fAcraft  || cells[4]?.innerText.toLowerCase().includes(fAcraft)) &&
+            (!fReg     || cells[5]?.innerText.toLowerCase().includes(fReg));
         const dateMatch =
             (!fFrom || rowDate >= fFrom) &&
             (!fTo   || rowDate <= fTo);
@@ -172,4 +197,41 @@ function clearFilters() {
 
 ['fTicket','fAgent','fAirline','fAircraft','fReg','fDateFrom','fDateTo'].forEach(id =>
     document.getElementById(id)?.addEventListener('input', applyFilters));
+
+// Selection
+function updateSelection() {
+    const checked = document.querySelectorAll('.row-check:checked');
+    const bar = document.getElementById('selectionBar');
+    document.getElementById('selCount').textContent = checked.length;
+    bar.classList.toggle('d-none', checked.length === 0);
+    bar.classList.toggle('d-flex', checked.length > 0);
+}
+
+function toggleAll(cb) {
+    document.querySelectorAll('.row-check').forEach(c => {
+        const row = c.closest('tr');
+        if (row.style.display !== 'none') c.checked = cb.checked;
+    });
+    updateSelection();
+}
+
+function clearSelection() {
+    document.querySelectorAll('.row-check').forEach(c => c.checked = false);
+    document.getElementById('selectAll').checked = false;
+    updateSelection();
+}
+
+function deleteSelected() {
+    const ids = Array.from(document.querySelectorAll('.row-check:checked')).map(c => c.value);
+    if (ids.length === 0) return;
+    if (!confirm(`Tens a certeza que queres apagar ${ids.length} auditoria(s)?`)) return;
+    document.getElementById('hiddenIds').value = ids.join(',');
+    document.getElementById('deleteForm').submit();
+}
+
+function deleteSingle(id) {
+    if (!confirm('Tens a certeza que queres apagar esta auditoria?')) return;
+    document.getElementById('hiddenIds').value = id;
+    document.getElementById('deleteForm').submit();
+}
 </script>
