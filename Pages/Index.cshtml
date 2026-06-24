@@ -29,9 +29,7 @@
 .db3 .kc.na .info .val{color:#888780}
 .db3 .kc .info .sub{font-size:10px;color:var(--color-text-secondary);margin-top:1px}
 .db3 .kc .info .diff{font-size:10px;font-weight:500;margin-top:2px}
-.db3 .diff-up{color:#3b6d11}
-.db3 .diff-down{color:#a32d2d}
-.db3 .diff-same{color:#888780}
+.diff-up{color:#3b6d11}.diff-down{color:#a32d2d}.diff-same{color:#888780}
 .db3 .main{display:grid;grid-template-columns:3fr 1fr;gap:8px;margin-bottom:12px}
 .db3 .card{background:#fff;border-radius:8px;border:0.5px solid var(--color-border-tertiary);padding:12px 14px}
 .db3 .ch{font-size:12px;font-weight:500;color:var(--color-text-primary);margin-bottom:10px;display:flex;align-items:center;justify-content:space-between}
@@ -46,6 +44,11 @@
 .db3 .leg{display:flex;gap:10px;margin-bottom:8px}
 .db3 .li{display:flex;align-items:center;gap:3px;font-size:10px;color:var(--color-text-secondary)}
 .db3 .ld{width:8px;height:8px;border-radius:2px}
+.nc-row{display:flex;align-items:center;gap:8px;margin-bottom:6px}
+.nc-label{font-size:10px;color:var(--color-text-primary);width:140px;flex-shrink:0;text-overflow:ellipsis;overflow:hidden;white-space:nowrap}
+.nc-bar{flex:1;height:8px;background:#f1efe8;border-radius:4px;overflow:hidden}
+.nc-fill{height:100%;background:#d1343899;border-radius:4px}
+.nc-pct{font-size:10px;font-weight:500;color:#a32d2d;width:30px;text-align:right}
 </style>
 
 <div class="db3">
@@ -56,12 +59,9 @@
             <span>AHM Audit System</span>
         </div>
         <div style="display:flex;gap:8px;align-items:center">
-            @if (Model.IsAdmin)
-            {
-                <a href="/Admin/Backup" class="fbar" style="text-decoration:none;color:var(--color-text-secondary);font-size:11px">
-                    <i class="bi bi-download" style="font-size:13px"></i> Backup
-                </a>
-            }
+            <a href="/Admin/Backup" style="text-decoration:none;color:var(--color-text-secondary);font-size:11px;background:#fff;border:0.5px solid var(--color-border-tertiary);border-radius:8px;padding:6px 12px">
+                <i class="bi bi-download" style="font-size:13px"></i> Backup
+            </a>
             <form method="get" class="fbar">
                 <i class="bi bi-calendar3" style="font-size:13px;color:var(--color-text-secondary)"></i>
                 <input type="date" name="from" value="@Model.FilterFrom?.ToString("yyyy-MM-dd")" />
@@ -90,10 +90,11 @@
                 <div class="val">@Model.Total</div>
                 @if (Model.PrevTotal > 0)
                 {
-                    var diffClass = Model.DiffTotal > 0 ? "diff-up" : Model.DiffTotal < 0 ? "diff-down" : "diff-same";
-                    var diffIcon = Model.DiffTotal > 0 ? "↑" : Model.DiffTotal < 0 ? "↓" : "—";
-                    <div class="diff @diffClass">@diffIcon @Math.Abs(Model.DiffTotal) vs @Model.CompareYear (@Model.PrevTotal)</div>
+                    var dc = Model.DiffTotal > 0 ? "diff-up" : Model.DiffTotal < 0 ? "diff-down" : "diff-same";
+                    var di = Model.DiffTotal > 0 ? "↑" : Model.DiffTotal < 0 ? "↓" : "—";
+                    <div class="diff @dc">@di @Math.Abs(Model.DiffTotal) vs @Model.CompareYear (@Model.PrevTotal)</div>
                 }
+                else { <div class="sub">este período</div> }
             </div>
         </div>
         <div class="kc ok">
@@ -103,9 +104,9 @@
                 <div class="val">@Model.PctYes%</div>
                 @if (Model.PrevTotal > 0)
                 {
-                    var diffClass = Model.DiffPctYes > 0 ? "diff-up" : Model.DiffPctYes < 0 ? "diff-down" : "diff-same";
-                    var diffIcon = Model.DiffPctYes > 0 ? "↑" : Model.DiffPctYes < 0 ? "↓" : "—";
-                    <div class="diff @diffClass">@diffIcon @Math.Abs(Model.DiffPctYes)pp vs @Model.CompareYear (@Model.PrevPctYes%)</div>
+                    var dc = Model.DiffPctYes > 0 ? "diff-up" : Model.DiffPctYes < 0 ? "diff-down" : "diff-same";
+                    var di = Model.DiffPctYes > 0 ? "↑" : Model.DiffPctYes < 0 ? "↓" : "—";
+                    <div class="diff @dc">@di @Math.Abs(Model.DiffPctYes)pp vs @Model.CompareYear (@Model.PrevPctYes%)</div>
                 }
                 else { <div class="sub">@Model.TotalYes respostas</div> }
             </div>
@@ -128,7 +129,7 @@
         </div>
     </div>
 
-    <!-- Section chart + Global pie -->
+    <!-- Section chart + Top não conformidades -->
     <div class="main">
         <div class="card">
             <div class="ch">
@@ -172,8 +173,51 @@
         </div>
     </div>
 
-    <!-- Bottom row -->
+    <!-- Top não conformidades + outros gráficos -->
     <div class="btm">
+        <!-- Top NCs -->
+        <div class="card">
+            <div class="ch">Top não conformidades</div>
+            @if (!Model.TopNonConformities.Any())
+            {
+                <div style="font-size:11px;color:var(--color-text-secondary);text-align:center;padding:20px 0">Sem dados</div>
+            }
+            else
+            {
+                @foreach (var nc in Model.TopNonConformities)
+                {
+                    <div class="nc-row">
+                        <div class="nc-label" title="@nc.label">@nc.label</div>
+                        <div class="nc-bar"><div class="nc-fill" style="width:@nc.pctNo%"></div></div>
+                        <div class="nc-pct">@nc.pctNo%</div>
+                    </div>
+                }
+            }
+        </div>
+
+        <!-- Por airline -->
+        <div class="card">
+            <div class="ch">
+                Por airline
+                <input type="text" id="airlineFilter" style="font-size:10px;padding:2px 5px;border:0.5px solid var(--color-border-secondary);border-radius:4px;background:var(--color-background-secondary);width:70px" placeholder="Filtrar..." oninput="filterAirline()" />
+            </div>
+            <div style="position:relative;height:140px">
+                <canvas id="airlineChart" role="img" aria-label="Airlines">Airlines</canvas>
+            </div>
+        </div>
+
+        <!-- Por agent -->
+        <div class="card">
+            <div class="ch">
+                Por audit agent
+                <input type="text" id="agentFilter" style="font-size:10px;padding:2px 5px;border:0.5px solid var(--color-border-secondary);border-radius:4px;background:var(--color-background-secondary);width:70px" placeholder="Filtrar..." oninput="filterAgent()" />
+            </div>
+            <div style="position:relative;height:140px">
+                <canvas id="agentChart" role="img" aria-label="Agents">Agents</canvas>
+            </div>
+        </div>
+
+        <!-- Target trimestral -->
         <div class="card">
             <div class="ch">Target trimestral</div>
             <div class="qrow">
@@ -189,30 +233,6 @@
                 }
             </div>
         </div>
-        <div class="card">
-            <div class="ch">
-                Por airline
-                <input type="text" id="airlineFilter" style="font-size:10px;padding:2px 5px;border:0.5px solid var(--color-border-secondary);border-radius:4px;background:var(--color-background-secondary);width:70px" placeholder="Filtrar..." oninput="filterAirline()" />
-            </div>
-            <div style="position:relative;height:140px">
-                <canvas id="airlineChart" role="img" aria-label="Airlines">Airlines</canvas>
-            </div>
-        </div>
-        <div class="card">
-            <div class="ch">
-                Por audit agent
-                <input type="text" id="agentFilter" style="font-size:10px;padding:2px 5px;border:0.5px solid var(--color-border-secondary);border-radius:4px;background:var(--color-background-secondary);width:70px" placeholder="Filtrar..." oninput="filterAgent()" />
-            </div>
-            <div style="position:relative;height:140px">
-                <canvas id="agentChart" role="img" aria-label="Agents">Agents</canvas>
-            </div>
-        </div>
-        <div class="card">
-            <div class="ch">Conformidade AHM officer</div>
-            <div style="position:relative;height:140px">
-                <canvas id="officerChart" role="img" aria-label="Officers">Officers</canvas>
-            </div>
-        </div>
     </div>
 </div>
 
@@ -224,7 +244,6 @@ const allAirlineValues = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Mod
 const allAgentLabels   = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.AgentLabels));
 const allAgentValues   = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.AgentValues));
 const officerLabels    = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.OfficerLabels));
-const officerConf      = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.OfficerConformity));
 const officerStats     = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.OfficerStats));
 
 const baseOpts = { responsive:true, maintainAspectRatio:false, plugins:{ legend:{ display:false } } };
@@ -293,10 +312,4 @@ function filterAgent() {
     const fil = allAgentLabels.map((l,i)=>({l,v:allAgentValues[i]})).filter(x=>x.l.toLowerCase().includes(f));
     agentChart.data.labels = fil.map(x=>x.l); agentChart.data.datasets[0].data = fil.map(x=>x.v); agentChart.update();
 }
-
-new Chart(document.getElementById('officerChart'), {
-    type: 'bar',
-    data: { labels: officerLabels, datasets:[{ data:officerConf, backgroundColor: officerConf.map(v=>v>=80?'#3b6d1199':v>=60?'#ba751799':'#d1343899'), borderWidth:1 }] },
-    options: { ...baseOpts, scales:{ y:{ beginAtZero:true, max:100, ticks:{ callback:v=>v+'%', font:{size:9} }, grid:{ color:gridColor } }, x:{ ticks:{ font:{size:9} }, grid:{ display:false } } } }
-});
 </script>
