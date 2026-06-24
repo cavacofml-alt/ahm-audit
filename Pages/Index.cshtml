@@ -28,6 +28,10 @@
 .db3 .kc.no .info .val{color:#a32d2d}
 .db3 .kc.na .info .val{color:#888780}
 .db3 .kc .info .sub{font-size:10px;color:var(--color-text-secondary);margin-top:1px}
+.db3 .kc .info .diff{font-size:10px;font-weight:500;margin-top:2px}
+.db3 .diff-up{color:#3b6d11}
+.db3 .diff-down{color:#a32d2d}
+.db3 .diff-same{color:#888780}
 .db3 .main{display:grid;grid-template-columns:3fr 1fr;gap:8px;margin-bottom:12px}
 .db3 .card{background:#fff;border-radius:8px;border:0.5px solid var(--color-border-tertiary);padding:12px 14px}
 .db3 .ch{font-size:12px;font-weight:500;color:var(--color-text-primary);margin-bottom:10px;display:flex;align-items:center;justify-content:space-between}
@@ -51,14 +55,22 @@
             Dashboard
             <span>AHM Audit System</span>
         </div>
-        <form method="get" class="fbar">
-            <i class="bi bi-calendar3" style="font-size:13px;color:var(--color-text-secondary)"></i>
-            <input type="date" name="from" value="@Model.FilterFrom?.ToString("yyyy-MM-dd")" />
-            <span style="font-size:11px;color:var(--color-text-secondary)">—</span>
-            <input type="date" name="to" value="@Model.FilterTo?.ToString("yyyy-MM-dd")" />
-            <button type="submit" class="bp"><i class="bi bi-funnel" style="font-size:11px"></i></button>
-            <a href="/" class="bs" style="padding:3px 8px;border-radius:5px;text-decoration:none;font-size:11px;border:0.5px solid var(--color-border-secondary)"><i class="bi bi-x" style="font-size:11px"></i></a>
-        </form>
+        <div style="display:flex;gap:8px;align-items:center">
+            @if (Model.IsAdmin)
+            {
+                <a href="/Admin/Backup" class="fbar" style="text-decoration:none;color:var(--color-text-secondary);font-size:11px">
+                    <i class="bi bi-download" style="font-size:13px"></i> Backup
+                </a>
+            }
+            <form method="get" class="fbar">
+                <i class="bi bi-calendar3" style="font-size:13px;color:var(--color-text-secondary)"></i>
+                <input type="date" name="from" value="@Model.FilterFrom?.ToString("yyyy-MM-dd")" />
+                <span style="font-size:11px;color:var(--color-text-secondary)">—</span>
+                <input type="date" name="to" value="@Model.FilterTo?.ToString("yyyy-MM-dd")" />
+                <button type="submit" class="bp"><i class="bi bi-funnel" style="font-size:11px"></i></button>
+                <a href="/" class="bs" style="padding:3px 8px;border-radius:5px;text-decoration:none;font-size:11px;border:0.5px solid var(--color-border-secondary)"><i class="bi bi-x" style="font-size:11px"></i></a>
+            </form>
+        </div>
     </div>
 
     @if (Model.FilterFrom.HasValue || Model.FilterTo.HasValue)
@@ -74,9 +86,14 @@
         <div class="kc tot">
             <div class="circle"><i class="bi bi-clipboard-check"></i></div>
             <div class="info">
-                <div class="lbl">Auditorias</div>
+                <div class="lbl">Auditorias @Model.CurrentDataYear</div>
                 <div class="val">@Model.Total</div>
-                <div class="sub">este período</div>
+                @if (Model.PrevTotal > 0)
+                {
+                    var diffClass = Model.DiffTotal > 0 ? "diff-up" : Model.DiffTotal < 0 ? "diff-down" : "diff-same";
+                    var diffIcon = Model.DiffTotal > 0 ? "↑" : Model.DiffTotal < 0 ? "↓" : "—";
+                    <div class="diff @diffClass">@diffIcon @Math.Abs(Model.DiffTotal) vs @Model.CompareYear (@Model.PrevTotal)</div>
+                }
             </div>
         </div>
         <div class="kc ok">
@@ -84,7 +101,13 @@
             <div class="info">
                 <div class="lbl">Conformes (OK)</div>
                 <div class="val">@Model.PctYes%</div>
-                <div class="sub">@Model.TotalYes respostas</div>
+                @if (Model.PrevTotal > 0)
+                {
+                    var diffClass = Model.DiffPctYes > 0 ? "diff-up" : Model.DiffPctYes < 0 ? "diff-down" : "diff-same";
+                    var diffIcon = Model.DiffPctYes > 0 ? "↑" : Model.DiffPctYes < 0 ? "↓" : "—";
+                    <div class="diff @diffClass">@diffIcon @Math.Abs(Model.DiffPctYes)pp vs @Model.CompareYear (@Model.PrevPctYes%)</div>
+                }
+                else { <div class="sub">@Model.TotalYes respostas</div> }
             </div>
         </div>
         <div class="kc no">
@@ -125,7 +148,7 @@
                 <div class="li"><div class="ld" style="background:#d13438"></div>% NOT OK</div>
             </div>
             <div style="position:relative;height:190px">
-                <canvas id="sectionChart" role="img" aria-label="Section results bar chart">Section results</canvas>
+                <canvas id="sectionChart" role="img" aria-label="Section results">Section results</canvas>
             </div>
         </div>
         <div class="card">
@@ -140,7 +163,7 @@
                 </select>
             </div>
             <div style="position:relative;height:140px">
-                <canvas id="resultChart" role="img" aria-label="Doughnut chart conformity">Conformidade global</canvas>
+                <canvas id="resultChart" role="img" aria-label="Doughnut chart">Conformidade</canvas>
             </div>
             <div style="text-align:center;margin-top:8px">
                 <span id="conformityPct" style="font-size:22px;font-weight:500;color:#3b6d11">@Model.PctYes%</span>
@@ -151,7 +174,6 @@
 
     <!-- Bottom row -->
     <div class="btm">
-        <!-- Target trimestral -->
         <div class="card">
             <div class="ch">Target trimestral</div>
             <div class="qrow">
@@ -159,43 +181,36 @@
                 {
                     var pct = Math.Min(q.Count * 100 / 30, 100);
                     var color = q.Count >= 30 ? "#3b6d11" : q.Count >= 20 ? "#ba7517" : "#d13438";
-                    var width = pct;
                     <div class="qc">
                         <div class="ql">@q.Label</div>
-                        <div class="qp"><div class="qf" style="width:@width%;background:@color"></div></div>
+                        <div class="qp"><div class="qf" style="width:@pct%;background:@color"></div></div>
                         <div class="qn" style="color:@color">@q.Count<span style="font-size:9px;font-weight:400;color:var(--color-text-secondary)">/30</span></div>
                     </div>
                 }
             </div>
         </div>
-
-        <!-- Por airline -->
         <div class="card">
             <div class="ch">
                 Por airline
                 <input type="text" id="airlineFilter" style="font-size:10px;padding:2px 5px;border:0.5px solid var(--color-border-secondary);border-radius:4px;background:var(--color-background-secondary);width:70px" placeholder="Filtrar..." oninput="filterAirline()" />
             </div>
             <div style="position:relative;height:140px">
-                <canvas id="airlineChart" role="img" aria-label="Airlines bar chart">Airlines</canvas>
+                <canvas id="airlineChart" role="img" aria-label="Airlines">Airlines</canvas>
             </div>
         </div>
-
-        <!-- Por agent -->
         <div class="card">
             <div class="ch">
                 Por audit agent
                 <input type="text" id="agentFilter" style="font-size:10px;padding:2px 5px;border:0.5px solid var(--color-border-secondary);border-radius:4px;background:var(--color-background-secondary);width:70px" placeholder="Filtrar..." oninput="filterAgent()" />
             </div>
             <div style="position:relative;height:140px">
-                <canvas id="agentChart" role="img" aria-label="Agents bar chart">Agents</canvas>
+                <canvas id="agentChart" role="img" aria-label="Agents">Agents</canvas>
             </div>
         </div>
-
-        <!-- Conformidade AHM officer -->
         <div class="card">
             <div class="ch">Conformidade AHM officer</div>
             <div style="position:relative;height:140px">
-                <canvas id="officerChart" role="img" aria-label="Officer conformity">Officers</canvas>
+                <canvas id="officerChart" role="img" aria-label="Officers">Officers</canvas>
             </div>
         </div>
     </div>
@@ -222,7 +237,6 @@ function calcPct(s, type) {
 }
 
 let secFiltered = [...sectionData];
-
 let sectionChart = new Chart(document.getElementById('sectionChart'), {
     type: 'bar',
     data: {
@@ -266,9 +280,7 @@ let airlineChart = new Chart(document.getElementById('airlineChart'), {
 function filterAirline() {
     const f = document.getElementById('airlineFilter').value.toLowerCase();
     const fil = allAirlineLabels.map((l,i)=>({l,v:allAirlineValues[i]})).filter(x=>x.l.toLowerCase().includes(f));
-    airlineChart.data.labels = fil.map(x=>x.l);
-    airlineChart.data.datasets[0].data = fil.map(x=>x.v);
-    airlineChart.update();
+    airlineChart.data.labels = fil.map(x=>x.l); airlineChart.data.datasets[0].data = fil.map(x=>x.v); airlineChart.update();
 }
 
 let agentChart = new Chart(document.getElementById('agentChart'), {
@@ -279,9 +291,7 @@ let agentChart = new Chart(document.getElementById('agentChart'), {
 function filterAgent() {
     const f = document.getElementById('agentFilter').value.toLowerCase();
     const fil = allAgentLabels.map((l,i)=>({l,v:allAgentValues[i]})).filter(x=>x.l.toLowerCase().includes(f));
-    agentChart.data.labels = fil.map(x=>x.l);
-    agentChart.data.datasets[0].data = fil.map(x=>x.v);
-    agentChart.update();
+    agentChart.data.labels = fil.map(x=>x.l); agentChart.data.datasets[0].data = fil.map(x=>x.v); agentChart.update();
 }
 
 new Chart(document.getElementById('officerChart'), {

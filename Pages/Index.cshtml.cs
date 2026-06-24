@@ -43,6 +43,14 @@ namespace AHM.Audit.Pages
         public string PctNo  { get; set; } = "0";
         public string PctNA  { get; set; } = "0";
 
+        // Comparação ano anterior
+        public int PrevTotal    { get; set; }
+        public string PrevPctYes { get; set; } = "0";
+        public int DiffTotal    { get; set; }
+        public int DiffPctYes   { get; set; }
+        public int CompareYear  { get; set; }
+        public int CurrentDataYear { get; set; }
+
         public DateTime? FilterFrom { get; set; }
         public DateTime? FilterTo   { get; set; }
         public int CurrentQuarter   { get; set; }
@@ -96,6 +104,20 @@ namespace AHM.Audit.Pages
             ("DatabasePrintout","H","H - Administrative"),
         };
 
+        private (int yes, int no, int na) CountChecklist(List<Auditoria> audits)
+        {
+            int y = 0, n = 0, a = 0;
+            foreach (var audit in audits)
+                foreach (var (f, _, _) in ChecklistItems)
+                {
+                    var val = typeof(Auditoria).GetProperty(f)?.GetValue(audit)?.ToString() ?? "N/A";
+                    if (val == "YES") y++;
+                    else if (val == "NO") n++;
+                    else a++;
+                }
+            return (y, n, a);
+        }
+
         public IActionResult OnGet(DateTime? from, DateTime? to)
         {
             var username = HttpContext.Session.GetString("User");
@@ -112,7 +134,7 @@ namespace AHM.Audit.Pages
             CurrentQuarter = (now.Month - 1) / 3 + 1;
             CurrentYear    = now.Year;
 
-            // Quarter progress for current year
+            // Quarter progress
             for (int q = 1; q <= 4; q++)
             {
                 var qStart = new DateTime(now.Year, (q - 1) * 3 + 1, 1);
@@ -127,6 +149,45 @@ namespace AHM.Audit.Pages
             var audits = query.ToList();
 
             Total = audits.Count;
+            var (cy, cn, ca) = CountChecklist(audits);
+            TotalYes = cy; TotalNo = cn; TotalNA = ca;
+
+            int grand = TotalYes + TotalNo + TotalNA;
+            if (grand > 0)
+            {
+                PctYes = (TotalYes * 100 / grand).ToString();
+                PctNo  = (TotalNo  * 100 / grand).ToString();
+                PctNA  = (TotalNA  * 100 / grand).ToString();
+            }
+
+            // Comparação ano anterior — usa auditorias do ano anterior no arquivo
+            var dataYear = from.HasValue ? from.Value.Year : now.Year;
+            CurrentDataYear = dataYear;
+            CompareYear = dataYear - 1;
+
+            var prevAudits = _context.AuditoriaArchives
+                .Where(a => a.ArchiveYear == CompareYear)
+                .ToList();
+
+            PrevTotal = prevAudits.Count;
+
+            if (prevAudits.Any())
+            {
+                int py = 0, pn = 0, pa = 0;
+                foreach (var a in prevAudits)
+                    foreach (var (f, _, _) in ChecklistItems)
+                    {
+                        var val = typeof(AuditoriaArchive).GetProperty(f)?.GetValue(a)?.ToString() ?? "N/A";
+                        if (val == "YES") py++;
+                        else if (val == "NO") pn++;
+                        else pa++;
+                    }
+                int pg = py + pn + pa;
+                int prevPct = pg > 0 ? py * 100 / pg : 0;
+                PrevPctYes = prevPct.ToString();
+                DiffPctYes = int.Parse(PctYes) - prevPct;
+                DiffTotal  = Total - PrevTotal;
+            }
 
             var sectionMap = new Dictionary<string, SectionStat>();
             foreach (var (_, key, name) in ChecklistItems)
@@ -137,9 +198,9 @@ namespace AHM.Audit.Pages
                 foreach (var (f, key, _) in ChecklistItems)
                 {
                     var val = typeof(Auditoria).GetProperty(f)?.GetValue(a)?.ToString() ?? "N/A";
-                    if (val == "YES") { TotalYes++; sectionMap[key].yes++; }
-                    else if (val == "NO") { TotalNo++; sectionMap[key].no++; }
-                    else { TotalNA++; sectionMap[key].na++; }
+                    if (val == "YES") { sectionMap[key].yes++; }
+                    else if (val == "NO") { sectionMap[key].no++; }
+                    else { sectionMap[key].na++; }
                 }
 
             foreach (var s in sectionMap.Values)
@@ -150,14 +211,6 @@ namespace AHM.Audit.Pages
 
             SectionData  = sectionMap.Values.ToList();
             SectionNames = sectionMap.Keys.ToList();
-
-            int grand = TotalYes + TotalNo + TotalNA;
-            if (grand > 0)
-            {
-                PctYes = (TotalYes * 100 / grand).ToString();
-                PctNo  = (TotalNo  * 100 / grand).ToString();
-                PctNA  = (TotalNA  * 100 / grand).ToString();
-            }
 
             foreach (var g in audits.GroupBy(a => a.Airline).OrderByDescending(g => g.Count()))
             { AirlineLabels.Add(g.Key); AirlineValues.Add(g.Count()); }
