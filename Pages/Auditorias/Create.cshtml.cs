@@ -66,6 +66,13 @@ namespace AHM.Audit.Pages.Auditorias
                 }
             }
 
+            // Correction Ticket obrigatório se Aircraft Re-certified = YES
+            if (Auditoria.AircraftRecertified == "YES" && string.IsNullOrWhiteSpace(Auditoria.CorrectionTicket))
+            {
+                ErrorMessage = "O Correction Ticket é obrigatório quando o Aircraft é Re-certificado.";
+                return Page();
+            }
+
             // Agent não pode ser igual ao AHM Officer
             if (!string.IsNullOrEmpty(Auditoria.Agent) && Auditoria.Agent == Auditoria.AhmOfficer)
             {
