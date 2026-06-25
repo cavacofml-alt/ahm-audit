@@ -221,13 +221,19 @@
         const form = document.getElementById('auditForm');
         if (!form.checkValidity()) { form.reportValidity(); return; }
 
-        const reg = document.getElementById('registrationInput').value.trim().toUpperCase();
-        if (reg && duplicateRegs.map(r => r.toUpperCase()).includes(reg)) {
-            document.getElementById('regValue').textContent = reg;
-            new bootstrap.Modal(document.getElementById('registrationWarning')).show();
-        } else {
-            form.submit();
+        const airline  = document.querySelector('input[name="Auditoria.Airline"]').value.trim().toUpperCase();
+        const aircraft = document.querySelector('input[name="Auditoria.Aircraft"]').value.trim().toUpperCase();
+        const reg      = document.getElementById('registrationInput').value.trim().toUpperCase();
+        if (airline && aircraft && reg) {
+            const combo = airline + "|" + aircraft + "|" + reg;
+            const isDuplicate = recentCombinations.some(c => c.toUpperCase() === combo);
+            if (isDuplicate) {
+                document.getElementById('regValue').textContent = reg + " (" + airline + " / " + aircraft + ")";
+                new bootstrap.Modal(document.getElementById('registrationWarning')).show();
+                return;
+            }
         }
+        form.submit();
     });
 
     document.getElementById('confirmSubmit').addEventListener('click', function () {
