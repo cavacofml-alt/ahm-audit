@@ -11,7 +11,9 @@
 
 @if (!string.IsNullOrEmpty(Model.Message))
 {
-    <div class="alert @(Model.IsError ? "alert-danger" : "alert-success")">@Model.Message</div>
+    <div class="alert @(Model.IsError ? "alert-danger" : "alert-success") alert-dismissible">
+        @Model.Message
+    </div>
 }
 
 <div class="row g-4">
@@ -20,7 +22,7 @@
         <div class="card h-100">
             <div class="card-header fw-bold"><i class="bi bi-download me-2"></i>Exportar Backup</div>
             <div class="card-body">
-                <p class="text-muted small">Descarrega todas as auditorias em CSV. Podes usar este ficheiro para restaurar os dados mais tarde.</p>
+                <p class="text-muted small">Descarrega todas as auditorias em CSV.</p>
                 <a href="/Admin/BackupExport" class="btn btn-success w-100">
                     <i class="bi bi-file-earmark-arrow-down me-2"></i>Descarregar Backup CSV
                 </a>
@@ -33,16 +35,10 @@
         <div class="card h-100">
             <div class="card-header fw-bold"><i class="bi bi-upload me-2"></i>Restaurar Backup</div>
             <div class="card-body">
-                <p class="text-muted small">Faz upload de um ficheiro CSV exportado anteriormente para restaurar as auditorias.</p>
-                <div class="alert alert-warning small py-2">
-                    <i class="bi bi-exclamation-triangle me-1"></i>
-                    Tickets duplicados serão ignorados.
-                </div>
-                <form method="post" enctype="multipart/form-data">
-                    @Html.AntiForgeryToken()
-                    <input type="hidden" name="handler" value="Import" />
+                <p class="text-muted small">Faz upload de um ficheiro CSV para restaurar as auditorias. Tickets duplicados serão ignorados.</p>
+                <form action="/Admin/Backup?handler=Import" method="post" enctype="multipart/form-data">
                     <div class="mb-3">
-                        <input type="file" class="form-control" name="csvFile" accept=".csv" required />
+                        <input type="file" class="form-control" name="csvFile" accept=".csv" />
                     </div>
                     <button type="submit" class="btn btn-warning w-100">
                         <i class="bi bi-file-earmark-arrow-up me-2"></i>Importar CSV
@@ -59,8 +55,7 @@
             <div class="card-body">
                 <p class="text-muted small">Apaga permanentemente todas as auditorias. Esta ação não pode ser desfeita.</p>
                 <div class="alert alert-danger small py-2">
-                    <i class="bi bi-exclamation-triangle-fill me-1"></i>
-                    Faz um backup antes de continuar!
+                    <i class="bi bi-exclamation-triangle-fill me-1"></i>Faz um backup antes de continuar!
                 </div>
                 <button type="button" class="btn btn-danger w-100" onclick="confirmDelete()">
                     <i class="bi bi-trash me-2"></i>Apagar Tudo
@@ -85,9 +80,7 @@
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                <form method="post" id="deleteForm">
-                    @Html.AntiForgeryToken()
-                    <input type="hidden" name="handler" value="DeleteAll" />
+                <form action="/Admin/Backup?handler=DeleteAll" method="post" id="deleteForm">
                     <button type="submit" class="btn btn-danger" id="confirmBtn" disabled>Apagar Tudo</button>
                 </form>
             </div>
