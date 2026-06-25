@@ -72,7 +72,13 @@ namespace AHM.Audit.Pages.Auditorias
             Auditoria.Notes                    = Auditoria.Notes                    ?? "";
             Auditoria.CreatedAt                = original.CreatedAt; // preserve original date
 
-            _context.Auditorias.Update(Auditoria);
+            // Copiar valores para a entidade já tracked
+            var tracked = _context.Auditorias.Find(Auditoria.Id);
+            if (tracked != null)
+            {
+                _context.Entry(tracked).CurrentValues.SetValues(Auditoria);
+                tracked.CreatedAt = original.CreatedAt;
+            }
             _context.SaveChanges();
             return RedirectToPage("Index");
         }
