@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using AHM.Audit.Data;
 using AHM.Audit.Models;
 using System.Reflection;
+using Microsoft.AspNetCore.DataProtection;
 
 // Fix PostgreSQL DateTime compatibility
 AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehavior", true);
@@ -9,6 +10,10 @@ AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehavior", true);
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddRazorPages();
+
+// Persist data protection keys so they survive redeploys
+builder.Services.AddDataProtection()
+    .PersistKeysToFileSystem(new System.IO.DirectoryInfo("/tmp/dataprotection-keys"));
 
 var databaseUrl = Environment.GetEnvironmentVariable("DATABASE_URL");
 
