@@ -23,7 +23,7 @@ namespace AHM.Audit.Pages.Admin
             return Page();
         }
 
-        public IActionResult OnPost(IFormFile csvFile)
+        public IActionResult OnPostImport(IFormFile csvFile)
         {
             if (!CheckAdmin()) return RedirectToPage("/Account/Login");
             ViewData["IsAdmin"] = true;
@@ -37,7 +37,7 @@ namespace AHM.Audit.Pages.Admin
             int imported = 0, skipped = 0;
 
             using var reader = new System.IO.StreamReader(csvFile.OpenReadStream());
-            var header = reader.ReadLine(); // skip header
+            reader.ReadLine(); // skip header
 
             while (!reader.EndOfStream)
             {
@@ -62,7 +62,7 @@ namespace AHM.Audit.Pages.Admin
                         Airline                  = SafeGet(cols, 3),
                         Aircraft                 = SafeGet(cols, 4),
                         Registration             = SafeGet(cols, 5),
-                        Date                     = DateTime.TryParse(SafeGet(cols, 6), out var d) ? d : DateTime.Today,
+                        Date                     = DateTime.TryParseExact(SafeGet(cols, 6), new[]{"dd/MM/yyyy","MM/dd/yyyy","yyyy-MM-dd"}, System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.None, out var d) ? d : DateTime.Today,
                         RevisionUpdates          = SafeGet(cols, 7),
                         B1  = SafeGet(cols, 8),  B2  = SafeGet(cols, 9),  B3  = SafeGet(cols, 10),
                         C1  = SafeGet(cols, 11), C2  = SafeGet(cols, 12), C2_3 = SafeGet(cols, 13),
@@ -90,7 +90,21 @@ namespace AHM.Audit.Pages.Admin
             }
 
             _context.SaveChanges();
-            Message = $"Importação concluída: {imported} auditoria(s) importada(s), {skipped} ignorada(s) (duplicadas ou inválidas).";
+            Message = $"Importação concluída: {imported} auditoria(s) importada(s), {skipped} ignorada(s).";
+            return Page();
+        }
+
+        public IActionResult OnPostDeleteAll()
+        {
+            if (!CheckAdmin()) return RedirectToPage("/Account/Login");
+            ViewData["IsAdmin"] = true;
+            IsAdmin = true;
+
+            var all = _context.Auditorias.ToList();
+            _context.Auditorias.RemoveRange(all);
+            _context.SaveChanges();
+
+            Message = $"{all.Count} auditoria(s) apagada(s) com sucesso.";
             return Page();
         }
 
