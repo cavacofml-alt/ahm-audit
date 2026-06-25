@@ -21,10 +21,41 @@ namespace AHM.Audit.Pages.Admin
             var audits = _context.Auditorias.OrderByDescending(a => a.CreatedAt).ToList();
             var sb = new StringBuilder();
 
+            // Cabeçalhos com nomes completos da checklist
             sb.AppendLine("Ticket,Agent,AHM Officer,Airline,Aircraft,Registration,Date,Revision Updates," +
-                          "B1,B2,B3,C1,C2,C2.3,C3,C4-TakeOff,C4-ZeroFuel,C4-Landing,C4-Inflight,C4-IdealTrim,C5,C7.1," +
-                          "D1,D2,D3,D5.1,D5.2,D6.2,E1-DOW,E1-MRW,E1-MTOW,E1-MZFW,E1-MLAW,E2.1,E2.2,E3.1," +
-                          "G1,RevisionUpdate,LIR,LS,DatabasePrintout," +
+                          "B1 - Standard units and codes," +
+                          "B2 - Crew and crew baggage weights," +
+                          "B3 - Passenger and baggage weights," +
+                          "C1 - Aircraft Type or fleet," +
+                          "C2 - Balance/Special info," +
+                          "C2.3 - Sup info," +
+                          "C3 - Basic index/MAR RC Formula," +
+                          "C4.1 - Take-off," +
+                          "C4.1 - Zero-Fuel," +
+                          "C4.1 - Landing," +
+                          "C4.1 - Inflight," +
+                          "C4.1 - Ideal Trim," +
+                          "C5 - Fuel," +
+                          "C7.1 - Stab trim," +
+                          "D1 - Dimensions and limits," +
+                          "D2 - Holds," +
+                          "D3 - ULD," +
+                          "D5.1 - Cabin," +
+                          "D5.2 - Cabin Crew Seats," +
+                          "D6.2 - Seatmap," +
+                          "E1 - DOW/DOI (BW/BI)," +
+                          "E1 - MRW," +
+                          "E1 - MTOW," +
+                          "E1 - MZFW," +
+                          "E1 - MLAW," +
+                          "E2.1 - Crew Codes," +
+                          "E2.2 - Crew Distribution," +
+                          "E3.1 - Pantry Distribution," +
+                          "G1 - ULD Compatibility," +
+                          "Revision update was correct?," +
+                          "LIR," +
+                          "LS," +
+                          "Database Printout," +
                           "CorrectionTicket,ReasonForRecertification,CorrectionsMade,AircraftRecertified,Notes,YES,NO,N/A,Conformidade%");
 
             var checklistFields = new[]
