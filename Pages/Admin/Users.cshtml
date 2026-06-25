@@ -1,48 +1,49 @@
 @page
 @model AHM.Audit.Pages.Admin.UsersModel
 @{
-    ViewData["Title"] = "Gestão de Utilizadores";
+    ViewData["Title"] = "Utilizadores";
 }
 
 <div class="d-flex justify-content-between align-items-center mb-4">
-    <h2 class="mb-0"><i class="bi bi-people me-2"></i>Gestão de Utilizadores</h2>
+    <h2 class="mb-0"><i class="bi bi-people me-2"></i>Utilizadores</h2>
     <a href="/" class="btn btn-outline-secondary"><i class="bi bi-arrow-left me-1"></i>Dashboard</a>
 </div>
 
 @if (!string.IsNullOrEmpty(Model.Message))
 {
-    <div class="alert alert-success">@Model.Message</div>
+    <div class="alert @(Model.IsError ? "alert-danger" : "alert-success")">@Model.Message</div>
 }
 
-<!-- Criar novo utilizador -->
+<!-- Criar utilizador -->
 <div class="card mb-4">
-    <div class="card-header fw-bold">Criar Novo Utilizador</div>
+    <div class="card-header fw-bold"><i class="bi bi-person-plus me-2"></i>Criar Utilizador</div>
     <div class="card-body">
-        <form method="post" asp-page-handler="Create">
-            <div class="row g-3 align-items-end">
-                <div class="col-md-4">
-                    <label class="form-label">Username</label>
-                    <input class="form-control" name="newUsername" required />
-                </div>
-                <div class="col-md-4">
-                    <label class="form-label">Password</label>
-                    <input class="form-control" type="password" name="newPassword" required />
-                </div>
-                <div class="col-md-2">
-                    <div class="form-check mt-4">
-                        <input class="form-check-input" type="checkbox" name="isAdmin" value="true" id="isAdminCheck" />
-                        <label class="form-check-label" for="isAdminCheck">Admin</label>
-                    </div>
-                </div>
-                <div class="col-md-2">
-                    <button class="btn btn-primary w-100">Criar</button>
-                </div>
+        <form action="/Admin/Users?handler=Create" method="post" class="row g-3 align-items-end">
+            <div class="col-md-3">
+                <label class="form-label small">Username</label>
+                <input class="form-control" name="newUsername" placeholder="Username" required />
+            </div>
+            <div class="col-md-3">
+                <label class="form-label small">Password</label>
+                <input class="form-control" name="newPassword" type="password" placeholder="Password" required />
+            </div>
+            <div class="col-md-2">
+                <label class="form-label small">Perfil</label>
+                <select class="form-select" name="isAdmin">
+                    <option value="false">Utilizador</option>
+                    <option value="true">Admin</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <button type="submit" class="btn btn-primary w-100">
+                    <i class="bi bi-person-plus me-1"></i>Criar
+                </button>
             </div>
         </form>
     </div>
 </div>
 
-<!-- Lista de utilizadores -->
+<!-- Lista utilizadores -->
 <div class="card">
     <div class="card-body p-0">
         <table class="table table-hover mb-0">
@@ -58,29 +59,64 @@
                 @foreach (var u in Model.Users)
                 {
                     <tr>
-                        <td>@u.Username</td>
-                        <td><span class="badge @(u.IsAdmin ? "bg-danger" : "bg-secondary")">@(u.IsAdmin ? "Admin" : "Utilizador")</span></td>
-                        <td><span class="badge @(u.Active ? "bg-success" : "bg-secondary")">@(u.Active ? "Ativo" : "Inativo")</span></td>
-                        <td class="d-flex gap-2 flex-wrap">
-                            <!-- Editar username -->
-                            <form method="post" asp-page-handler="EditUsername" class="d-inline d-flex gap-1">
-                                <input type="hidden" name="userId" value="@u.Id" />
-                                <input type="text" name="newUsername" value="@u.Username" class="form-control form-control-sm" style="width:140px" required />
-                                <button class="btn btn-sm btn-outline-primary">Guardar</button>
-                            </form>
-                            <!-- Reset password -->
-                            <form method="post" asp-page-handler="ResetPassword" class="d-inline d-flex gap-1">
-                                <input type="hidden" name="userId" value="@u.Id" />
-                                <input type="text" name="newPass" placeholder="Nova password" class="form-control form-control-sm" style="width:140px" required />
-                                <button class="btn btn-sm btn-warning">Reset PW</button>
-                            </form>
-                            <!-- Ativar/Desativar -->
-                            <form method="post" asp-page-handler="ToggleActive" class="d-inline">
-                                <input type="hidden" name="userId" value="@u.Id" />
-                                <button class="btn btn-sm @(u.Active ? "btn-outline-danger" : "btn-outline-success")">
-                                    @(u.Active ? "Desativar" : "Ativar")
+                        <td class="align-middle">
+                            <span id="uname-@u.Id">@u.Username</span>
+                            <input type="text" id="uedit-@u.Id" class="form-control form-control-sm d-none" value="@u.Username" style="max-width:180px;display:inline-block" />
+                        </td>
+                        <td class="align-middle">
+                            <span class="badge @(u.IsAdmin ? "bg-danger" : "bg-secondary")">
+                                @(u.IsAdmin ? "Admin" : "Utilizador")
+                            </span>
+                        </td>
+                        <td class="align-middle">
+                            <span class="badge @(u.Active ? "bg-success" : "bg-secondary")">
+                                @(u.Active ? "Ativo" : "Inativo")
+                            </span>
+                        </td>
+                        <td class="align-middle">
+                            <div class="d-flex gap-1 flex-wrap">
+                                <!-- Editar username -->
+                                <button class="btn btn-sm btn-outline-secondary" id="editBtn-@u.Id" onclick="startEditUser(@u.Id)" title="Editar username">
+                                    <i class="bi bi-pencil"></i>
                                 </button>
-                            </form>
+                                <form action="/Admin/Users?handler=EditUsername" method="post" id="editUForm-@u.Id" class="d-none">
+                                    <input type="hidden" name="userId" value="@u.Id" />
+                                    <input type="hidden" name="newUsername" id="uHidden-@u.Id" />
+                                    <button type="submit" class="btn btn-sm btn-success"><i class="bi bi-check"></i></button>
+                                </form>
+                                <button class="btn btn-sm btn-outline-secondary d-none" id="cancelUBtn-@u.Id" onclick="cancelEditUser(@u.Id)">
+                                    <i class="bi bi-x"></i>
+                                </button>
+
+                                <!-- Reset password -->
+                                <button class="btn btn-sm btn-outline-warning" onclick="showResetPw(@u.Id, '@u.Username')" title="Reset password">
+                                    <i class="bi bi-key"></i> PW
+                                </button>
+
+                                <!-- Toggle admin -->
+                                <form action="/Admin/Users?handler=ToggleAdmin" method="post" class="d-inline">
+                                    <input type="hidden" name="userId" value="@u.Id" />
+                                    <button type="submit" class="btn btn-sm @(u.IsAdmin ? "btn-outline-danger" : "btn-outline-primary")" title="@(u.IsAdmin ? "Remover admin" : "Dar admin")">
+                                        <i class="bi bi-shield@(u.IsAdmin ? "-x" : "-check")"></i>
+                                    </button>
+                                </form>
+
+                                <!-- Toggle ativo -->
+                                <form action="/Admin/Users?handler=ToggleActive" method="post" class="d-inline">
+                                    <input type="hidden" name="userId" value="@u.Id" />
+                                    <button type="submit" class="btn btn-sm @(u.Active ? "btn-outline-warning" : "btn-outline-success")">
+                                        @(u.Active ? "Desativar" : "Ativar")
+                                    </button>
+                                </form>
+
+                                <!-- Apagar -->
+                                <form action="/Admin/Users?handler=Delete" method="post" class="d-inline" onsubmit="return confirm('Tens a certeza que queres apagar o utilizador @u.Username?')">
+                                    <input type="hidden" name="userId" value="@u.Id" />
+                                    <button type="submit" class="btn btn-sm btn-danger" title="Apagar">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </form>
+                            </div>
                         </td>
                     </tr>
                 }
@@ -88,3 +124,58 @@
         </table>
     </div>
 </div>
+
+<!-- Modal reset password -->
+<div class="modal fade" id="resetPwModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Reset Password — <span id="resetPwUser"></span></h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form action="/Admin/Users?handler=ResetPassword" method="post">
+                <div class="modal-body">
+                    <input type="hidden" name="userId" id="resetPwId" />
+                    <label class="form-label">Nova Password</label>
+                    <input type="password" class="form-control" name="newPass" required />
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-warning">Guardar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+function showResetPw(id, username) {
+    document.getElementById('resetPwId').value = id;
+    document.getElementById('resetPwUser').textContent = username;
+    new bootstrap.Modal(document.getElementById('resetPwModal')).show();
+}
+
+function startEditUser(id) {
+    document.getElementById('uname-' + id).classList.add('d-none');
+    document.getElementById('uedit-' + id).classList.remove('d-none');
+    document.getElementById('editBtn-' + id).classList.add('d-none');
+    document.getElementById('editUForm-' + id).classList.remove('d-none');
+    document.getElementById('cancelUBtn-' + id).classList.remove('d-none');
+    document.getElementById('uedit-' + id).focus();
+}
+
+function cancelEditUser(id) {
+    document.getElementById('uname-' + id).classList.remove('d-none');
+    document.getElementById('uedit-' + id).classList.add('d-none');
+    document.getElementById('editBtn-' + id).classList.remove('d-none');
+    document.getElementById('editUForm-' + id).classList.add('d-none');
+    document.getElementById('cancelUBtn-' + id).classList.add('d-none');
+}
+
+document.querySelectorAll('[id^="editUForm-"]').forEach(form => {
+    form.addEventListener('submit', function() {
+        const id = this.id.replace('editUForm-', '');
+        document.getElementById('uHidden-' + id).value = document.getElementById('uedit-' + id).value;
+    });
+});
+</script>
