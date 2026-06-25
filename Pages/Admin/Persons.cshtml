@@ -20,7 +20,7 @@
         <div class="card">
             <div class="card-header fw-bold">Audit Agents</div>
             <div class="card-body">
-                <form method="post" asp-page-handler="Add" class="d-flex gap-2 mb-3">
+                <form action="/Admin/Persons?handler=Add" method="post" class="d-flex gap-2 mb-3">
                     <input type="hidden" name="role" value="Agent" />
                     <input class="form-control" name="name" placeholder="Nome do agente" required />
                     <button class="btn btn-primary">Adicionar</button>
@@ -29,13 +29,27 @@
                     @foreach (var p in Model.Agents)
                     {
                         <li class="list-group-item d-flex justify-content-between align-items-center">
-                            @p.Name
-                            <form method="post" asp-page-handler="Toggle" class="d-inline">
-                                <input type="hidden" name="personId" value="@p.Id" />
-                                <button class="btn btn-sm @(p.Active ? "btn-outline-danger" : "btn-outline-success")">
-                                    @(p.Active ? "Desativar" : "Ativar")
+                            <span id="name-@p.Id" class="person-name">@p.Name</span>
+                            <input type="text" id="edit-@p.Id" class="form-control form-control-sm d-none" value="@p.Name" style="max-width:180px" />
+                            <div class="d-flex gap-1">
+                                <button class="btn btn-sm btn-outline-secondary" onclick="startEdit(@p.Id)" id="editBtn-@p.Id">
+                                    <i class="bi bi-pencil"></i>
                                 </button>
-                            </form>
+                                <form action="/Admin/Persons?handler=EditName" method="post" id="editForm-@p.Id" class="d-none">
+                                    <input type="hidden" name="personId" value="@p.Id" />
+                                    <input type="hidden" name="newName" id="editHidden-@p.Id" />
+                                    <button type="submit" class="btn btn-sm btn-success"><i class="bi bi-check"></i></button>
+                                </form>
+                                <button class="btn btn-sm btn-outline-secondary d-none" id="cancelBtn-@p.Id" onclick="cancelEdit(@p.Id)">
+                                    <i class="bi bi-x"></i>
+                                </button>
+                                <form action="/Admin/Persons?handler=Toggle" method="post" class="d-inline">
+                                    <input type="hidden" name="personId" value="@p.Id" />
+                                    <button class="btn btn-sm @(p.Active ? "btn-outline-danger" : "btn-outline-success")">
+                                        @(p.Active ? "Desativar" : "Ativar")
+                                    </button>
+                                </form>
+                            </div>
                         </li>
                     }
                 </ul>
@@ -48,7 +62,7 @@
         <div class="card">
             <div class="card-header fw-bold">AHM Officers</div>
             <div class="card-body">
-                <form method="post" asp-page-handler="Add" class="d-flex gap-2 mb-3">
+                <form action="/Admin/Persons?handler=Add" method="post" class="d-flex gap-2 mb-3">
                     <input type="hidden" name="role" value="Officer" />
                     <input class="form-control" name="name" placeholder="Nome do officer" required />
                     <button class="btn btn-primary">Adicionar</button>
@@ -57,13 +71,27 @@
                     @foreach (var p in Model.Officers)
                     {
                         <li class="list-group-item d-flex justify-content-between align-items-center">
-                            @p.Name
-                            <form method="post" asp-page-handler="Toggle" class="d-inline">
-                                <input type="hidden" name="personId" value="@p.Id" />
-                                <button class="btn btn-sm @(p.Active ? "btn-outline-danger" : "btn-outline-success")">
-                                    @(p.Active ? "Desativar" : "Ativar")
+                            <span id="name-@p.Id" class="person-name">@p.Name</span>
+                            <input type="text" id="edit-@p.Id" class="form-control form-control-sm d-none" value="@p.Name" style="max-width:180px" />
+                            <div class="d-flex gap-1">
+                                <button class="btn btn-sm btn-outline-secondary" onclick="startEdit(@p.Id)" id="editBtn-@p.Id">
+                                    <i class="bi bi-pencil"></i>
                                 </button>
-                            </form>
+                                <form action="/Admin/Persons?handler=EditName" method="post" id="editForm-@p.Id" class="d-none">
+                                    <input type="hidden" name="personId" value="@p.Id" />
+                                    <input type="hidden" name="newName" id="editHidden-@p.Id" />
+                                    <button type="submit" class="btn btn-sm btn-success"><i class="bi bi-check"></i></button>
+                                </form>
+                                <button class="btn btn-sm btn-outline-secondary d-none" id="cancelBtn-@p.Id" onclick="cancelEdit(@p.Id)">
+                                    <i class="bi bi-x"></i>
+                                </button>
+                                <form action="/Admin/Persons?handler=Toggle" method="post" class="d-inline">
+                                    <input type="hidden" name="personId" value="@p.Id" />
+                                    <button class="btn btn-sm @(p.Active ? "btn-outline-danger" : "btn-outline-success")">
+                                        @(p.Active ? "Desativar" : "Ativar")
+                                    </button>
+                                </form>
+                            </div>
                         </li>
                     }
                 </ul>
@@ -71,3 +99,29 @@
         </div>
     </div>
 </div>
+
+<script>
+function startEdit(id) {
+    document.getElementById('name-' + id).classList.add('d-none');
+    document.getElementById('edit-' + id).classList.remove('d-none');
+    document.getElementById('editBtn-' + id).classList.add('d-none');
+    document.getElementById('editForm-' + id).classList.remove('d-none');
+    document.getElementById('cancelBtn-' + id).classList.remove('d-none');
+    document.getElementById('edit-' + id).focus();
+}
+
+function cancelEdit(id) {
+    document.getElementById('name-' + id).classList.remove('d-none');
+    document.getElementById('edit-' + id).classList.add('d-none');
+    document.getElementById('editBtn-' + id).classList.remove('d-none');
+    document.getElementById('editForm-' + id).classList.add('d-none');
+    document.getElementById('cancelBtn-' + id).classList.add('d-none');
+}
+
+document.querySelectorAll('[id^="editForm-"]').forEach(form => {
+    form.addEventListener('submit', function(e) {
+        const id = this.id.replace('editForm-', '');
+        document.getElementById('editHidden-' + id).value = document.getElementById('edit-' + id).value;
+    });
+});
+</script>

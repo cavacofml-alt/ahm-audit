@@ -5,6 +5,7 @@ using AHM.Audit.Models;
 
 namespace AHM.Audit.Pages.Admin
 {
+    [IgnoreAntiforgeryToken]
     public class PersonsModel : PageModel
     {
         private readonly AuditDbContext _context;
@@ -39,6 +40,21 @@ namespace AHM.Audit.Pages.Admin
             ViewData["IsAdmin"] = true;
             var p = _context.Persons.Find(personId);
             if (p != null) { p.Active = !p.Active; _context.SaveChanges(); }
+            LoadLists();
+            return Page();
+        }
+
+        public IActionResult OnPostEditName(int personId, string newName)
+        {
+            if (!IsAdmin()) return RedirectToPage("/Account/Login");
+            ViewData["IsAdmin"] = true;
+            var p = _context.Persons.Find(personId);
+            if (p != null && !string.IsNullOrWhiteSpace(newName))
+            {
+                p.Name = newName.Trim();
+                _context.SaveChanges();
+                Message = $"Nome atualizado para '{p.Name}'.";
+            }
             LoadLists();
             return Page();
         }
