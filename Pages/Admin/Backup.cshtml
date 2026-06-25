@@ -11,14 +11,12 @@
 
 @if (!string.IsNullOrEmpty(Model.Message))
 {
-    <div class="alert @(Model.IsError ? "alert-danger" : "alert-success") alert-dismissible">
-        @Model.Message
-    </div>
+    <div class="alert @(Model.IsError ? "alert-danger" : "alert-success")">@Model.Message</div>
 }
 
 <div class="row g-4">
     <!-- Exportar -->
-    <div class="col-md-4">
+    <div class="col-md-3">
         <div class="card h-100">
             <div class="card-header fw-bold"><i class="bi bi-download me-2"></i>Exportar Backup</div>
             <div class="card-body">
@@ -31,11 +29,11 @@
     </div>
 
     <!-- Importar -->
-    <div class="col-md-4">
+    <div class="col-md-3">
         <div class="card h-100">
             <div class="card-header fw-bold"><i class="bi bi-upload me-2"></i>Restaurar Backup</div>
             <div class="card-body">
-                <p class="text-muted small">Faz upload de um ficheiro CSV para restaurar as auditorias. Tickets duplicados serão ignorados.</p>
+                <p class="text-muted small">Faz upload de um CSV para restaurar auditorias. Tickets duplicados e nomes inválidos são tratados automaticamente.</p>
                 <form action="/Admin/Backup?handler=Import" method="post" enctype="multipart/form-data">
                     <div class="mb-3">
                         <input type="file" class="form-control" name="csvFile" accept=".csv" />
@@ -48,17 +46,33 @@
         </div>
     </div>
 
-    <!-- Apagar tudo -->
-    <div class="col-md-4">
+    <!-- Apagar auditorias -->
+    <div class="col-md-3">
         <div class="card h-100 border-danger">
-            <div class="card-header fw-bold text-danger"><i class="bi bi-trash me-2"></i>Apagar Todas as Auditorias</div>
+            <div class="card-header fw-bold text-danger"><i class="bi bi-trash me-2"></i>Apagar Auditorias</div>
             <div class="card-body">
-                <p class="text-muted small">Apaga permanentemente todas as auditorias. Esta ação não pode ser desfeita.</p>
+                <p class="text-muted small">Apaga permanentemente todas as auditorias ativas.</p>
                 <div class="alert alert-danger small py-2">
-                    <i class="bi bi-exclamation-triangle-fill me-1"></i>Faz um backup antes de continuar!
+                    <i class="bi bi-exclamation-triangle-fill me-1"></i>Faz um backup antes!
                 </div>
-                <button type="button" class="btn btn-danger w-100" onclick="confirmDelete()">
+                <button type="button" class="btn btn-danger w-100" onclick="confirmDelete('all')">
                     <i class="bi bi-trash me-2"></i>Apagar Tudo
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Apagar arquivo -->
+    <div class="col-md-3">
+        <div class="card h-100 border-warning">
+            <div class="card-header fw-bold text-warning"><i class="bi bi-archive me-2"></i>Apagar Arquivo</div>
+            <div class="card-body">
+                <p class="text-muted small">Apaga permanentemente todas as auditorias em arquivo (anos anteriores).</p>
+                <div class="alert alert-warning small py-2">
+                    <i class="bi bi-exclamation-triangle me-1"></i>Esta ação é irreversível.
+                </div>
+                <button type="button" class="btn btn-warning w-100" onclick="confirmDelete('archive')">
+                    <i class="bi bi-archive me-2"></i>Apagar Arquivo
                 </button>
             </div>
         </div>
@@ -68,20 +82,20 @@
 <!-- Modal confirmação -->
 <div class="modal fade" id="deleteModal" tabindex="-1">
     <div class="modal-dialog">
-        <div class="modal-content border-danger">
-            <div class="modal-header bg-danger text-white">
+        <div class="modal-content">
+            <div class="modal-header" id="modalHeader">
                 <h5 class="modal-title"><i class="bi bi-exclamation-triangle-fill me-2"></i>Confirmação</h5>
             </div>
             <div class="modal-body">
-                <p>Tens a certeza que queres apagar <strong>todas as auditorias</strong>?</p>
-                <p class="text-danger fw-bold">Esta ação é irreversível.</p>
+                <p id="modalText"></p>
+                <p class="fw-bold" id="modalWarn"></p>
                 <label class="form-label">Escreve <strong>APAGAR</strong> para confirmar:</label>
                 <input type="text" id="confirmText" class="form-control" placeholder="APAGAR" />
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                <form action="/Admin/Backup?handler=DeleteAll" method="post" id="deleteForm">
-                    <button type="submit" class="btn btn-danger" id="confirmBtn" disabled>Apagar Tudo</button>
+                <form id="deleteForm" method="post">
+                    <button type="submit" class="btn" id="confirmBtn" disabled>Apagar</button>
                 </form>
             </div>
         </div>
@@ -89,9 +103,23 @@
 </div>
 
 <script>
-function confirmDelete() {
+function confirmDelete(type) {
+    const isAll = type === 'all';
+    document.getElementById('modalHeader').className = isAll ? 'modal-header bg-danger text-white' : 'modal-header bg-warning text-dark';
+    document.getElementById('modalText').textContent = isAll
+        ? 'Tens a certeza que queres apagar todas as auditorias ativas?'
+        : 'Tens a certeza que queres apagar todas as auditorias em arquivo?';
+    document.getElementById('modalWarn').textContent = 'Esta ação é irreversível.';
+    document.getElementById('modalWarn').className = isAll ? 'fw-bold text-danger' : 'fw-bold text-warning';
+    document.getElementById('deleteForm').action = isAll
+        ? '/Admin/Backup?handler=DeleteAll'
+        : '/Admin/Backup?handler=DeleteArchive';
+    document.getElementById('confirmBtn').className = isAll ? 'btn btn-danger' : 'btn btn-warning';
+    document.getElementById('confirmText').value = '';
+    document.getElementById('confirmBtn').disabled = true;
     new bootstrap.Modal(document.getElementById('deleteModal')).show();
 }
+
 document.getElementById('confirmText').addEventListener('input', function() {
     document.getElementById('confirmBtn').disabled = this.value !== 'APAGAR';
 });
