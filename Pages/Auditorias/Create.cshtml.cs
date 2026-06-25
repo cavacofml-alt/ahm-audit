@@ -89,6 +89,9 @@ namespace AHM.Audit.Pages.Auditorias
             Auditoria.Aircraft                 = Auditoria.Aircraft                 ?? "";
             Auditoria.Registration             = Auditoria.Registration             ?? "";
             Auditoria.RevisionUpdates          = Auditoria.RevisionUpdates          ?? "";
+            Auditoria.CorrectionTicket         = Auditoria.CorrectionTicket         ?? "";
+            Auditoria.CorrectionsMade          = Auditoria.CorrectionsMade          ?? "N/A";
+            Auditoria.AircraftRecertified      = Auditoria.AircraftRecertified      ?? "N/A";
             Auditoria.ReasonForRecertification = Auditoria.ReasonForRecertification ?? "";
             Auditoria.Notes                    = Auditoria.Notes                    ?? "";
             Auditoria.CreatedAt                = DateTime.Now;
