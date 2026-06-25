@@ -7,6 +7,7 @@ using System.Globalization;
 
 namespace AHM.Audit.Pages.Admin
 {
+    [IgnoreAntiforgeryToken]
     public class BackupModel : PageModel
     {
         private readonly AuditDbContext _context;
@@ -38,7 +39,7 @@ namespace AHM.Audit.Pages.Admin
             int imported = 0, skipped = 0;
 
             using var reader = new System.IO.StreamReader(csvFile.OpenReadStream());
-            reader.ReadLine(); // skip header
+            reader.ReadLine();
 
             while (!reader.EndOfStream)
             {
