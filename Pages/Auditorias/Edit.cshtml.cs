@@ -14,14 +14,22 @@ namespace AHM.Audit.Pages.Auditorias
         public Auditoria Auditoria { get; set; }
         public List<string> Agents { get; set; } = new();
         public List<string> Officers { get; set; } = new();
+        public bool IsAdmin { get; set; }
+        public bool IsLocked { get; set; }
 
         public IActionResult OnGet(int id)
         {
-            if (HttpContext.Session.GetString("User") == null)
-                return RedirectToPage("/Account/Login");
+            var username = HttpContext.Session.GetString("User");
+            if (username == null) return RedirectToPage("/Account/Login");
+
+            IsAdmin = _context.Users.Any(u => u.Username == username && u.IsAdmin);
+            ViewData["IsAdmin"] = IsAdmin;
 
             Auditoria = _context.Auditorias.Find(id);
             if (Auditoria == null) return RedirectToPage("Index");
+
+            // Bloqueado se passou mais de 1 mês (exceto admin)
+            IsLocked = !IsAdmin && Auditoria.CreatedAt < DateTime.Now.AddMonths(-1);
 
             LoadDropdowns();
             return Page();
@@ -29,6 +37,25 @@ namespace AHM.Audit.Pages.Auditorias
 
         public IActionResult OnPost()
         {
+            var username = HttpContext.Session.GetString("User");
+            if (username == null) return RedirectToPage("/Account/Login");
+
+            var isAdmin = _context.Users.Any(u => u.Username == username && u.IsAdmin);
+            ViewData["IsAdmin"] = isAdmin;
+
+            // Verificar se está bloqueado
+            var original = _context.Auditorias.Find(Auditoria.Id);
+            if (original == null) return RedirectToPage("Index");
+
+            if (!isAdmin && original.CreatedAt < DateTime.Now.AddMonths(-1))
+            {
+                IsLocked = true;
+                Auditoria = original;
+                LoadDropdowns();
+                ModelState.AddModelError("", "Esta auditoria já não pode ser editada (passou mais de 1 mês).");
+                return Page();
+            }
+
             LoadDropdowns();
 
             Auditoria.Agent                    = Auditoria.Agent                    ?? "";
@@ -39,8 +66,11 @@ namespace AHM.Audit.Pages.Auditorias
             Auditoria.Registration             = Auditoria.Registration             ?? "";
             Auditoria.RevisionUpdates          = Auditoria.RevisionUpdates          ?? "";
             Auditoria.CorrectionTicket         = Auditoria.CorrectionTicket         ?? "";
+            Auditoria.CorrectionsMade          = Auditoria.CorrectionsMade          ?? "N/A";
+            Auditoria.AircraftRecertified      = Auditoria.AircraftRecertified      ?? "N/A";
             Auditoria.ReasonForRecertification = Auditoria.ReasonForRecertification ?? "";
             Auditoria.Notes                    = Auditoria.Notes                    ?? "";
+            Auditoria.CreatedAt                = original.CreatedAt; // preserve original date
 
             _context.Auditorias.Update(Auditoria);
             _context.SaveChanges();
