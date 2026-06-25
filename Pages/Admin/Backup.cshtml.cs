@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc.RazorPages;
 using AHM.Audit.Data;
 using AHM.Audit.Models;
 using System.Text;
+using System.Globalization;
 
 namespace AHM.Audit.Pages.Admin
 {
@@ -54,6 +55,15 @@ namespace AHM.Audit.Pages.Admin
 
                 try
                 {
+                    var dateStr = SafeGet(cols, 6);
+                    DateTime parsedDate = DateTime.Today;
+                    DateTime.TryParseExact(
+                        dateStr,
+                        new[] { "dd/MM/yyyy", "d/M/yyyy", "MM/dd/yyyy", "yyyy-MM-dd", "dd-MM-yyyy" },
+                        CultureInfo.InvariantCulture,
+                        DateTimeStyles.None,
+                        out parsedDate);
+
                     var a = new Auditoria
                     {
                         Ticket                   = ticket,
@@ -62,7 +72,7 @@ namespace AHM.Audit.Pages.Admin
                         Airline                  = SafeGet(cols, 3),
                         Aircraft                 = SafeGet(cols, 4),
                         Registration             = SafeGet(cols, 5),
-                        Date                     = DateTime.TryParseExact(SafeGet(cols, 6), new[]{"dd/MM/yyyy","MM/dd/yyyy","yyyy-MM-dd"}, System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.None, out var d) ? d : DateTime.Today,
+                        Date                     = parsedDate == default ? DateTime.Today : parsedDate,
                         RevisionUpdates          = SafeGet(cols, 7),
                         B1  = SafeGet(cols, 8),  B2  = SafeGet(cols, 9),  B3  = SafeGet(cols, 10),
                         C1  = SafeGet(cols, 11), C2  = SafeGet(cols, 12), C2_3 = SafeGet(cols, 13),
