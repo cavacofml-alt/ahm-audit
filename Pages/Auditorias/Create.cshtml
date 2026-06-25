@@ -204,7 +204,7 @@
 </form>
 
 <script>
-    const duplicateRegs = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.RecentRegistrations));
+    const recentCombinations = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.RecentRegistrations));
 
     // Force # prefix on ticket
     document.querySelector('input[name="Auditoria.Ticket"]').addEventListener('blur', function() {

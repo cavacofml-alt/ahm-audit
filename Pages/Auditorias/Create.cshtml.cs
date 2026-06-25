@@ -39,7 +39,6 @@ namespace AHM.Audit.Pages.Auditorias
             var username = HttpContext.Session.GetString("User");
             ViewData["IsAdmin"] = _context.Users.Any(u => u.Username == username && u.IsAdmin);
 
-            // Ticket obrigatório e único
             if (string.IsNullOrWhiteSpace(Auditoria.Ticket))
             {
                 ErrorMessage = "O Ticket Number é obrigatório.";
@@ -54,7 +53,6 @@ namespace AHM.Audit.Pages.Auditorias
                 return Page();
             }
 
-            // Correction Ticket único
             if (!string.IsNullOrWhiteSpace(Auditoria.CorrectionTicket))
             {
                 if (!Auditoria.CorrectionTicket.StartsWith("#"))
@@ -66,21 +64,18 @@ namespace AHM.Audit.Pages.Auditorias
                 }
             }
 
-            // Correction Ticket obrigatório se Aircraft Re-certified = YES
             if (Auditoria.AircraftRecertified == "YES" && string.IsNullOrWhiteSpace(Auditoria.CorrectionTicket))
             {
                 ErrorMessage = "O Correction Ticket é obrigatório quando o Aircraft é Re-certificado.";
                 return Page();
             }
 
-            // Agent não pode ser igual ao AHM Officer
             if (!string.IsNullOrEmpty(Auditoria.Agent) && Auditoria.Agent == Auditoria.AhmOfficer)
             {
                 ErrorMessage = "O Audit Agent não pode ser o mesmo que o AHM Officer.";
                 return Page();
             }
 
-            // Agent não pode auditar-se a si mesmo (nome igual ao utilizador logado)
             if (!string.IsNullOrEmpty(Auditoria.Agent) && Auditoria.Agent == username)
             {
                 ErrorMessage = "O Audit Agent não pode auditar-se a si mesmo.";
@@ -119,9 +114,14 @@ namespace AHM.Audit.Pages.Auditorias
         private void LoadRecentRegistrations()
         {
             var sixMonthsAgo = DateTime.Now.AddMonths(-6);
+            // Guardar combinações "AIRLINE|AIRCRAFT|REGISTRATION" para validação no frontend
             RecentRegistrations = _context.Auditorias
-                .Where(a => a.Date >= sixMonthsAgo && !string.IsNullOrEmpty(a.Registration))
-                .Select(a => a.Registration).Distinct().ToList();
+                .Where(a => a.Date >= sixMonthsAgo
+                    && !string.IsNullOrEmpty(a.Registration)
+                    && !string.IsNullOrEmpty(a.Airline)
+                    && !string.IsNullOrEmpty(a.Aircraft))
+                .Select(a => a.Airline + "|" + a.Aircraft + "|" + a.Registration)
+                .Distinct().ToList();
         }
     }
 }
