@@ -16,7 +16,7 @@
 
 <div class="row g-4">
     <!-- Exportar -->
-    <div class="col-md-6">
+    <div class="col-md-4">
         <div class="card h-100">
             <div class="card-header fw-bold"><i class="bi bi-download me-2"></i>Exportar Backup</div>
             <div class="card-body">
@@ -29,16 +29,18 @@
     </div>
 
     <!-- Importar -->
-    <div class="col-md-6">
+    <div class="col-md-4">
         <div class="card h-100">
             <div class="card-header fw-bold"><i class="bi bi-upload me-2"></i>Restaurar Backup</div>
             <div class="card-body">
                 <p class="text-muted small">Faz upload de um ficheiro CSV exportado anteriormente para restaurar as auditorias.</p>
                 <div class="alert alert-warning small py-2">
                     <i class="bi bi-exclamation-triangle me-1"></i>
-                    Atenção: tickets duplicados serão ignorados.
+                    Tickets duplicados serão ignorados.
                 </div>
                 <form method="post" enctype="multipart/form-data">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="handler" value="Import" />
                     <div class="mb-3">
                         <input type="file" class="form-control" name="csvFile" accept=".csv" required />
                     </div>
@@ -49,4 +51,55 @@
             </div>
         </div>
     </div>
+
+    <!-- Apagar tudo -->
+    <div class="col-md-4">
+        <div class="card h-100 border-danger">
+            <div class="card-header fw-bold text-danger"><i class="bi bi-trash me-2"></i>Apagar Todas as Auditorias</div>
+            <div class="card-body">
+                <p class="text-muted small">Apaga permanentemente todas as auditorias. Esta ação não pode ser desfeita.</p>
+                <div class="alert alert-danger small py-2">
+                    <i class="bi bi-exclamation-triangle-fill me-1"></i>
+                    Faz um backup antes de continuar!
+                </div>
+                <button type="button" class="btn btn-danger w-100" onclick="confirmDelete()">
+                    <i class="bi bi-trash me-2"></i>Apagar Tudo
+                </button>
+            </div>
+        </div>
+    </div>
 </div>
+
+<!-- Modal confirmação -->
+<div class="modal fade" id="deleteModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content border-danger">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title"><i class="bi bi-exclamation-triangle-fill me-2"></i>Confirmação</h5>
+            </div>
+            <div class="modal-body">
+                <p>Tens a certeza que queres apagar <strong>todas as auditorias</strong>?</p>
+                <p class="text-danger fw-bold">Esta ação é irreversível.</p>
+                <label class="form-label">Escreve <strong>APAGAR</strong> para confirmar:</label>
+                <input type="text" id="confirmText" class="form-control" placeholder="APAGAR" />
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <form method="post" id="deleteForm">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="handler" value="DeleteAll" />
+                    <button type="submit" class="btn btn-danger" id="confirmBtn" disabled>Apagar Tudo</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function confirmDelete() {
+    new bootstrap.Modal(document.getElementById('deleteModal')).show();
+}
+document.getElementById('confirmText').addEventListener('input', function() {
+    document.getElementById('confirmBtn').disabled = this.value !== 'APAGAR';
+});
+</script>
