@@ -279,14 +279,14 @@ function filterSections() {
 
 let resultChart = new Chart(document.getElementById('resultChart'), {
     type: 'doughnut',
-    data: { labels:['OK','NOT OK','N/A'], datasets:[{ data:[@Model.TotalYes,@Model.TotalNo,@Model.TotalNA], backgroundColor:['#3b6d11','#d13438','#b4b2a9'], borderWidth:2, borderColor:'#fff' }] },
+    data: { labels:['OK','NOT OK'], datasets:[{ data:[@Model.TotalYes,@Model.TotalNo], backgroundColor:['#3b6d11','#d13438'], borderWidth:2, borderColor:'#fff' }] },
     options: { ...baseOpts, cutout:'72%' }
 });
 
 function filterOfficer() {
     const o = document.getElementById('officerFilter').value;
     const s = !o ? { yes:@Model.TotalYes, no:@Model.TotalNo, na:@Model.TotalNA, pct:@Model.PctYes } : (officerStats[o]||{yes:0,no:0,na:0,pct:0});
-    resultChart.data.datasets[0].data = [s.yes, s.no, s.na];
+    resultChart.data.datasets[0].data = [s.yes, s.no];
     resultChart.update();
     document.getElementById('conformityPct').textContent = s.pct+'%';
 }
