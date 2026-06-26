@@ -160,7 +160,7 @@ namespace AHM.Audit.Pages
             var (cy, cn, ca) = CountChecklist(audits);
             TotalYes = cy; TotalNo = cn; TotalNA = ca;
 
-            int grand = TotalYes + TotalNo + TotalNA;
+            int grand = TotalYes + TotalNo;
             if (grand > 0)
             {
                 PctYes = (TotalYes * 100 / grand).ToString();
@@ -187,8 +187,8 @@ namespace AHM.Audit.Pages
                         else if (val == "NO") pn++;
                         else pa++;
                     }
-                int pg = py + pn + pa;
-                int prevPct = pg > 0 ? py * 100 / pg : 0;
+                int pg = py + pn + pa; // kept for reference
+                int prevPct = (py + pn) > 0 ? py * 100 / (py + pn) : 0;
                 PrevPctYes = prevPct.ToString();
                 DiffPctYes = int.Parse(PctYes) - prevPct;
                 DiffTotal  = Total - PrevTotal;
@@ -220,7 +220,7 @@ namespace AHM.Audit.Pages
                 .Select(x => new ItemNonConformity
                 {
                     label  = x.Value.label,
-                    pctNo  = x.Value.no * 100 / x.Value.total
+                    pctNo  = (x.Value.no + x.Value.yes) > 0 ? x.Value.no * 100 / (x.Value.no + x.Value.yes) : 0
                 })
                 .OrderByDescending(x => x.pctNo)
                 .Take(10)
@@ -229,7 +229,7 @@ namespace AHM.Audit.Pages
             foreach (var s in sectionMap.Values)
             {
                 int t = s.yes + s.no + s.na;
-                s.pct = t > 0 ? s.yes * 100 / t : 0;
+                s.pct = (s.yes + s.no) > 0 ? s.yes * 100 / (s.yes + s.no) : 0;
             }
 
             SectionData  = sectionMap.Values.ToList();
@@ -254,7 +254,7 @@ namespace AHM.Audit.Pages
                         else oNA++;
                     }
                 int oTotal = oYes + oNo + oNA;
-                int oPct   = oTotal > 0 ? oYes * 100 / oTotal : 0;
+                int oPct   = (oYes + oNo) > 0 ? oYes * 100 / (oYes + oNo) : 0;
                 OfficerConformity.Add(oPct);
                 OfficerStats[og.Key] = new OfficerStat { yes = oYes, no = oNo, na = oNA, pct = oPct };
             }

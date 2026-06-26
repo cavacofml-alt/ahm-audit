@@ -72,7 +72,7 @@ namespace AHM.Audit.Pages.Auditorias
                 int yes = values.Count(v => v == "YES");
                 int no  = values.Count(v => v == "NO");
                 int na  = values.Count(v => v == "N/A");
-                int pct = (yes + no + na) > 0 ? yes * 100 / (yes + no + na) : 0;
+                int pct = (yes + no) > 0 ? yes * 100 / (yes + no) : 0;
 
                 var row = new[] { Escape(a.Ticket), Escape(a.Agent), Escape(a.AhmOfficer),
                     Escape(a.Airline), Escape(a.Aircraft), Escape(a.Registration),
