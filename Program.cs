@@ -54,12 +54,31 @@ using (var scope = app.Services.CreateScope())
     var db = scope.ServiceProvider.GetRequiredService<AuditDbContext>();
     db.Database.Migrate();
 
+    // Seed admin
     if (!db.Users.Any())
     {
         db.Users.Add(new User { Username = "admin", PasswordHash = "AHM123%%", IsAdmin = true, Active = true });
         db.SaveChanges();
     }
 
+    // Seed Agents
+    var defaultAgents = new[] { "Alejandro Alvarado", "Joao Viriato", "Luis Cavaco", "Pedro Jesus", "Pedro Nunes", "Renato Silva", "Tiago Malheiro", "Valter Augusto" };
+    foreach (var name in defaultAgents)
+    {
+        if (!db.Persons.Any(p => p.Name == name && p.Role == "Agent"))
+            db.Persons.Add(new Person { Name = name, Role = "Agent", Active = true });
+    }
+
+    // Seed Officers
+    var defaultOfficers = new[] { "Alejandro Alvarado", "Ihor Holovchak", "Joao Viriato", "Luis Cavaco", "Pedro Jesus", "Renato Silva", "Tiago Malheiro", "Valter Augusto" };
+    foreach (var name in defaultOfficers)
+    {
+        if (!db.Persons.Any(p => p.Name == name && p.Role == "Officer"))
+            db.Persons.Add(new Person { Name = name, Role = "Officer", Active = true });
+    }
+    db.SaveChanges();
+
+    // Arquivo anual
     var currentYear = DateTime.Now.Year;
     var toArchive = db.Auditorias.Where(a => a.Date.Year < currentYear).ToList();
 
