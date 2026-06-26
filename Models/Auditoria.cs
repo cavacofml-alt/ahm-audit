@@ -6,6 +6,9 @@ namespace AHM.Audit.Models
     {
         public int Id { get; set; }
 
+        // Estado
+        public bool IsFinalized { get; set; } = false;
+
         // Informação Geral
         public string Agent { get; set; } = "";
         public string AhmOfficer { get; set; } = "";
@@ -16,7 +19,7 @@ namespace AHM.Audit.Models
         public DateTime Date { get; set; }
         public string RevisionUpdates { get; set; } = "";
 
-        // Campos de correção (antes das notas)
+        // Campos de correção
         public string CorrectionTicket { get; set; } = "";
         public string ReasonForRecertification { get; set; } = "";
         public string CorrectionsMade { get; set; } = "N/A";

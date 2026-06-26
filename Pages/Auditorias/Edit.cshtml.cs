@@ -28,31 +28,32 @@ namespace AHM.Audit.Pages.Auditorias
             Auditoria = _context.Auditorias.Find(id);
             if (Auditoria == null) return RedirectToPage("Index");
 
-            // Bloqueado se passou mais de 1 mês (exceto admin)
-            IsLocked = !IsAdmin && Auditoria.CreatedAt < DateTime.Now.AddMonths(-1);
+            // Bloqueado se finalizado (não admin) ou passou mais de 1 mês (não admin)
+            IsLocked = !IsAdmin && (Auditoria.IsFinalized || Auditoria.CreatedAt < DateTime.Now.AddMonths(-1));
 
             LoadDropdowns();
             return Page();
         }
 
-        public IActionResult OnPost()
+        public IActionResult OnPost(string? action)
         {
             var username = HttpContext.Session.GetString("User");
             if (username == null) return RedirectToPage("/Account/Login");
 
             var isAdmin = _context.Users.Any(u => u.Username == username && u.IsAdmin);
             ViewData["IsAdmin"] = isAdmin;
+            IsAdmin = isAdmin;
 
-            // Verificar se está bloqueado
             var original = _context.Auditorias.Find(Auditoria.Id);
             if (original == null) return RedirectToPage("Index");
 
-            if (!isAdmin && original.CreatedAt < DateTime.Now.AddMonths(-1))
+            // Verificar bloqueio
+            if (!isAdmin && (original.IsFinalized || original.CreatedAt < DateTime.Now.AddMonths(-1)))
             {
                 IsLocked = true;
                 Auditoria = original;
                 LoadDropdowns();
-                ModelState.AddModelError("", "Esta auditoria já não pode ser editada (passou mais de 1 mês).");
+                ModelState.AddModelError("", "Esta auditoria está bloqueada.");
                 return Page();
             }
 
@@ -70,17 +71,29 @@ namespace AHM.Audit.Pages.Auditorias
             Auditoria.AircraftRecertified      = Auditoria.AircraftRecertified      ?? "N/A";
             Auditoria.ReasonForRecertification = Auditoria.ReasonForRecertification ?? "";
             Auditoria.Notes                    = Auditoria.Notes                    ?? "";
-            Auditoria.CreatedAt                = original.CreatedAt; // preserve original date
+            Auditoria.CreatedAt                = original.CreatedAt;
 
-            // Copiar valores para a entidade já tracked
-            var tracked = _context.Auditorias.Find(Auditoria.Id);
-            if (tracked != null)
-            {
-                _context.Entry(tracked).CurrentValues.SetValues(Auditoria);
-                tracked.CreatedAt = original.CreatedAt;
-            }
+            // Finalizar ou manter rascunho
+            Auditoria.IsFinalized = action == "finalize";
+
+            _context.Entry(original).CurrentValues.SetValues(Auditoria);
             _context.SaveChanges();
             return RedirectToPage("Index");
+        }
+
+        public IActionResult OnPostUnfinalize(int id)
+        {
+            var username = HttpContext.Session.GetString("User");
+            if (username == null) return RedirectToPage("/Account/Login");
+            if (!_context.Users.Any(u => u.Username == username && u.IsAdmin)) return Forbid();
+
+            var audit = _context.Auditorias.Find(id);
+            if (audit != null)
+            {
+                audit.IsFinalized = false;
+                _context.SaveChanges();
+            }
+            return RedirectToPage(new { id });
         }
 
         private void LoadDropdowns()
