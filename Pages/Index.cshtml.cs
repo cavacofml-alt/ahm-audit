@@ -200,26 +200,26 @@ namespace AHM.Audit.Pages
                     sectionMap[key] = new SectionStat { name = name, key = key };
 
             // Top não conformidades por item
-            var itemNos = new Dictionary<string, (string label, int no, int total)>();
+            var itemNos = new Dictionary<string, (string label, int yes, int no, int na)>();
             foreach (var (f, lbl, _, _) in ChecklistItems)
-                itemNos[f] = (lbl, 0, 0);
+                itemNos[f] = (lbl, 0, 0, 0);
 
             foreach (var a in audits)
                 foreach (var (f, _, key, _) in ChecklistItems)
                 {
                     var val = typeof(Auditoria).GetProperty(f)?.GetValue(a)?.ToString() ?? "N/A";
-                    var (lbl, no, total) = itemNos[f];
-                    if (val == "YES") { sectionMap[key].yes++; itemNos[f] = (lbl, no, total + 1); }
-                    else if (val == "NO") { sectionMap[key].no++; itemNos[f] = (lbl, no + 1, total + 1); }
-                    else { sectionMap[key].na++; itemNos[f] = (lbl, no, total + 1); }
+                    var (lbl, yes, no, na) = itemNos[f];
+                    if (val == "YES") { sectionMap[key].yes++; itemNos[f] = (lbl, yes + 1, no, na); }
+                    else if (val == "NO") { sectionMap[key].no++; itemNos[f] = (lbl, yes, no + 1, na); }
+                    else { sectionMap[key].na++; itemNos[f] = (lbl, yes, no, na + 1); }
                 }
 
             TopNonConformities = itemNos
-                .Where(x => x.Value.total > 0 && x.Value.no > 0)
+                .Where(x => (x.Value.yes + x.Value.no) > 0 && x.Value.no > 0)
                 .Select(x => new ItemNonConformity
                 {
                     label  = x.Value.label,
-                    pctNo  = x.Value.no * 100 / x.Value.total
+                    pctNo  = (x.Value.no + x.Value.yes) > 0 ? x.Value.no * 100 / (x.Value.no + x.Value.yes) : 0
                 })
                 .OrderByDescending(x => x.pctNo)
                 .Take(10)
