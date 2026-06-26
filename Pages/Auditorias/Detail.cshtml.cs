@@ -13,7 +13,7 @@ namespace AHM.Audit.Pages.Auditorias
         private readonly AuditDbContext _context;
         public DetailModel(AuditDbContext context) { _context = context; }
 
-        public Auditoria Auditoria { get; set; }
+        public Auditoria Auditoria { get; set; } = new();
         public List<ChecklistItem> ChecklistItems { get; set; } = new();
         public int CountYes { get; set; }
         public int CountNo  { get; set; }

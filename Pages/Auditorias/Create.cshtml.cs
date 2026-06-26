@@ -11,7 +11,7 @@ namespace AHM.Audit.Pages.Auditorias
         public CreateModel(AuditDbContext context) { _context = context; }
 
         [BindProperty]
-        public Auditoria Auditoria { get; set; }
+        public Auditoria Auditoria { get; set; } = new();
 
         public List<string> Agents { get; set; } = new();
         public List<string> Officers { get; set; } = new();
