@@ -131,6 +131,8 @@
 
     <!-- Section chart + Top não conformidades -->
     <div class="main">
+        @if (Model.CanViewSectionChart)
+        {
         <div class="card">
             <div class="ch">
                 Resultados por section (%)
@@ -152,6 +154,9 @@
                 <canvas id="sectionChart" role="img" aria-label="Section results">Section results</canvas>
             </div>
         </div>
+        }
+        @if (Model.CanViewGlobalConformity)
+        {
         <div class="card">
             <div class="ch">
                 Conformidade global
@@ -171,11 +176,14 @@
                 <span style="font-size:10px;color:var(--color-text-secondary);margin-left:4px">conformidade</span>
             </div>
         </div>
+        }
     </div>
 
     <!-- Top não conformidades + outros gráficos -->
     <div class="btm">
         <!-- Top NCs -->
+        @if (Model.CanViewNonConformities)
+        {
         <div class="card">
             <div class="ch">Top não conformidades</div>
             @if (!Model.TopNonConformities.Any())
@@ -194,6 +202,7 @@
                 }
             }
         </div>
+        }
 
         <!-- Por airline -->
         <div class="card">
@@ -285,7 +294,7 @@ let resultChart = new Chart(document.getElementById('resultChart'), {
 
 function filterOfficer() {
     const o = document.getElementById('officerFilter').value;
-    const s = !o ? { yes:@Model.TotalYes, no:@Model.TotalNo, na:@Model.TotalNA, pct:@Model.PctYes } : (officerStats[o]||{yes:0,no:0,na:0,pct:0});
+    const s = !o ? { yes:@Model.TotalYes, no:@Model.TotalNo, pct:@Model.PctYes } : (officerStats[o]||{yes:0,no:0,pct:0});
     resultChart.data.datasets[0].data = [s.yes, s.no];
     resultChart.update();
     document.getElementById('conformityPct').textContent = s.pct+'%';

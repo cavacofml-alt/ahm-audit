@@ -1,0 +1,97 @@
+@page
+@model AHM.Audit.Pages.Admin.SettingsModel
+@{
+    ViewData["Title"] = "Configurações";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2 class="mb-0"><i class="bi bi-gear me-2"></i>Configurações</h2>
+    <a href="/" class="btn btn-outline-secondary"><i class="bi bi-arrow-left me-1"></i>Dashboard</a>
+</div>
+
+@if (!string.IsNullOrEmpty(Model.Message))
+{
+    <div class="alert @(Model.IsError ? "alert-danger" : "alert-success")">@Model.Message</div>
+}
+
+<div class="row g-4">
+    <!-- Airlines -->
+    <div class="col-md-6">
+        <div class="card h-100">
+            <div class="card-header fw-bold"><i class="bi bi-airplane me-2"></i>Airlines</div>
+            <div class="card-body">
+                <form action="/Admin/Settings?handler=AddAirline" method="post" class="row g-2 mb-3">
+                    <div class="col-4">
+                        <input class="form-control" name="code" placeholder="Código (TP)" maxlength="3" required style="text-transform:uppercase" />
+                    </div>
+                    <div class="col-5">
+                        <input class="form-control" name="name" placeholder="Nome (opcional)" />
+                    </div>
+                    <div class="col-3">
+                        <button type="submit" class="btn btn-primary w-100">Adicionar</button>
+                    </div>
+                </form>
+                <div style="max-height:400px;overflow-y:auto">
+                    <table class="table table-sm table-hover">
+                        <thead>
+                            <tr><th>Código</th><th>Nome</th><th>Estado</th><th></th></tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var a in Model.Airlines)
+                            {
+                                <tr>
+                                    <td><strong>@a.Code</strong></td>
+                                    <td>@a.Name</td>
+                                    <td><span class="badge @(a.Active ? "bg-success" : "bg-secondary")">@(a.Active ? "Ativo" : "Inativo")</span></td>
+                                    <td>
+                                        <form action="/Admin/Settings?handler=ToggleAirline" method="post" class="d-inline">
+                                            <input type="hidden" name="id" value="@a.Id" />
+                                            <button type="submit" class="btn btn-sm @(a.Active ? "btn-outline-warning" : "btn-outline-success")">
+                                                @(a.Active ? "Desativar" : "Ativar")
+                                            </button>
+                                        </form>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Non-Conformity Reasons -->
+    <div class="col-md-6">
+        <div class="card h-100">
+            <div class="card-header fw-bold"><i class="bi bi-exclamation-triangle me-2"></i>Motivos de Não Conformidade</div>
+            <div class="card-body">
+                <form action="/Admin/Settings?handler=AddReason" method="post" class="d-flex gap-2 mb-3">
+                    <input class="form-control" name="reason" placeholder="Novo motivo..." required />
+                    <button type="submit" class="btn btn-primary">Adicionar</button>
+                </form>
+                <div style="max-height:400px;overflow-y:auto">
+                    <ul class="list-group">
+                        @foreach (var r in Model.Reasons)
+                        {
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                <span class="@(r.Active ? "" : "text-muted text-decoration-line-through")">@r.Reason</span>
+                                <div class="d-flex gap-1">
+                                    <form action="/Admin/Settings?handler=ToggleReason" method="post" class="d-inline">
+                                        <input type="hidden" name="id" value="@r.Id" />
+                                        <button type="submit" class="btn btn-sm @(r.Active ? "btn-outline-warning" : "btn-outline-success")">
+                                            @(r.Active ? "Desativar" : "Ativar")
+                                        </button>
+                                    </form>
+                                    <form action="/Admin/Settings?handler=DeleteReason" method="post" class="d-inline" onsubmit="return confirm('Apagar este motivo?')">
+                                        <input type="hidden" name="id" value="@r.Id" />
+                                        <button type="submit" class="btn btn-sm btn-danger"><i class="bi bi-trash"></i></button>
+                                    </form>
+                                </div>
+                            </li>
+                        }
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

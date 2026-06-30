@@ -5,11 +5,13 @@ namespace AHM.Audit.Data
 {
     public class AuditDbContext : DbContext
     {
-        public AuditDbContext(DbContextOptions<AuditDbContext> options) : base(options) {}
+        public AuditDbContext(DbContextOptions<AuditDbContext> options) : base(options) { }
 
         public DbSet<User> Users { get; set; }
         public DbSet<Auditoria> Auditorias { get; set; }
-        public DbSet<Person> Persons { get; set; }
         public DbSet<AuditoriaArchive> AuditoriaArchives { get; set; }
+        public DbSet<Person> Persons { get; set; }
+        public DbSet<Airline> Airlines { get; set; }
+        public DbSet<NonConformityReason> NonConformityReasons { get; set; }
     }
 }

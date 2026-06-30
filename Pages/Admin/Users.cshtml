@@ -19,11 +19,11 @@
     <div class="card-header fw-bold"><i class="bi bi-person-plus me-2"></i>Criar Utilizador</div>
     <div class="card-body">
         <form action="/Admin/Users?handler=Create" method="post" class="row g-3 align-items-end">
-            <div class="col-md-3">
+            <div class="col-md-2">
                 <label class="form-label small">Username</label>
                 <input class="form-control" name="newUsername" placeholder="Username" required />
             </div>
-            <div class="col-md-3">
+            <div class="col-md-2">
                 <label class="form-label small">Password</label>
                 <input class="form-control" name="newPassword" type="password" placeholder="Password" required />
             </div>
@@ -34,7 +34,17 @@
                     <option value="true">Admin</option>
                 </select>
             </div>
-            <div class="col-md-2">
+            <div class="col-md-3">
+                <label class="form-label small">Associar a Agent</label>
+                <select class="form-select" name="personId">
+                    <option value="">-- Nenhum --</option>
+                    @foreach (var a in Model.Agents)
+                    {
+                        <option value="@a.Id">@a.Name</option>
+                    }
+                </select>
+            </div>
+            <div class="col-md-3">
                 <button type="submit" class="btn btn-primary w-100">
                     <i class="bi bi-person-plus me-1"></i>Criar
                 </button>
@@ -51,6 +61,8 @@
                 <tr>
                     <th>Username</th>
                     <th>Perfil</th>
+                    <th>Agent associado</th>
+                    <th>Permissões Dashboard</th>
                     <th>Estado</th>
                     <th>Ações</th>
                 </tr>
@@ -61,12 +73,29 @@
                     <tr>
                         <td class="align-middle">
                             <span id="uname-@u.Id">@u.Username</span>
-                            <input type="text" id="uedit-@u.Id" class="form-control form-control-sm d-none" value="@u.Username" style="max-width:180px;display:inline-block" />
+                            <input type="text" id="uedit-@u.Id" class="form-control form-control-sm d-none" value="@u.Username" style="max-width:150px;display:inline-block" />
                         </td>
                         <td class="align-middle">
                             <span class="badge @(u.IsAdmin ? "bg-danger" : "bg-secondary")">
                                 @(u.IsAdmin ? "Admin" : "Utilizador")
                             </span>
+                        </td>
+                        <td class="align-middle">
+                            <form action="/Admin/Users?handler=SetPerson" method="post" class="d-flex gap-1">
+                                <input type="hidden" name="userId" value="@u.Id" />
+                                <select name="personId" class="form-select form-select-sm" onchange="this.form.submit()" style="max-width:160px">
+                                    <option value="">-- Nenhum --</option>
+                                    @foreach (var a in Model.Agents)
+                                    {
+                                        <option value="@a.Id" selected="@(u.PersonId == a.Id)">@a.Name</option>
+                                    }
+                                </select>
+                            </form>
+                        </td>
+                        <td class="align-middle">
+                            <button class="btn btn-sm btn-outline-primary" onclick="showPermissions(@u.Id, '@u.Username', @u.CanViewDashboard.ToString().ToLower(), @u.CanViewSectionChart.ToString().ToLower(), @u.CanViewNonConformities.ToString().ToLower(), @u.CanViewGlobalConformity.ToString().ToLower())">
+                                <i class="bi bi-eye me-1"></i>Gerir
+                            </button>
                         </td>
                         <td class="align-middle">
                             <span class="badge @(u.Active ? "bg-success" : "bg-secondary")">
@@ -75,7 +104,6 @@
                         </td>
                         <td class="align-middle">
                             <div class="d-flex gap-1 flex-wrap">
-                                <!-- Editar username -->
                                 <button class="btn btn-sm btn-outline-secondary" id="editBtn-@u.Id" onclick="startEditUser(@u.Id)" title="Editar username">
                                     <i class="bi bi-pencil"></i>
                                 </button>
@@ -87,34 +115,24 @@
                                 <button class="btn btn-sm btn-outline-secondary d-none" id="cancelUBtn-@u.Id" onclick="cancelEditUser(@u.Id)">
                                     <i class="bi bi-x"></i>
                                 </button>
-
-                                <!-- Reset password -->
                                 <button class="btn btn-sm btn-outline-warning" onclick="showResetPw(@u.Id, '@u.Username')" title="Reset password">
-                                    <i class="bi bi-key"></i> PW
+                                    <i class="bi bi-key"></i>
                                 </button>
-
-                                <!-- Toggle admin -->
                                 <form action="/Admin/Users?handler=ToggleAdmin" method="post" class="d-inline">
                                     <input type="hidden" name="userId" value="@u.Id" />
                                     <button type="submit" class="btn btn-sm @(u.IsAdmin ? "btn-outline-danger" : "btn-outline-primary")" title="@(u.IsAdmin ? "Remover admin" : "Dar admin")">
                                         <i class="bi bi-shield@(u.IsAdmin ? "-x" : "-check")"></i>
                                     </button>
                                 </form>
-
-                                <!-- Toggle ativo -->
                                 <form action="/Admin/Users?handler=ToggleActive" method="post" class="d-inline">
                                     <input type="hidden" name="userId" value="@u.Id" />
                                     <button type="submit" class="btn btn-sm @(u.Active ? "btn-outline-warning" : "btn-outline-success")">
                                         @(u.Active ? "Desativar" : "Ativar")
                                     </button>
                                 </form>
-
-                                <!-- Apagar -->
-                                <form action="/Admin/Users?handler=Delete" method="post" class="d-inline" onsubmit="return confirm('Tens a certeza que queres apagar o utilizador @u.Username?')">
+                                <form action="/Admin/Users?handler=Delete" method="post" class="d-inline" onsubmit="return confirm('Apagar utilizador @u.Username?')">
                                     <input type="hidden" name="userId" value="@u.Id" />
-                                    <button type="submit" class="btn btn-sm btn-danger" title="Apagar">
-                                        <i class="bi bi-trash"></i>
-                                    </button>
+                                    <button type="submit" class="btn btn-sm btn-danger"><i class="bi bi-trash"></i></button>
                                 </form>
                             </div>
                         </td>
@@ -148,11 +166,62 @@
     </div>
 </div>
 
+<!-- Modal permissões dashboard -->
+<div class="modal fade" id="permsModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Permissões de Dashboard — <span id="permsUser"></span></h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form action="/Admin/Users?handler=SetPermissions" method="post">
+                <div class="modal-body">
+                    <input type="hidden" name="userId" id="permsUserId" />
+                    <div class="form-check mb-2">
+                        <input class="form-check-input" type="checkbox" name="canViewDashboard" id="permDashboard" value="true" />
+                        <input type="hidden" name="canViewDashboard" value="false" />
+                        <label class="form-check-label fw-bold" for="permDashboard">Ver Dashboard</label>
+                    </div>
+                    <div class="form-check mb-2 ms-3">
+                        <input class="form-check-input" type="checkbox" name="canViewSectionChart" id="permSection" value="true" />
+                        <input type="hidden" name="canViewSectionChart" value="false" />
+                        <label class="form-check-label" for="permSection">Resultados por section (%)</label>
+                    </div>
+                    <div class="form-check mb-2 ms-3">
+                        <input class="form-check-input" type="checkbox" name="canViewNonConformities" id="permNC" value="true" />
+                        <input type="hidden" name="canViewNonConformities" value="false" />
+                        <label class="form-check-label" for="permNC">Top não conformidades</label>
+                    </div>
+                    <div class="form-check mb-2 ms-3">
+                        <input class="form-check-input" type="checkbox" name="canViewGlobalConformity" id="permGlobal" value="true" />
+                        <input type="hidden" name="canViewGlobalConformity" value="false" />
+                        <label class="form-check-label" for="permGlobal">Conformidade global</label>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Guardar Permissões</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
 <script>
 function showResetPw(id, username) {
     document.getElementById('resetPwId').value = id;
     document.getElementById('resetPwUser').textContent = username;
     new bootstrap.Modal(document.getElementById('resetPwModal')).show();
+}
+
+function showPermissions(id, username, dash, section, nc, global) {
+    document.getElementById('permsUserId').value = id;
+    document.getElementById('permsUser').textContent = username;
+    document.getElementById('permDashboard').checked = dash;
+    document.getElementById('permSection').checked = section;
+    document.getElementById('permNC').checked = nc;
+    document.getElementById('permGlobal').checked = global;
+    new bootstrap.Modal(document.getElementById('permsModal')).show();
 }
 
 function startEditUser(id) {

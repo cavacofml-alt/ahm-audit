@@ -2,11 +2,10 @@ using System;
 
 namespace AHM.Audit.Models
 {
-    public class Person
+    public class NonConformityReason
     {
         public int Id { get; set; }
-        public string Name { get; set; } = "";
-        public string Role { get; set; } = ""; // "Agent" or "Officer"
+        public string Reason { get; set; } = "";
         public bool Active { get; set; } = true;
     }
 }

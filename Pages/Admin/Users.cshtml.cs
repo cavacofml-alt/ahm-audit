@@ -12,6 +12,7 @@ namespace AHM.Audit.Pages.Admin
         public UsersModel(AuditDbContext context) { _context = context; }
 
         public List<User> Users { get; set; } = new();
+        public List<Person> Agents { get; set; } = new();
         public string Message { get; set; } = "";
         public bool IsError { get; set; }
 
@@ -19,11 +20,11 @@ namespace AHM.Audit.Pages.Admin
         {
             if (!IsAdmin()) return RedirectToPage("/Account/Login");
             ViewData["IsAdmin"] = true;
-            Users = _context.Users.OrderBy(u => u.Username).ToList();
+            LoadLists();
             return Page();
         }
 
-        public IActionResult OnPostCreate(string newUsername, string newPassword, bool isAdmin)
+        public IActionResult OnPostCreate(string newUsername, string newPassword, bool isAdmin, int? personId)
         {
             if (!IsAdmin()) return RedirectToPage("/Account/Login");
             ViewData["IsAdmin"] = true;
@@ -31,19 +32,25 @@ namespace AHM.Audit.Pages.Admin
             if (string.IsNullOrWhiteSpace(newUsername) || string.IsNullOrWhiteSpace(newPassword))
             {
                 Message = "Username e password são obrigatórios."; IsError = true;
-                Users = _context.Users.OrderBy(u => u.Username).ToList(); return Page();
+                LoadLists(); return Page();
             }
 
             if (_context.Users.Any(u => u.Username.ToLower() == newUsername.ToLower()))
             {
                 Message = $"O username '{newUsername}' já existe."; IsError = true;
-                Users = _context.Users.OrderBy(u => u.Username).ToList(); return Page();
+                LoadLists(); return Page();
             }
 
-            _context.Users.Add(new User { Username = newUsername, PasswordHash = newPassword, IsAdmin = isAdmin, Active = true });
+            _context.Users.Add(new User
+            {
+                Username = newUsername, PasswordHash = newPassword, IsAdmin = isAdmin, Active = true,
+                PersonId = personId,
+                CanViewDashboard = true, CanViewSectionChart = true,
+                CanViewNonConformities = true, CanViewGlobalConformity = true
+            });
             _context.SaveChanges();
             Message = $"Utilizador '{newUsername}' criado com sucesso.";
-            Users = _context.Users.OrderBy(u => u.Username).ToList();
+            LoadLists();
             return Page();
         }
 
@@ -53,7 +60,7 @@ namespace AHM.Audit.Pages.Admin
             ViewData["IsAdmin"] = true;
             var user = _context.Users.Find(userId);
             if (user != null) { user.PasswordHash = newPass; _context.SaveChanges(); Message = $"Password de '{user.Username}' atualizada."; }
-            Users = _context.Users.OrderBy(u => u.Username).ToList();
+            LoadLists();
             return Page();
         }
 
@@ -65,12 +72,46 @@ namespace AHM.Audit.Pages.Admin
             if (_context.Users.Any(u => u.Username.ToLower() == newUsername.ToLower() && u.Id != userId))
             {
                 Message = $"O username '{newUsername}' já existe."; IsError = true;
-                Users = _context.Users.OrderBy(u => u.Username).ToList(); return Page();
+                LoadLists(); return Page();
             }
 
             var user = _context.Users.Find(userId);
             if (user != null) { user.Username = newUsername; _context.SaveChanges(); Message = $"Username atualizado para '{newUsername}'."; }
-            Users = _context.Users.OrderBy(u => u.Username).ToList();
+            LoadLists();
+            return Page();
+        }
+
+        public IActionResult OnPostSetPerson(int userId, int? personId)
+        {
+            if (!IsAdmin()) return RedirectToPage("/Account/Login");
+            ViewData["IsAdmin"] = true;
+            var user = _context.Users.Find(userId);
+            if (user != null)
+            {
+                user.PersonId = personId;
+                _context.SaveChanges();
+                var person = personId.HasValue ? _context.Persons.Find(personId.Value) : null;
+                Message = person != null ? $"'{user.Username}' associado a '{person.Name}'." : $"Associação removida de '{user.Username}'.";
+            }
+            LoadLists();
+            return Page();
+        }
+
+        public IActionResult OnPostSetPermissions(int userId, bool canViewDashboard, bool canViewSectionChart, bool canViewNonConformities, bool canViewGlobalConformity)
+        {
+            if (!IsAdmin()) return RedirectToPage("/Account/Login");
+            ViewData["IsAdmin"] = true;
+            var user = _context.Users.Find(userId);
+            if (user != null)
+            {
+                user.CanViewDashboard = canViewDashboard;
+                user.CanViewSectionChart = canViewSectionChart;
+                user.CanViewNonConformities = canViewNonConformities;
+                user.CanViewGlobalConformity = canViewGlobalConformity;
+                _context.SaveChanges();
+                Message = $"Permissões de '{user.Username}' atualizadas.";
+            }
+            LoadLists();
             return Page();
         }
 
@@ -80,7 +121,7 @@ namespace AHM.Audit.Pages.Admin
             ViewData["IsAdmin"] = true;
             var user = _context.Users.Find(userId);
             if (user != null) { user.Active = !user.Active; _context.SaveChanges(); Message = $"Conta '{user.Username}' {(user.Active ? "ativada" : "desativada")}."; }
-            Users = _context.Users.OrderBy(u => u.Username).ToList();
+            LoadLists();
             return Page();
         }
 
@@ -95,13 +136,13 @@ namespace AHM.Audit.Pages.Admin
                 if (user.Username == currentUser && user.IsAdmin)
                 {
                     Message = "Não podes remover o teu próprio acesso de admin."; IsError = true;
-                    Users = _context.Users.OrderBy(u => u.Username).ToList(); return Page();
+                    LoadLists(); return Page();
                 }
                 user.IsAdmin = !user.IsAdmin;
                 _context.SaveChanges();
                 Message = $"'{user.Username}' {(user.IsAdmin ? "agora é admin" : "deixou de ser admin")}.";
             }
-            Users = _context.Users.OrderBy(u => u.Username).ToList();
+            LoadLists();
             return Page();
         }
 
@@ -116,14 +157,20 @@ namespace AHM.Audit.Pages.Admin
                 if (user.Username == currentUser)
                 {
                     Message = "Não podes apagar a tua própria conta."; IsError = true;
-                    Users = _context.Users.OrderBy(u => u.Username).ToList(); return Page();
+                    LoadLists(); return Page();
                 }
                 _context.Users.Remove(user);
                 _context.SaveChanges();
                 Message = $"Utilizador '{user.Username}' apagado.";
             }
-            Users = _context.Users.OrderBy(u => u.Username).ToList();
+            LoadLists();
             return Page();
+        }
+
+        private void LoadLists()
+        {
+            Users = _context.Users.OrderBy(u => u.Username).ToList();
+            Agents = _context.Persons.Where(p => p.Role == "Agent" && p.Active).OrderBy(p => p.Name).ToList();
         }
 
         private bool IsAdmin()

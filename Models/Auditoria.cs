@@ -8,6 +8,7 @@ namespace AHM.Audit.Models
 
         // Estado
         public bool IsFinalized { get; set; } = false;
+        public bool IsDraft { get; set; } = true;
 
         // Informação Geral
         public string Agent { get; set; } = "";
@@ -28,39 +29,42 @@ namespace AHM.Audit.Models
         public string Notes { get; set; } = "";
         public DateTime CreatedAt { get; set; } = DateTime.Now;
 
-        // Checklist
-        public string B1  { get; set; } = "N/A";
-        public string B2  { get; set; } = "N/A";
-        public string B3  { get; set; } = "N/A";
-        public string C1  { get; set; } = "N/A";
-        public string C2  { get; set; } = "N/A";
-        public string C2_3 { get; set; } = "N/A";
-        public string C3  { get; set; } = "N/A";
-        public string C4_TakeOff { get; set; } = "N/A";
-        public string C4_ZeroFuel { get; set; } = "N/A";
-        public string C4_Landing { get; set; } = "N/A";
-        public string C4_Inflight { get; set; } = "N/A";
-        public string C4_IdealTrim { get; set; } = "N/A";
-        public string C5  { get; set; } = "N/A";
-        public string C7_1 { get; set; } = "N/A";
-        public string D1  { get; set; } = "N/A";
-        public string D2  { get; set; } = "N/A";
-        public string D3  { get; set; } = "N/A";
-        public string D5_1 { get; set; } = "N/A";
-        public string D5_2 { get; set; } = "N/A";
-        public string D6_2 { get; set; } = "N/A";
-        public string E1_DOW { get; set; } = "N/A";
-        public string E1_MRW { get; set; } = "N/A";
-        public string E1_MTOW { get; set; } = "N/A";
-        public string E1_MZFW { get; set; } = "N/A";
-        public string E1_MLAW { get; set; } = "N/A";
-        public string E2_1 { get; set; } = "N/A";
-        public string E2_2 { get; set; } = "N/A";
-        public string E3_1 { get; set; } = "N/A";
-        public string G1  { get; set; } = "N/A";
-        public string RevisionUpdate { get; set; } = "N/A";
-        public string LIR { get; set; } = "N/A";
-        public string LS  { get; set; } = "N/A";
-        public string DatabasePrintout { get; set; } = "N/A";
+        // Checklist (sem valor por defeito - vazio até o utilizador escolher)
+        public string B1  { get; set; } = "";
+        public string B2  { get; set; } = "";
+        public string B3  { get; set; } = "";
+        public string C1  { get; set; } = "";
+        public string C2  { get; set; } = "";
+        public string C2_3 { get; set; } = "";
+        public string C3  { get; set; } = "";
+        public string C4_TakeOff { get; set; } = "";
+        public string C4_ZeroFuel { get; set; } = "";
+        public string C4_Landing { get; set; } = "";
+        public string C4_Inflight { get; set; } = "";
+        public string C4_IdealTrim { get; set; } = "";
+        public string C5  { get; set; } = "";
+        public string C7_1 { get; set; } = "";
+        public string D1  { get; set; } = "";
+        public string D2  { get; set; } = "";
+        public string D3  { get; set; } = "";
+        public string D5_1 { get; set; } = "";
+        public string D5_2 { get; set; } = "";
+        public string D6_2 { get; set; } = "";
+        public string E1_DOW { get; set; } = "";
+        public string E1_MRW { get; set; } = "";
+        public string E1_MTOW { get; set; } = "";
+        public string E1_MZFW { get; set; } = "";
+        public string E1_MLAW { get; set; } = "";
+        public string E2_1 { get; set; } = "";
+        public string E2_2 { get; set; } = "";
+        public string E3_1 { get; set; } = "";
+        public string G1  { get; set; } = "";
+        public string RevisionUpdate { get; set; } = "";
+        public string LIR { get; set; } = "";
+        public string LS  { get; set; } = "";
+        public string DatabasePrintout { get; set; } = "";
+
+        // Razões para os NO (uma por item, separadas por ; no formato campo=razão)
+        public string NoReasons { get; set; } = "";
     }
 }

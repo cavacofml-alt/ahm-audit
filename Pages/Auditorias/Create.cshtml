@@ -5,16 +5,25 @@
 }
 
 <div class="d-flex justify-content-between align-items-center mb-4">
-    <h2 class="mb-0"><i class="bi bi-clipboard-plus me-2"></i>Nova Auditoria</h2>
+    <h2 class="mb-0"><i class="bi bi-clipboard-plus me-2"></i>Nova Auditoria
+        <span class="badge bg-secondary ms-2" id="autosaveStatus" style="font-size:11px;display:none">
+            <i class="bi bi-cloud-check me-1"></i>Guardado
+        </span>
+    </h2>
     <a href="/Auditorias" class="btn btn-outline-secondary"><i class="bi bi-arrow-left me-1"></i>Voltar</a>
 </div>
 
 @if (!string.IsNullOrEmpty(Model.ErrorMessage))
 {
-    <div class="alert alert-danger">@Model.ErrorMessage</div>
+    <div class="alert alert-danger"><i class="bi bi-exclamation-triangle-fill me-2"></i>@Model.ErrorMessage</div>
 }
 
-<!-- Registration duplicate warning modal -->
+@if (string.IsNullOrEmpty(Model.CurrentAgentName))
+{
+    <div class="alert alert-warning">O teu utilizador não está associado a um Agent. Contacta o administrador.</div>
+}
+else
+{
 <div class="modal fade" id="registrationWarning" tabindex="-1">
     <div class="modal-dialog">
         <div class="modal-content border-warning">
@@ -33,74 +42,101 @@
     </div>
 </div>
 
-<form method="post" id="auditForm">
+<!-- Modal para razão do NO -->
+<div class="modal fade" id="noReasonModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title"><i class="bi bi-x-circle me-2"></i>Motivo da não conformidade</h5>
+            </div>
+            <div class="modal-body">
+                <p id="noReasonItemLabel" class="fw-bold"></p>
+                <label class="form-label">Seleciona o motivo:</label>
+                <select class="form-select" id="noReasonSelect">
+                    <option value="">-- Seleciona --</option>
+                    @foreach (var r in Model.NonConformityReasons)
+                    {
+                        <option value="@r">@r</option>
+                    }
+                </select>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" id="noReasonCancel">Cancelar</button>
+                <button type="button" class="btn btn-danger" id="noReasonConfirm" disabled>Confirmar</button>
+            </div>
+        </div>
+    </div>
+</div>
 
-    <!-- SECTION: Informação Geral -->
+<form method="post" id="auditForm">
+    <input type="hidden" asp-for="Auditoria.Id" id="auditId" />
+
     <div class="card mb-4">
         <div class="card-header fw-bold"><i class="bi bi-info-circle me-2"></i>Section: Informação Geral</div>
         <div class="card-body">
             <div class="row g-3">
                 <div class="col-md-4">
-                    <label class="form-label">Audit Agent <span class="text-danger">*</span></label>
-                    <select class="form-select" asp-for="Auditoria.Agent" required>
-                        <option value="">-- Selecionar --</option>
-                        @foreach (var a in Model.Agents)
-                        {
-                            <option value="@a">@a</option>
-                        }
-                    </select>
+                    <label class="form-label">Audit Agent</label>
+                    <input class="form-control" value="@Model.CurrentAgentName" readonly disabled />
+                    <input type="hidden" asp-for="Auditoria.Agent" />
                 </div>
                 <div class="col-md-4">
                     <label class="form-label">AHM Officer <span class="text-danger">*</span></label>
-                    <select class="form-select" asp-for="Auditoria.AhmOfficer" required>
+                    <select class="form-select autosave-field" data-field="AhmOfficer" asp-for="Auditoria.AhmOfficer" required>
                         <option value="">-- Selecionar --</option>
-                        @foreach (var o in Model.Officers)
-                        {
-                            <option value="@o">@o</option>
-                        }
+                        @foreach (var o in Model.Officers) { <option value="@o">@o</option> }
                     </select>
                 </div>
                 <div class="col-md-4">
                     <label class="form-label">Ticket Number <span class="text-danger">*</span></label>
-                    <input class="form-control" asp-for="Auditoria.Ticket" placeholder="#" required />
+                    <input class="form-control autosave-field" data-field="Ticket" asp-for="Auditoria.Ticket" placeholder="#" required />
                     <div class="form-text">Deve começar com # e ser único</div>
                 </div>
                 <div class="col-md-4">
                     <label class="form-label">Date <span class="text-danger">*</span></label>
-                    <input class="form-control" type="date" asp-for="Auditoria.Date" required />
+                    <input class="form-control autosave-field" data-field="Date" type="date" asp-for="Auditoria.Date" required />
                 </div>
                 <div class="col-md-4">
                     <label class="form-label">Airline <span class="text-danger">*</span></label>
-                    <input class="form-control" asp-for="Auditoria.Airline" placeholder="Ex: TP, FR, TAP" required minlength="2" maxlength="3" style="text-transform:uppercase" />
-                    <div class="form-text">2 a 3 caracteres (código IATA/ICAO)</div>
+                    <input class="form-control autosave-field" data-field="Airline" id="airlineInput" asp-for="Auditoria.Airline" placeholder="Ex: TP, FR" required minlength="2" maxlength="3" style="text-transform:uppercase" autocomplete="off" />
+                    <div id="airlineValidation" class="form-text"></div>
                 </div>
                 <div class="col-md-4">
                     <label class="form-label">Aircraft Type <span class="text-danger">*</span></label>
-                    <input class="form-control" asp-for="Auditoria.Aircraft" placeholder="Ex: A320, B737" required />
+                    <input class="form-control autosave-field" data-field="Aircraft" asp-for="Auditoria.Aircraft" placeholder="Ex: A320, B737" required />
                 </div>
                 <div class="col-md-4">
                     <label class="form-label">Registration <span class="text-danger">*</span></label>
-                    <input class="form-control" asp-for="Auditoria.Registration" placeholder="Ex: CS-TNV" id="registrationInput" required />
+                    <input class="form-control autosave-field" data-field="Registration" id="registrationInput" asp-for="Auditoria.Registration" placeholder="Ex: CS-TNV" required />
                 </div>
                 <div class="col-md-4">
                     <label class="form-label">Revision Updates</label>
-                    <input class="form-control" asp-for="Auditoria.RevisionUpdates" placeholder="Ex: Rev 3.2" />
+                    <input class="form-control autosave-field" data-field="RevisionUpdates" asp-for="Auditoria.RevisionUpdates" placeholder="Ex: Rev 3.2" />
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- SECTION: Checklist W&B -->
     <div class="card mb-4">
-        <div class="card-header fw-bold sticky-top" style="top:0;z-index:100;background:#f8fafc;">
-            <div class="row">
-                <div class="col-6"><i class="bi bi-check2-square me-2"></i>Section: Checklist W&B</div>
-                <div class="col-2 text-center text-success fw-bold">YES</div>
-                <div class="col-2 text-center text-danger fw-bold">NO</div>
-                <div class="col-2 text-center text-secondary fw-bold">N/A</div>
+        <div class="sticky-header">
+            <div class="info-summary-bar">
+                <span><strong>Agent:</strong> <span id="sumAgent">@Model.CurrentAgentName</span></span>
+                <span><strong>Officer:</strong> <span id="sumOfficer">-</span></span>
+                <span><strong>Ticket:</strong> <span id="sumTicket">-</span></span>
+                <span><strong>Airline:</strong> <span id="sumAirline">-</span></span>
+                <span><strong>Aircraft:</strong> <span id="sumAircraft">-</span></span>
+                <span><strong>Reg:</strong> <span id="sumReg">-</span></span>
+            </div>
+            <div class="card-header fw-bold">
+                <div class="row">
+                    <div class="col-6"><i class="bi bi-check2-square me-2"></i>Section: Checklist W&B</div>
+                    <div class="col-2 text-center text-success fw-bold">YES</div>
+                    <div class="col-2 text-center text-danger fw-bold">NO</div>
+                    <div class="col-2 text-center text-secondary fw-bold">N/A</div>
+                </div>
             </div>
         </div>
-        <div class="card-body p-0">
+        <div class="card-body p-0 checklist-scroll">
             <table class="table table-hover align-middle mb-0">
                 <tbody>
                     @{
@@ -143,11 +179,18 @@
                     }
                     @foreach (var (label, field) in items)
                     {
-                        <tr>
+                        var currentVal = typeof(AHM.Audit.Models.Auditoria).GetProperty(field)?.GetValue(Model.Auditoria)?.ToString() ?? "";
+                        <tr id="row-@field" class="@(string.IsNullOrEmpty(currentVal) ? "table-warning" : "")">
                             <td style="width:50%">@label</td>
-                            <td class="text-center" style="width:17%"><input type="radio" name="Auditoria.@field" value="YES" class="form-check-input" @(Model.Auditoria != null && typeof(AHM.Audit.Models.Auditoria).GetProperty(field)?.GetValue(Model.Auditoria)?.ToString() == "YES" ? "checked" : "") /></td>
-                            <td class="text-center" style="width:17%"><input type="radio" name="Auditoria.@field" value="NO" class="form-check-input" @(Model.Auditoria != null && typeof(AHM.Audit.Models.Auditoria).GetProperty(field)?.GetValue(Model.Auditoria)?.ToString() == "NO" ? "checked" : "") /></td>
-                            <td class="text-center" style="width:17%"><input type="radio" name="Auditoria.@field" value="N/A" class="form-check-input" @(Model.Auditoria == null || string.IsNullOrEmpty(typeof(AHM.Audit.Models.Auditoria).GetProperty(field)?.GetValue(Model.Auditoria)?.ToString()) || typeof(AHM.Audit.Models.Auditoria).GetProperty(field)?.GetValue(Model.Auditoria)?.ToString() == "N/A" ? "checked" : "") /></td>
+                            <td class="text-center" style="width:17%">
+                                <input type="radio" name="check-@field" value="YES" class="form-check-input checklist-radio" data-field="@field" data-label="@label" @(currentVal == "YES" ? "checked" : "") />
+                            </td>
+                            <td class="text-center" style="width:17%">
+                                <input type="radio" name="check-@field" value="NO" class="form-check-input checklist-radio" data-field="@field" data-label="@label" @(currentVal == "NO" ? "checked" : "") />
+                            </td>
+                            <td class="text-center" style="width:17%">
+                                <input type="radio" name="check-@field" value="N/A" class="form-check-input checklist-radio" data-field="@field" data-label="@label" @(currentVal == "N/A" ? "checked" : "") />
+                            </td>
                         </tr>
                     }
                 </tbody>
@@ -155,88 +198,281 @@
         </div>
     </div>
 
-    <!-- SECTION: Correções -->
     <div class="card mb-4">
         <div class="card-header fw-bold"><i class="bi bi-tools me-2"></i>Section: Correções</div>
         <div class="card-body">
             <div class="row g-3">
                 <div class="col-md-6">
                     <label class="form-label">Correction Ticket</label>
-                    <input class="form-control" asp-for="Auditoria.CorrectionTicket" placeholder="Nº do ticket de correção" />
+                    <input class="form-control autosave-field" data-field="CorrectionTicket" asp-for="Auditoria.CorrectionTicket" placeholder="Nº do ticket de correção" />
                 </div>
                 <div class="col-md-6">
                     <label class="form-label">Reason for Re-certification</label>
-                    <input class="form-control" asp-for="Auditoria.ReasonForRecertification" placeholder="Motivo" />
+                    <input class="form-control autosave-field" data-field="ReasonForRecertification" asp-for="Auditoria.ReasonForRecertification" placeholder="Motivo" />
                 </div>
                 <div class="col-md-6">
                     <label class="form-label fw-semibold">Corrections Made</label>
                     <div class="d-flex gap-4 mt-1">
-                        <div class="form-check"><input class="form-check-input" type="radio" name="Auditoria.CorrectionsMade" value="YES" @(Model.Auditoria?.CorrectionsMade == "YES" ? "checked" : "") /><label class="form-check-label">YES</label></div>
-                        <div class="form-check"><input class="form-check-input" type="radio" name="Auditoria.CorrectionsMade" value="NO" @(Model.Auditoria?.CorrectionsMade == "NO" ? "checked" : "") /><label class="form-check-label">NO</label></div>
-                        <div class="form-check"><input class="form-check-input" type="radio" name="Auditoria.CorrectionsMade" value="N/A" @(Model.Auditoria == null || Model.Auditoria.CorrectionsMade == "N/A" || string.IsNullOrEmpty(Model.Auditoria.CorrectionsMade) ? "checked" : "") /><label class="form-check-label">N/A</label></div>
+                        @foreach (var v in new[] { "YES", "NO", "N/A" })
+                        {
+                            <div class="form-check">
+                                <input class="form-check-input autosave-field" type="radio" name="Auditoria.CorrectionsMade" data-field="CorrectionsMade" value="@v" @(Model.Auditoria.CorrectionsMade == v ? "checked" : "") />
+                                <label class="form-check-label">@v</label>
+                            </div>
+                        }
                     </div>
                 </div>
                 <div class="col-md-6">
                     <label class="form-label fw-semibold">Aircraft Re-certified</label>
                     <div class="d-flex gap-4 mt-1">
-                        <div class="form-check"><input class="form-check-input" type="radio" name="Auditoria.AircraftRecertified" value="YES" @(Model.Auditoria?.AircraftRecertified == "YES" ? "checked" : "") /><label class="form-check-label">YES</label></div>
-                        <div class="form-check"><input class="form-check-input" type="radio" name="Auditoria.AircraftRecertified" value="NO" @(Model.Auditoria?.AircraftRecertified == "NO" ? "checked" : "") /><label class="form-check-label">NO</label></div>
-                        <div class="form-check"><input class="form-check-input" type="radio" name="Auditoria.AircraftRecertified" value="N/A" @(Model.Auditoria == null || Model.Auditoria.AircraftRecertified == "N/A" || string.IsNullOrEmpty(Model.Auditoria.AircraftRecertified) ? "checked" : "") /><label class="form-check-label">N/A</label></div>
+                        @foreach (var v in new[] { "YES", "NO", "N/A" })
+                        {
+                            <div class="form-check">
+                                <input class="form-check-input autosave-field" type="radio" name="Auditoria.AircraftRecertified" data-field="AircraftRecertified" value="@v" @(Model.Auditoria.AircraftRecertified == v ? "checked" : "") />
+                                <label class="form-check-label">@v</label>
+                            </div>
+                        }
                     </div>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- SECTION: Notas -->
     <div class="card mb-4">
         <div class="card-header fw-bold"><i class="bi bi-chat-left-text me-2"></i>Section: Notas</div>
         <div class="card-body">
-            <textarea class="form-control" asp-for="Auditoria.Notes" rows="4" placeholder="Observações adicionais..."></textarea>
+            <textarea class="form-control autosave-field" data-field="Notes" asp-for="Auditoria.Notes" rows="4" placeholder="Observações adicionais..."></textarea>
         </div>
     </div>
 
     <div class="d-flex gap-2 mb-5">
-        <button type="button" class="btn btn-success btn-lg" id="submitBtn"><i class="bi bi-save me-2"></i>Guardar Auditoria</button>
+        <button type="button" class="btn btn-success btn-lg" id="submitBtn"><i class="bi bi-save me-2"></i>Guardar</button>
+        <button type="button" class="btn btn-primary btn-lg" id="finalizeBtn"><i class="bi bi-lock me-2"></i>Guardar e Finalizar</button>
         <a href="/Auditorias" class="btn btn-outline-secondary btn-lg">Cancelar</a>
     </div>
-
+    <input type="hidden" name="action" id="actionInput" value="save" />
 </form>
 
+<style>
+.sticky-header { position: sticky; top: 0; z-index: 50; background: #f8fafc; }
+.info-summary-bar { background: #1e293b; color: #fff; padding: 8px 16px; font-size: 13px; display: flex; gap: 20px; flex-wrap: wrap; border-radius: 12px 12px 0 0; }
+.info-summary-bar span strong { color: #94a3b8; margin-right: 4px; }
+.checklist-scroll { max-height: 600px; overflow-y: auto; }
+.checklist-scroll::-webkit-scrollbar { width: 10px; }
+.checklist-scroll::-webkit-scrollbar-track { background: #f1f1f1; }
+.checklist-scroll::-webkit-scrollbar-thumb { background: #94a3b8; border-radius: 5px; }
+.checklist-scroll::-webkit-scrollbar-thumb:hover { background: #64748b; }
+</style>
+
 <script>
-    const recentCombinations = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.RecentRegistrations));
+const duplicateCombos = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.RecentRegistrations));
+let currentNoField = null;
+let currentNoLabel = null;
+let currentNoRadio = null;
 
-    // Force # prefix on ticket
-    document.querySelector('input[name="Auditoria.Ticket"]').addEventListener('blur', function() {
-        if (this.value && !this.value.startsWith('#'))
-            this.value = '#' + this.value;
-    });
+function getAuditId() { return document.getElementById('auditId').value; }
+function setAuditId(id) { document.getElementById('auditId').value = id; }
 
-    // Force uppercase on airline
-    document.querySelector('input[name="Auditoria.Airline"]').addEventListener('input', function() {
-        this.value = this.value.toUpperCase();
-    });
+function showAutosaveStatus() {
+    const el = document.getElementById('autosaveStatus');
+    el.style.display = 'inline-block';
+    el.classList.remove('bg-secondary');
+    el.classList.add('bg-success');
+    el.innerHTML = '<i class="bi bi-cloud-check me-1"></i>Guardado';
+    clearTimeout(window._asTimeout);
+    window._asTimeout = setTimeout(() => { el.style.display = 'none'; }, 2000);
+}
 
-    document.getElementById('submitBtn').addEventListener('click', function () {
-        const form = document.getElementById('auditForm');
-        if (!form.checkValidity()) { form.reportValidity(); return; }
+function showAutosaveError() {
+    const el = document.getElementById('autosaveStatus');
+    el.style.display = 'inline-block';
+    el.classList.remove('bg-secondary', 'bg-success');
+    el.classList.add('bg-danger');
+    el.innerHTML = '<i class="bi bi-exclamation-triangle me-1"></i>Erro ao guardar';
+}
 
-        const airline  = document.querySelector('input[name="Auditoria.Airline"]').value.trim().toUpperCase();
-        const aircraft = document.querySelector('input[name="Auditoria.Aircraft"]').value.trim().toUpperCase();
-        const reg      = document.getElementById('registrationInput').value.trim().toUpperCase();
-        if (airline && aircraft && reg) {
-            const combo = airline + "|" + aircraft + "|" + reg;
-            const isDuplicate = recentCombinations.some(c => c.toUpperCase() === combo);
-            if (isDuplicate) {
-                document.getElementById('regValue').textContent = reg + " (" + airline + " / " + aircraft + ")";
-                new bootstrap.Modal(document.getElementById('registrationWarning')).show();
-                return;
-            }
+async function autosaveChecklist(field, value, reason) {
+    const fd = new FormData();
+    fd.append('id', getAuditId());
+    fd.append('field', field);
+    fd.append('value', value);
+    if (reason) fd.append('reason', reason);
+
+    try {
+        const resp = await fetch('/api/autosave', { method: 'POST', body: fd });
+        if (!resp.ok) { showAutosaveError(); return; }
+        const data = await resp.json();
+        if (data.id) setAuditId(data.id);
+        showAutosaveStatus();
+        document.getElementById('row-' + field).classList.remove('table-warning');
+    } catch (e) { showAutosaveError(); }
+}
+
+async function autosaveField(field, value) {
+    const id = getAuditId();
+    if (!id || id === '0') return;
+    const fd = new FormData();
+    fd.append('id', id);
+    fd.append('field', field);
+    fd.append('value', value);
+    try {
+        const resp = await fetch('/api/autosave-field', { method: 'POST', body: fd });
+        if (resp.ok) showAutosaveStatus(); else showAutosaveError();
+    } catch (e) { showAutosaveError(); }
+}
+
+// Checklist radios
+document.querySelectorAll('.checklist-radio').forEach(radio => {
+    radio.addEventListener('change', function() {
+        const field = this.dataset.field;
+        const label = this.dataset.label;
+        if (this.value === 'NO') {
+            currentNoField = field;
+            currentNoLabel = label;
+            currentNoRadio = this;
+            this.dataset.confirmed = "false";
+            document.getElementById('noReasonItemLabel').textContent = label;
+            document.getElementById('noReasonSelect').value = '';
+            document.getElementById('noReasonConfirm').disabled = true;
+            new bootstrap.Modal(document.getElementById('noReasonModal')).show();
+        } else {
+            autosaveChecklist(field, this.value, null);
         }
-        form.submit();
     });
+});
 
-    document.getElementById('confirmSubmit').addEventListener('click', function () {
-        document.getElementById('auditForm').submit();
-    });
+document.getElementById('noReasonSelect').addEventListener('change', function() {
+    document.getElementById('noReasonConfirm').disabled = !this.value;
+});
+
+document.getElementById('noReasonConfirm').addEventListener('click', function() {
+    const reason = document.getElementById('noReasonSelect').value;
+    if (currentNoRadio) currentNoRadio.dataset.confirmed = "true";
+    autosaveChecklist(currentNoField, 'NO', reason);
+    bootstrap.Modal.getInstance(document.getElementById('noReasonModal')).hide();
+});
+
+document.getElementById('noReasonCancel').addEventListener('click', function() {
+    if (currentNoRadio) currentNoRadio.checked = false;
+    bootstrap.Modal.getInstance(document.getElementById('noReasonModal')).hide();
+});
+
+document.getElementById('noReasonModal').addEventListener('hidden.bs.modal', function() {
+    // Se o modal fechar sem confirmar (X, ESC, clique fora), desmarca também
+    if (currentNoRadio && currentNoRadio.checked && !currentNoRadio.dataset.confirmed) {
+        currentNoRadio.checked = false;
+    }
+});
+
+// General fields autosave (debounced for text, immediate for select/date)
+document.querySelectorAll('.autosave-field').forEach(el => {
+    const isTextInput = el.tagName === 'INPUT' && (el.type === 'text' || el.type === 'date') || el.tagName === 'TEXTAREA';
+    let timeout;
+    const trigger = () => {
+        const field = el.dataset.field;
+        let value = el.value;
+        if (field === 'Airline') value = value.toUpperCase();
+        autosaveField(field, value);
+    };
+    if (isTextInput) {
+        el.addEventListener('input', () => { clearTimeout(timeout); timeout = setTimeout(trigger, 800); });
+        el.addEventListener('blur', trigger);
+    } else {
+        el.addEventListener('change', trigger);
+    }
+});
+
+const validAirlineCodes = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.AirlineCodes));
+
+document.getElementById('airlineInput').addEventListener('input', function() {
+    this.value = this.value.toUpperCase();
+});
+
+document.getElementById('airlineInput').addEventListener('blur', function() {
+    const val = this.value.trim().toUpperCase();
+    const feedback = document.getElementById('airlineValidation');
+    if (!val) { feedback.textContent = '2 a 3 caracteres (IATA/ICAO)'; feedback.className = 'form-text'; return; }
+    if (validAirlineCodes.includes(val)) {
+        feedback.innerHTML = '<i class="bi bi-check-circle-fill text-success me-1"></i>Airline reconhecida';
+        feedback.className = 'form-text text-success';
+    } else {
+        feedback.innerHTML = '<i class="bi bi-exclamation-triangle-fill text-warning me-1"></i>Airline não está na lista. Pede a um admin para a adicionar em Configurações.';
+        feedback.className = 'form-text text-warning';
+    }
+});
+
+document.querySelector('input[name="Auditoria.Ticket"]').addEventListener('blur', function() {
+    if (this.value && !this.value.startsWith('#')) this.value = '#' + this.value;
+});
+
+document.querySelector('input[name="Auditoria.CorrectionTicket"]').addEventListener('blur', function() {
+    if (this.value && !this.value.startsWith('#')) this.value = '#' + this.value;
+});
+
+// Update sticky summary bar live
+function updateSummary() {
+    const officerEl = document.querySelector('select[name="Auditoria.AhmOfficer"]');
+    const ticketEl = document.querySelector('input[name="Auditoria.Ticket"]');
+    const airlineEl = document.querySelector('input[name="Auditoria.Airline"]');
+    const aircraftEl = document.querySelector('input[name="Auditoria.Aircraft"]');
+    const regEl = document.getElementById('registrationInput');
+
+    document.getElementById('sumOfficer').textContent = officerEl.value || '-';
+    document.getElementById('sumTicket').textContent = ticketEl.value || '-';
+    document.getElementById('sumAirline').textContent = airlineEl.value || '-';
+    document.getElementById('sumAircraft').textContent = aircraftEl.value || '-';
+    document.getElementById('sumReg').textContent = regEl.value || '-';
+}
+
+[
+    document.querySelector('select[name="Auditoria.AhmOfficer"]'),
+    document.querySelector('input[name="Auditoria.Ticket"]'),
+    document.querySelector('input[name="Auditoria.Airline"]'),
+    document.querySelector('input[name="Auditoria.Aircraft"]'),
+    document.getElementById('registrationInput')
+].forEach(el => { el.addEventListener('input', updateSummary); el.addEventListener('change', updateSummary); });
+
+updateSummary();
+
+function validateAndMaybeSubmit(actionValue) {
+    const form = document.getElementById('auditForm');
+    if (!form.checkValidity()) { form.reportValidity(); return; }
+
+    const aircraftRecertified = document.querySelector('input[name="Auditoria.AircraftRecertified"]:checked')?.value;
+    const correctionTicketEl = document.querySelector('input[name="Auditoria.CorrectionTicket"]');
+    if (aircraftRecertified === 'YES' && !correctionTicketEl.value.trim()) {
+        alert('O Correction Ticket é obrigatório quando o Aircraft é Re-certificado.');
+        correctionTicketEl.focus();
+        return;
+    }
+    if (correctionTicketEl.value && !correctionTicketEl.value.startsWith('#')) {
+        correctionTicketEl.value = '#' + correctionTicketEl.value;
+    }
+
+    const airline  = document.querySelector('input[name="Auditoria.Airline"]').value.trim().toUpperCase();
+    const aircraft = document.querySelector('input[name="Auditoria.Aircraft"]').value.trim().toUpperCase();
+    const reg      = document.getElementById('registrationInput').value.trim().toUpperCase();
+
+    document.getElementById('actionInput').value = actionValue;
+
+    if (airline && aircraft && reg) {
+        const combo = airline + "|" + aircraft + "|" + reg;
+        const isDuplicate = duplicateCombos.some(c => c.toUpperCase() === combo);
+        if (isDuplicate) {
+            document.getElementById('regValue').textContent = reg + " (" + airline + " / " + aircraft + ")";
+            new bootstrap.Modal(document.getElementById('registrationWarning')).show();
+            return;
+        }
+    }
+    form.submit();
+}
+
+document.getElementById('submitBtn').addEventListener('click', () => validateAndMaybeSubmit('save'));
+document.getElementById('finalizeBtn').addEventListener('click', () => {
+    if (confirm('Finalizar auditoria? Ficará bloqueada para edição.')) validateAndMaybeSubmit('finalize');
+});
+document.getElementById('confirmSubmit').addEventListener('click', function () {
+    document.getElementById('auditForm').submit();
+});
 </script>
+}

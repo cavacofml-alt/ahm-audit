@@ -42,6 +42,9 @@ namespace AHM.Audit.Pages
         public IndexModel(AuditDbContext context) { _context = context; }
 
         public bool IsAdmin { get; set; }
+        public bool CanViewSectionChart { get; set; } = true;
+        public bool CanViewNonConformities { get; set; } = true;
+        public bool CanViewGlobalConformity { get; set; } = true;
         public int Total    { get; set; }
         public int TotalYes { get; set; }
         public int TotalNo  { get; set; }
@@ -130,11 +133,19 @@ namespace AHM.Audit.Pages
             var username = HttpContext.Session.GetString("User");
             if (username == null) return RedirectToPage("/Account/Login");
 
-            var isAdmin = _context.Users.Any(u => u.Username == username && u.IsAdmin);
-            if (!isAdmin) return RedirectToPage("/Auditorias/Index");
+            var user = _context.Users.FirstOrDefault(u => u.Username == username);
+            if (user == null) return RedirectToPage("/Account/Login");
 
-            IsAdmin = true;
-            ViewData["IsAdmin"] = true;
+            IsAdmin = user.IsAdmin;
+            ViewData["IsAdmin"] = IsAdmin;
+
+            // Não-admins precisam de permissão para ver o dashboard
+            if (!IsAdmin && !user.CanViewDashboard)
+                return RedirectToPage("/Auditorias/Index");
+
+            CanViewSectionChart = IsAdmin || user.CanViewSectionChart;
+            CanViewNonConformities = IsAdmin || user.CanViewNonConformities;
+            CanViewGlobalConformity = IsAdmin || user.CanViewGlobalConformity;
 
             FilterFrom = from;
             FilterTo   = to;

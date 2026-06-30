@@ -13,32 +13,101 @@ namespace AHM.Audit.Pages.Auditorias
         [BindProperty]
         public Auditoria Auditoria { get; set; } = new();
 
-        public List<string> Agents { get; set; } = new();
         public List<string> Officers { get; set; } = new();
+        public List<string> AirlineCodes { get; set; } = new();
+        public List<string> NonConformityReasons { get; set; } = new();
         public List<string> RecentRegistrations { get; set; } = new();
         public string ErrorMessage { get; set; } = "";
+        public string CurrentAgentName { get; set; } = "";
+        public bool IsAdmin { get; set; }
 
-        public IActionResult OnGet()
+        private static readonly string[] ChecklistFields = new[]
         {
-            if (HttpContext.Session.GetString("User") == null)
-                return RedirectToPage("/Account/Login");
+            "B1","B2","B3","C1","C2","C2_3","C3","C4_TakeOff","C4_ZeroFuel",
+            "C4_Landing","C4_Inflight","C4_IdealTrim","C5","C7_1","D1","D2",
+            "D3","D5_1","D5_2","D6_2","E1_DOW","E1_MRW","E1_MTOW","E1_MZFW",
+            "E1_MLAW","E2_1","E2_2","E3_1","G1","RevisionUpdate","LIR","LS","DatabasePrintout"
+        };
 
+        public IActionResult OnGet(int? draftId)
+        {
             var username = HttpContext.Session.GetString("User");
-            ViewData["IsAdmin"] = _context.Users.Any(u => u.Username == username && u.IsAdmin);
+            if (username == null) return RedirectToPage("/Account/Login");
+
+            var user = _context.Users.FirstOrDefault(u => u.Username == username);
+            IsAdmin = user?.IsAdmin ?? false;
+            ViewData["IsAdmin"] = IsAdmin;
+
+            // Agent vinculado ao utilizador
+            if (user?.PersonId != null)
+            {
+                var person = _context.Persons.Find(user.PersonId);
+                CurrentAgentName = person?.Name ?? "";
+            }
+
+            if (string.IsNullOrEmpty(CurrentAgentName))
+            {
+                ErrorMessage = "O teu utilizador não está associado a nenhum Agent. Contacta um administrador.";
+                LoadDropdowns();
+                return Page();
+            }
+
+            // Recuperar rascunho existente (auto-save) ou criar novo
+            Auditoria? draft = null;
+            if (draftId.HasValue)
+            {
+                draft = _context.Auditorias.Find(draftId.Value);
+            }
+            else
+            {
+                // Procurar rascunho mais recente deste agent sem ticket definido ainda
+                draft = _context.Auditorias
+                    .Where(a => a.IsDraft && a.Agent == CurrentAgentName)
+                    .OrderByDescending(a => a.CreatedAt)
+                    .FirstOrDefault();
+            }
+
+            if (draft != null)
+            {
+                Auditoria = draft;
+            }
+            else
+            {
+                Auditoria.Agent = CurrentAgentName;
+                Auditoria.Date = DateTime.Today;
+            }
 
             LoadDropdowns();
             LoadRecentRegistrations();
             return Page();
         }
 
-        public IActionResult OnPost()
+        public IActionResult OnPost(string? action)
         {
+            var username = HttpContext.Session.GetString("User");
+            if (username == null) return RedirectToPage("/Account/Login");
+
+            var user = _context.Users.FirstOrDefault(u => u.Username == username);
+            IsAdmin = user?.IsAdmin ?? false;
+            ViewData["IsAdmin"] = IsAdmin;
+
+            if (user?.PersonId != null)
+            {
+                var person = _context.Persons.Find(user.PersonId);
+                CurrentAgentName = person?.Name ?? "";
+            }
+
             LoadDropdowns();
             LoadRecentRegistrations();
 
-            var username = HttpContext.Session.GetString("User");
-            ViewData["IsAdmin"] = _context.Users.Any(u => u.Username == username && u.IsAdmin);
+            var existing = _context.Auditorias.Find(Auditoria.Id);
+            if (existing == null)
+            {
+                ErrorMessage = "Auditoria não encontrada. Tenta novamente.";
+                return Page();
+            }
 
+            // Ticket obrigatório e único
             if (string.IsNullOrWhiteSpace(Auditoria.Ticket))
             {
                 ErrorMessage = "O Ticket Number é obrigatório.";
@@ -47,9 +116,39 @@ namespace AHM.Audit.Pages.Auditorias
             if (!Auditoria.Ticket.StartsWith("#"))
                 Auditoria.Ticket = "#" + Auditoria.Ticket;
 
-            if (_context.Auditorias.Any(a => a.Ticket == Auditoria.Ticket))
+            if (_context.Auditorias.Any(a => a.Ticket == Auditoria.Ticket && a.Id != Auditoria.Id))
             {
                 ErrorMessage = $"O Ticket '{Auditoria.Ticket}' já existe.";
+                return Page();
+            }
+
+            // Validar que todos os 33 itens da checklist estão preenchidos
+            var missingItems = new List<string>();
+            foreach (var field in ChecklistFields)
+            {
+                var val = typeof(Auditoria).GetProperty(field)?.GetValue(existing)?.ToString();
+                if (string.IsNullOrEmpty(val))
+                    missingItems.Add(field);
+            }
+            if (missingItems.Any())
+            {
+                ErrorMessage = $"Faltam preencher {missingItems.Count} item(ns) da checklist: {string.Join(", ", missingItems.Take(5))}{(missingItems.Count > 5 ? "..." : "")}";
+                Auditoria = existing;
+                return Page();
+            }
+
+            // Validar que todos os NO têm razão
+            var noFields = ChecklistFields.Where(f => typeof(Auditoria).GetProperty(f)?.GetValue(existing)?.ToString() == "NO").ToList();
+            var existingReasons = string.IsNullOrEmpty(existing.NoReasons)
+                ? new Dictionary<string, string>()
+                : existing.NoReasons.Split(';', StringSplitOptions.RemoveEmptyEntries)
+                    .Select(p => p.Split('=')).Where(p => p.Length == 2).ToDictionary(p => p[0], p => p[1]);
+
+            var missingReasons = noFields.Where(f => !existingReasons.ContainsKey(f) || string.IsNullOrEmpty(existingReasons[f])).ToList();
+            if (missingReasons.Any())
+            {
+                ErrorMessage = $"Faltam razões para {missingReasons.Count} item(ns) marcado(s) como NO.";
+                Auditoria = existing;
                 return Page();
             }
 
@@ -57,7 +156,7 @@ namespace AHM.Audit.Pages.Auditorias
             {
                 if (!Auditoria.CorrectionTicket.StartsWith("#"))
                     Auditoria.CorrectionTicket = "#" + Auditoria.CorrectionTicket;
-                if (_context.Auditorias.Any(a => a.CorrectionTicket == Auditoria.CorrectionTicket))
+                if (_context.Auditorias.Any(a => a.CorrectionTicket == Auditoria.CorrectionTicket && a.Id != Auditoria.Id))
                 {
                     ErrorMessage = $"O Correction Ticket '{Auditoria.CorrectionTicket}' já existe.";
                     return Page();
@@ -70,53 +169,47 @@ namespace AHM.Audit.Pages.Auditorias
                 return Page();
             }
 
-            if (!string.IsNullOrEmpty(Auditoria.Agent) && Auditoria.Agent == Auditoria.AhmOfficer)
+            if (!string.IsNullOrEmpty(CurrentAgentName) && CurrentAgentName == Auditoria.AhmOfficer)
             {
                 ErrorMessage = "O Audit Agent não pode ser o mesmo que o AHM Officer.";
-                return Page();
-            }
-
-            if (!string.IsNullOrEmpty(Auditoria.Agent) && Auditoria.Agent == username)
-            {
-                ErrorMessage = "O Audit Agent não pode auditar-se a si mesmo.";
                 return Page();
             }
 
             if (!string.IsNullOrWhiteSpace(Auditoria.Airline))
                 Auditoria.Airline = Auditoria.Airline.ToUpper();
 
-            Auditoria.Agent                    = Auditoria.Agent                    ?? "";
-            Auditoria.AhmOfficer               = Auditoria.AhmOfficer               ?? "";
-            Auditoria.Airline                  = Auditoria.Airline                  ?? "";
-            Auditoria.Aircraft                 = Auditoria.Aircraft                 ?? "";
-            Auditoria.Registration             = Auditoria.Registration             ?? "";
-            Auditoria.RevisionUpdates          = Auditoria.RevisionUpdates          ?? "";
-            Auditoria.CorrectionTicket         = Auditoria.CorrectionTicket         ?? "";
-            Auditoria.CorrectionsMade          = Auditoria.CorrectionsMade          ?? "N/A";
-            Auditoria.AircraftRecertified      = Auditoria.AircraftRecertified      ?? "N/A";
-            Auditoria.ReasonForRecertification = Auditoria.ReasonForRecertification ?? "";
-            Auditoria.Notes                    = Auditoria.Notes                    ?? "";
-            Auditoria.CreatedAt                = DateTime.Now;
+            // Atualizar campos no existing (que já tem os valores da checklist via autosave)
+            existing.Ticket = Auditoria.Ticket;
+            existing.AhmOfficer = Auditoria.AhmOfficer ?? "";
+            existing.Airline = Auditoria.Airline ?? "";
+            existing.Aircraft = Auditoria.Aircraft ?? "";
+            existing.Registration = Auditoria.Registration ?? "";
+            existing.RevisionUpdates = Auditoria.RevisionUpdates ?? "";
+            existing.CorrectionTicket = Auditoria.CorrectionTicket ?? "";
+            existing.CorrectionsMade = Auditoria.CorrectionsMade ?? "N/A";
+            existing.AircraftRecertified = Auditoria.AircraftRecertified ?? "N/A";
+            existing.ReasonForRecertification = Auditoria.ReasonForRecertification ?? "";
+            existing.Notes = Auditoria.Notes ?? "";
+            existing.Date = Auditoria.Date == default ? DateTime.Today : Auditoria.Date;
+            existing.IsDraft = false;
+            existing.IsFinalized = action == "finalize";
 
-            if (Auditoria.Date == default) Auditoria.Date = DateTime.Today;
-
-            _context.Auditorias.Add(Auditoria);
             _context.SaveChanges();
             return RedirectToPage("Index");
         }
 
         private void LoadDropdowns()
         {
-            Agents   = _context.Persons.Where(p => p.Role == "Agent"   && p.Active).Select(p => p.Name).OrderBy(n => n).ToList();
-            Officers = _context.Persons.Where(p => p.Role == "Officer" && p.Active).Select(p => p.Name).OrderBy(n => n).ToList();
+            Officers = _context.Persons.Where(p => p.Role == "Officer" && p.Active && p.Name != CurrentAgentName).Select(p => p.Name).OrderBy(n => n).ToList();
+            AirlineCodes = _context.Airlines.Where(a => a.Active).Select(a => a.Code).OrderBy(c => c).ToList();
+            NonConformityReasons = _context.NonConformityReasons.Where(r => r.Active).Select(r => r.Reason).ToList();
         }
 
         private void LoadRecentRegistrations()
         {
             var sixMonthsAgo = DateTime.Now.AddMonths(-6);
-            // Guardar combinações "AIRLINE|AIRCRAFT|REGISTRATION" para validação no frontend
             RecentRegistrations = _context.Auditorias
-                .Where(a => a.Date >= sixMonthsAgo
+                .Where(a => a.Date >= sixMonthsAgo && !a.IsDraft
                     && !string.IsNullOrEmpty(a.Registration)
                     && !string.IsNullOrEmpty(a.Airline)
                     && !string.IsNullOrEmpty(a.Aircraft))
