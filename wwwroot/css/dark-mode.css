@@ -1,0 +1,81 @@
+/* ============================================================
+   Dark mode global — AHM Audit
+   Ativado/desativado via body.dark-mode (ver _Layout.cshtml).
+   Cobre: layout base, sidebar, cards, tabelas, formulários,
+   modais, dropdowns, badges e componentes Bootstrap comuns.
+   ============================================================ */
+
+body.dark-mode {
+    background-color: #0f172a !important;
+    color: #e2e8f0 !important;
+}
+
+/* Layout base */
+body.dark-mode .main-content { background-color: #0f172a; }
+
+/* Sidebar */
+body.dark-mode .sidebar { background: #0b1120 !important; border-right: 1px solid #1e293b; }
+body.dark-mode .sidebar-header { border-color: #1e293b !important; }
+body.dark-mode .nav-link { color: #94a3b8 !important; }
+body.dark-mode .nav-link:hover { background: #1e293b !important; color: #f1f5f9 !important; }
+body.dark-mode .nav-link.active { background: #0078d4 !important; color: #fff !important; }
+body.dark-mode .nav-section { color: #475569 !important; }
+
+/* Cards */
+body.dark-mode .card { background: #1e293b !important; border-color: #334155 !important; color: #e2e8f0 !important; }
+body.dark-mode .card-header { background: #1e293b !important; border-color: #334155 !important; color: #e2e8f0 !important; }
+body.dark-mode .card-footer { background: #1e293b !important; border-color: #334155 !important; }
+body.dark-mode .kpi-value { color: #f1f5f9 !important; }
+body.dark-mode .kpi-label { color: #94a3b8 !important; }
+body.dark-mode .text-muted { color: #94a3b8 !important; }
+
+/* Tabelas */
+body.dark-mode .table { color: #e2e8f0 !important; border-color: #334155 !important; }
+body.dark-mode .table > :not(caption) > * > * { background-color: transparent !important; color: #e2e8f0 !important; border-color: #334155 !important; }
+body.dark-mode .table-hover tbody tr:hover { background: #334155 !important; }
+body.dark-mode .table-secondary { background: #334155 !important; color: #e2e8f0 !important; }
+body.dark-mode .table-dark { background: #0b1120 !important; }
+body.dark-mode thead.sticky-top { background: #0b1120 !important; }
+
+/* Formulários */
+body.dark-mode .form-control,
+body.dark-mode .form-select {
+    background-color: #1e293b !important;
+    color: #e2e8f0 !important;
+    border-color: #334155 !important;
+}
+body.dark-mode .form-control::placeholder { color: #64748b !important; }
+body.dark-mode .form-control:focus,
+body.dark-mode .form-select:focus { background-color: #1e293b !important; color: #f1f5f9 !important; }
+body.dark-mode .form-label { color: #cbd5e1 !important; }
+body.dark-mode .input-group-text { background: #334155 !important; color: #e2e8f0 !important; border-color: #334155 !important; }
+body.dark-mode .form-check-input { background-color: #334155 !important; border-color: #475569 !important; }
+
+/* Botões outline */
+body.dark-mode .btn-outline-secondary { color: #cbd5e1 !important; border-color: #475569 !important; }
+body.dark-mode .btn-outline-secondary:hover { background: #334155 !important; color: #fff !important; }
+
+/* Modais */
+body.dark-mode .modal-content { background: #1e293b !important; color: #e2e8f0 !important; }
+body.dark-mode .modal-header,
+body.dark-mode .modal-footer { border-color: #334155 !important; }
+body.dark-mode .btn-close { filter: invert(1) grayscale(100%) brightness(200%); }
+
+/* Dropdowns */
+body.dark-mode .dropdown-menu { background: #1e293b !important; border-color: #334155 !important; }
+body.dark-mode .dropdown-item { color: #e2e8f0 !important; }
+body.dark-mode .dropdown-item:hover { background: #334155 !important; color: #fff !important; }
+
+/* Alertas e progress bars */
+body.dark-mode .alert-info { background: #0c4a6e !important; color: #e0f2fe !important; border-color: #075985 !important; }
+body.dark-mode .progress { background: #334155 !important; }
+body.dark-mode .bg-light { background: #334155 !important; color: #e2e8f0 !important; }
+
+/* Fundos "soft" dos ícones KPI */
+body.dark-mode .bg-primary-soft { background: rgba(59,130,246,0.15) !important; }
+body.dark-mode .bg-success-soft { background: rgba(34,197,94,0.15) !important; }
+body.dark-mode .bg-danger-soft  { background: rgba(239,68,68,0.15) !important; }
+
+/* Paginação e badges outline */
+body.dark-mode .page-link { background: #1e293b !important; color: #e2e8f0 !important; border-color: #334155 !important; }
+body.dark-mode .page-item.disabled .page-link { background: #0f172a !important; color: #475569 !important; }

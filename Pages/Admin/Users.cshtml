@@ -93,7 +93,7 @@
                             </form>
                         </td>
                         <td class="align-middle">
-                            <button class="btn btn-sm btn-outline-primary" onclick="showPermissions(@u.Id, '@u.Username', @u.CanViewDashboard.ToString().ToLower(), @u.CanViewSectionChart.ToString().ToLower(), @u.CanViewNonConformities.ToString().ToLower(), @u.CanViewGlobalConformity.ToString().ToLower())">
+                            <button class="btn btn-sm btn-outline-primary" onclick="showPermissions(@u.Id, '@u.Username', @u.CanViewDashboard.ToString().ToLower(), @u.CanViewSectionChart.ToString().ToLower(), @u.CanViewNonConformities.ToString().ToLower(), @u.CanViewGlobalConformity.ToString().ToLower(), @u.CanViewTrend.ToString().ToLower(), @u.CanViewHeatmap.ToString().ToLower(), @u.CanViewAirlineChart.ToString().ToLower(), @u.CanViewAgentChart.ToString().ToLower(), @u.CanViewOfficerChart.ToString().ToLower(), @u.CanViewComparativeChart.ToString().ToLower(), @u.CanViewQuarterProgress.ToString().ToLower())">
                                 <i class="bi bi-eye me-1"></i>Gerir
                             </button>
                         </td>
@@ -180,22 +180,59 @@
                     <div class="form-check mb-2">
                         <input class="form-check-input" type="checkbox" name="canViewDashboard" id="permDashboard" value="true" />
                         <input type="hidden" name="canViewDashboard" value="false" />
-                        <label class="form-check-label fw-bold" for="permDashboard">Ver Dashboard</label>
+                        <label class="form-check-label fw-bold" for="permDashboard">🖥️ Ver Dashboard</label>
                     </div>
+                    <hr class="my-2" />
+                    <p class="small text-muted mb-2 ms-3">Gráficos visíveis:</p>
                     <div class="form-check mb-2 ms-3">
-                        <input class="form-check-input" type="checkbox" name="canViewSectionChart" id="permSection" value="true" />
-                        <input type="hidden" name="canViewSectionChart" value="false" />
-                        <label class="form-check-label" for="permSection">Resultados por section (%)</label>
-                    </div>
-                    <div class="form-check mb-2 ms-3">
-                        <input class="form-check-input" type="checkbox" name="canViewNonConformities" id="permNC" value="true" />
-                        <input type="hidden" name="canViewNonConformities" value="false" />
-                        <label class="form-check-label" for="permNC">Top não conformidades</label>
+                        <input class="form-check-input" type="checkbox" name="canViewTrend" id="permTrend" value="true" />
+                        <input type="hidden" name="canViewTrend" value="false" />
+                        <label class="form-check-label" for="permTrend">📈 Tendência 12 meses</label>
                     </div>
                     <div class="form-check mb-2 ms-3">
                         <input class="form-check-input" type="checkbox" name="canViewGlobalConformity" id="permGlobal" value="true" />
                         <input type="hidden" name="canViewGlobalConformity" value="false" />
-                        <label class="form-check-label" for="permGlobal">Conformidade global</label>
+                        <label class="form-check-label" for="permGlobal">🍩 Conformidade global</label>
+                    </div>
+                    <div class="form-check mb-2 ms-3">
+                        <input class="form-check-input" type="checkbox" name="canViewHeatmap" id="permHeatmap" value="true" />
+                        <input type="hidden" name="canViewHeatmap" value="false" />
+                        <label class="form-check-label" for="permHeatmap">🔥 Checklist — detalhe por campo</label>
+                    </div>
+                    <div class="form-check mb-2 ms-3">
+                        <input class="form-check-input" type="checkbox" name="canViewNonConformities" id="permNC" value="true" />
+                        <input type="hidden" name="canViewNonConformities" value="false" />
+                        <label class="form-check-label" for="permNC">⚠️ Razões de NOT OK</label>
+                    </div>
+                    <div class="form-check mb-2 ms-3">
+                        <input class="form-check-input" type="checkbox" name="canViewSectionChart" id="permSection" value="true" />
+                        <input type="hidden" name="canViewSectionChart" value="false" />
+                        <label class="form-check-label" for="permSection">📊 Resultados por secção (%)</label>
+                    </div>
+                    <div class="form-check mb-2 ms-3">
+                        <input class="form-check-input" type="checkbox" name="canViewAirlineChart" id="permAirline" value="true" />
+                        <input type="hidden" name="canViewAirlineChart" value="false" />
+                        <label class="form-check-label" for="permAirline">✈️ Por Airline</label>
+                    </div>
+                    <div class="form-check mb-2 ms-3">
+                        <input class="form-check-input" type="checkbox" name="canViewAgentChart" id="permAgent" value="true" />
+                        <input type="hidden" name="canViewAgentChart" value="false" />
+                        <label class="form-check-label" for="permAgent">👤 Por Agente</label>
+                    </div>
+                    <div class="form-check mb-2 ms-3">
+                        <input class="form-check-input" type="checkbox" name="canViewOfficerChart" id="permOfficer" value="true" />
+                        <input type="hidden" name="canViewOfficerChart" value="false" />
+                        <label class="form-check-label" for="permOfficer">🏅 Conformidade por Officer</label>
+                    </div>
+                    <div class="form-check mb-2 ms-3">
+                        <input class="form-check-input" type="checkbox" name="canViewComparativeChart" id="permComparative" value="true" />
+                        <input type="hidden" name="canViewComparativeChart" value="false" />
+                        <label class="form-check-label" for="permComparative">📅 Comparativo anual</label>
+                    </div>
+                    <div class="form-check mb-2 ms-3">
+                        <input class="form-check-input" type="checkbox" name="canViewQuarterProgress" id="permQuarter" value="true" />
+                        <input type="hidden" name="canViewQuarterProgress" value="false" />
+                        <label class="form-check-label" for="permQuarter">🗓️ Progresso trimestral</label>
                     </div>
                 </div>
                 <div class="modal-footer">
@@ -214,13 +251,20 @@ function showResetPw(id, username) {
     new bootstrap.Modal(document.getElementById('resetPwModal')).show();
 }
 
-function showPermissions(id, username, dash, section, nc, global) {
+function showPermissions(id, username, dash, section, nc, global, trend, heatmap, airline, agent, officer, comparative, quarter) {
     document.getElementById('permsUserId').value = id;
     document.getElementById('permsUser').textContent = username;
-    document.getElementById('permDashboard').checked = dash;
-    document.getElementById('permSection').checked = section;
-    document.getElementById('permNC').checked = nc;
-    document.getElementById('permGlobal').checked = global;
+    document.getElementById('permDashboard').checked    = dash === true || dash === 'true';
+    document.getElementById('permSection').checked      = section === true || section === 'true';
+    document.getElementById('permNC').checked           = nc === true || nc === 'true';
+    document.getElementById('permGlobal').checked       = global === true || global === 'true';
+    document.getElementById('permTrend').checked        = trend === true || trend === 'true';
+    document.getElementById('permHeatmap').checked      = heatmap === true || heatmap === 'true';
+    document.getElementById('permAirline').checked      = airline === true || airline === 'true';
+    document.getElementById('permAgent').checked        = agent === true || agent === 'true';
+    document.getElementById('permOfficer').checked      = officer === true || officer === 'true';
+    document.getElementById('permComparative').checked  = comparative === true || comparative === 'true';
+    document.getElementById('permQuarter').checked      = quarter === true || quarter === 'true';
     new bootstrap.Modal(document.getElementById('permsModal')).show();
 }
 

@@ -102,17 +102,28 @@ namespace AHM.Audit.Pages.Admin
             return Page();
         }
 
-        public IActionResult OnPostSetPermissions(int userId, bool canViewDashboard, bool canViewSectionChart, bool canViewNonConformities, bool canViewGlobalConformity)
+        public IActionResult OnPostSetPermissions(int userId,
+            bool canViewDashboard, bool canViewSectionChart, bool canViewNonConformities,
+            bool canViewGlobalConformity, bool canViewTrend, bool canViewHeatmap,
+            bool canViewAirlineChart, bool canViewAgentChart, bool canViewOfficerChart,
+            bool canViewComparativeChart, bool canViewQuarterProgress)
         {
             if (!IsAdmin()) return RedirectToPage("/Account/Login");
             ViewData["IsAdmin"] = true;
             var user = _context.Users.Find(userId);
             if (user != null)
             {
-                user.CanViewDashboard = canViewDashboard;
-                user.CanViewSectionChart = canViewSectionChart;
-                user.CanViewNonConformities = canViewNonConformities;
+                user.CanViewDashboard        = canViewDashboard;
+                user.CanViewSectionChart     = canViewSectionChart;
+                user.CanViewNonConformities  = canViewNonConformities;
                 user.CanViewGlobalConformity = canViewGlobalConformity;
+                user.CanViewTrend            = canViewTrend;
+                user.CanViewHeatmap          = canViewHeatmap;
+                user.CanViewAirlineChart     = canViewAirlineChart;
+                user.CanViewAgentChart       = canViewAgentChart;
+                user.CanViewOfficerChart     = canViewOfficerChart;
+                user.CanViewComparativeChart = canViewComparativeChart;
+                user.CanViewQuarterProgress  = canViewQuarterProgress;
                 _context.SaveChanges();
                 Message = $"Permissões de '{user.Username}' atualizadas.";
             }

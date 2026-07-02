@@ -18,11 +18,27 @@ var databaseUrl = Environment.GetEnvironmentVariable("DATABASE_URL");
 
 if (!string.IsNullOrEmpty(databaseUrl))
 {
-    var uri = new Uri(databaseUrl);
+    Uri uri;
+    try
+    {
+        uri = new Uri(databaseUrl.Trim().Trim('"'));
+    }
+    catch (UriFormatException ex)
+    {
+        throw new InvalidOperationException(
+            $"DATABASE_URL não é um URI válido. Valor lido: \"{databaseUrl}\". " +
+            "Formato esperado: postgresql://utilizador:password@host:porta/basededados", ex);
+    }
+
+    var port = uri.Port > 0 ? uri.Port : 5432; // Uri.Port devolve -1 se a porta não estiver explícita no URI
     var userInfo = uri.UserInfo.Split(':');
+    if (userInfo.Length < 2)
+        throw new InvalidOperationException(
+            $"DATABASE_URL não contém utilizador/password. Valor lido: \"{databaseUrl}\".");
+
     var isLocal = uri.Host == "localhost" || uri.Host == "127.0.0.1";
     var sslMode = isLocal ? "Disable" : "Require";
-    var npgsqlConn = $"Host={uri.Host};Port={uri.Port};Database={uri.AbsolutePath.TrimStart('/')};Username={userInfo[0]};Password={userInfo[1]};SSL Mode={sslMode};Trust Server Certificate=true";
+    var npgsqlConn = $"Host={uri.Host};Port={port};Database={uri.AbsolutePath.TrimStart('/')};Username={userInfo[0]};Password={userInfo[1]};SSL Mode={sslMode};Trust Server Certificate=true";
 
     builder.Services.AddDbContext<AuditDbContext>(options =>
         options.UseNpgsql(npgsqlConn));
@@ -55,6 +71,11 @@ builder.Services.AddSession(options =>
 });
 
 var app = builder.Build();
+
+// Falha imediatamente no arranque se alguém adicionar/remover/renomear um gráfico do
+// dashboard (Models/User.cs) e se esquecer de atualizar o catálogo correspondente
+// (Models/DashboardPermissionCatalog.cs) e o modal em Pages/Admin/Users.cshtml.
+AHM.Audit.Models.DashboardPermissionCatalog.Validate();
 
 app.UseMiddleware<AHM.Audit.Middleware.ExceptionMiddleware>();
 app.UseStaticFiles();

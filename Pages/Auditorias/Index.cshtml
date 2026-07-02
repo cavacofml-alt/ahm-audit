@@ -5,14 +5,16 @@
     bool pt = true; // app is PT
 }
 
-@if (!string.IsNullOrEmpty(Model.FilterAirline) || !string.IsNullOrEmpty(Model.FilterNcField))
+@if (!string.IsNullOrEmpty(Model.FilterAirline) || !string.IsNullOrEmpty(Model.FilterNcField) || !string.IsNullOrEmpty(Model.FilterOfficer) || !string.IsNullOrEmpty(Model.FilterNcReason))
 {
     <div class="alert alert-info d-flex align-items-center justify-content-between mb-3">
         <span>
             <i class="bi bi-funnel-fill me-2"></i>
             <strong>Filtro ativo:</strong>
-            @if (!string.IsNullOrEmpty(Model.FilterAirline)) { <span class="badge bg-primary me-2">Airline: @Model.FilterAirline</span> }
-            @if (!string.IsNullOrEmpty(Model.FilterNcField)) { <span class="badge bg-danger me-2">NOT OK: @Model.FilterNcField</span> }
+            @if (!string.IsNullOrEmpty(Model.FilterAirline))  { <span class="badge bg-primary me-2">Airline: @Model.FilterAirline</span> }
+            @if (!string.IsNullOrEmpty(Model.FilterNcField))  { <span class="badge bg-danger me-2">NOT OK: @Model.FilterNcField</span> }
+            @if (!string.IsNullOrEmpty(Model.FilterOfficer))  { <span class="badge bg-secondary me-2">Officer: @Model.FilterOfficer</span> }
+            @if (!string.IsNullOrEmpty(Model.FilterNcReason)) { <span class="badge bg-danger me-2">Razão: @Model.FilterNcReason</span> }
         </span>
         <a href="/Auditorias" class="btn btn-sm btn-outline-secondary"><i class="bi bi-x me-1"></i>Limpar filtro</a>
     </div>

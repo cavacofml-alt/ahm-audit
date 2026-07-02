@@ -14,6 +14,7 @@ namespace AHM.Audit.Pages.Auditorias
         public Auditoria Auditoria { get; set; } = new();
         public List<string> Agents { get; set; } = new();
         public List<string> Officers { get; set; } = new();
+        public List<string> NonConformityReasons { get; set; } = new();
         public bool IsAdmin { get; set; }
         public bool IsLocked { get; set; }
 
@@ -31,6 +32,7 @@ namespace AHM.Audit.Pages.Auditorias
             // Bloqueado se finalizado (não admin) ou passou mais de 1 mês (não admin)
             IsLocked = !IsAdmin && (Auditoria.IsFinalized || Auditoria.CreatedAt < DateTime.Now.AddMonths(-1));
 
+            NonConformityReasons = _context.NonConformityReasons.Where(r => r.Active).Select(r => r.Reason).ToList();
             LoadDropdowns();
             return Page();
         }
@@ -58,25 +60,29 @@ namespace AHM.Audit.Pages.Auditorias
             }
 
             LoadDropdowns();
+            NonConformityReasons = _context.NonConformityReasons.Where(r => r.Active).Select(r => r.Reason).ToList();
 
-            Auditoria.Agent                    = Auditoria.Agent                    ?? "";
-            Auditoria.AhmOfficer               = Auditoria.AhmOfficer               ?? "";
-            Auditoria.Ticket                   = Auditoria.Ticket                   ?? "";
-            Auditoria.Airline                  = Auditoria.Airline                  ?? "";
-            Auditoria.Aircraft                 = Auditoria.Aircraft                 ?? "";
-            Auditoria.Registration             = Auditoria.Registration             ?? "";
-            Auditoria.RevisionUpdates          = Auditoria.RevisionUpdates          ?? "";
-            Auditoria.CorrectionTicket         = Auditoria.CorrectionTicket         ?? "";
-            Auditoria.CorrectionsMade          = Auditoria.CorrectionsMade          ?? "N/A";
-            Auditoria.AircraftRecertified      = Auditoria.AircraftRecertified      ?? "N/A";
-            Auditoria.ReasonForRecertification = Auditoria.ReasonForRecertification ?? "";
-            Auditoria.Notes                    = Auditoria.Notes                    ?? "";
-            Auditoria.CreatedAt                = original.CreatedAt;
+            // Nota: os campos da checklist e as razões de NO (NoReasons) NÃO são copiados aqui —
+            // são guardados diretamente na BD via /api/autosave assim que o utilizador os altera
+            // (ver Edit.cshtml). Copiar o modelo inteiro apagaria as razões já guardadas, porque
+            // este formulário não reenvia esses campos.
+            original.Agent                    = Auditoria.Agent                    ?? "";
+            original.AhmOfficer               = Auditoria.AhmOfficer               ?? "";
+            original.Ticket                   = Auditoria.Ticket                   ?? "";
+            original.Airline                  = Auditoria.Airline                  ?? "";
+            original.Aircraft                 = Auditoria.Aircraft                 ?? "";
+            original.Registration             = Auditoria.Registration             ?? "";
+            original.Date                      = Auditoria.Date;
+            original.RevisionUpdates          = Auditoria.RevisionUpdates          ?? "";
+            original.CorrectionTicket         = Auditoria.CorrectionTicket         ?? "";
+            original.CorrectionsMade          = Auditoria.CorrectionsMade          ?? "N/A";
+            original.AircraftRecertified      = Auditoria.AircraftRecertified      ?? "N/A";
+            original.ReasonForRecertification = Auditoria.ReasonForRecertification ?? "";
+            original.Notes                    = Auditoria.Notes                    ?? "";
 
             // Finalizar ou manter rascunho
-            Auditoria.IsFinalized = action == "finalize";
+            original.IsFinalized = action == "finalize";
 
-            _context.Entry(original).CurrentValues.SetValues(Auditoria);
             _context.SaveChanges();
             return RedirectToPage("Index");
         }

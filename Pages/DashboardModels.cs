@@ -47,4 +47,11 @@ namespace AHM.Audit.Pages
         public int No  { get; set; }
         public int Na  { get; set; }
     }
+
+    // Razão de NO pré-definida e quantas vezes foi selecionada
+    public class ReasonStat
+    {
+        public string Reason { get; set; } = "";
+        public int Count     { get; set; }
+    }
 }

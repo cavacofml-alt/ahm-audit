@@ -8,11 +8,6 @@
 
 <div class="d-flex justify-content-between align-items-center mb-3">
     <h2 class="mb-0"><i class="bi bi-speedometer2 me-2"></i>Dashboard</h2>
-    <div class="d-flex gap-2 align-items-center">
-        <button class="btn btn-sm btn-outline-secondary" id="darkToggle" title="Toggle dark mode">
-            <i class="bi bi-moon-fill" id="darkIcon"></i>
-        </button>
-    </div>
 </div>
 
 <!-- Filters -->
@@ -121,19 +116,23 @@
     </div>
 </div>
 
-<!-- Trend + Global Conformity -->
-<div class="row g-3 mb-4">
-    <div class="col-md-8">
+<!-- Dashboard grid: cada card é um widget independente, arrastável (admin) -->
+<div id="dashboardGrid">
+
+    @if (Model.CanViewTrend)
+    {
+    <div class="widget w-col-8" data-widget="trend">
         <div class="card h-100">
-            <div class="card-header fw-bold"><i class="bi bi-graph-up me-2"></i>Tendência 12 meses<span data-bs-toggle="tooltip" data-bs-placement="top" title="Evolução mensal da conformidade (YES/Total) nos últimos 12 meses. Permite identificar tendências de melhoria ou degradação." style="cursor:help; margin-left:6px; font-size:13px; color:#94a3b8"><i class="bi bi-info-circle"></i></span></div>
+            <div class="card-header fw-bold"><i class="bi bi-graph-up me-2"></i>Tendência 12 meses<span data-bs-toggle="tooltip" data-bs-placement="top" title="Evolução mensal da conformidade nos últimos 12 meses." style="cursor:help; margin-left:6px; font-size:13px; color:#94a3b8"><i class="bi bi-info-circle"></i></span></div>
             <div class="card-body"><canvas id="trendChart" height="120"></canvas></div>
         </div>
     </div>
+    }
     @if (Model.CanViewGlobalConformity)
     {
-    <div class="col-md-4">
+    <div class="widget w-col-4" data-widget="globalconformity">
         <div class="card h-100">
-            <div class="card-header fw-bold"><i class="bi bi-pie-chart me-2"></i>Conformidade global<span data-bs-toggle="tooltip" data-bs-placement="top" title="Rácio global entre itens OK e NOT OK em todas as auditorias do período selecionado. N/A não é contabilizado." style="cursor:help; margin-left:6px; font-size:13px; color:#94a3b8"><i class="bi bi-info-circle"></i></span></div>
+            <div class="card-header fw-bold"><i class="bi bi-pie-chart me-2"></i>Conformidade global<span data-bs-toggle="tooltip" data-bs-placement="top" title="Rácio global entre itens OK e NOT OK. N/A não é contabilizado." style="cursor:help; margin-left:6px; font-size:13px; color:#94a3b8"><i class="bi bi-info-circle"></i></span></div>
             <div class="card-body d-flex flex-column align-items-center justify-content-center">
                 <canvas id="resultChart" width="200" height="200"></canvas>
                 <div class="mt-2 text-center">
@@ -144,15 +143,12 @@
         </div>
     </div>
     }
-</div>
 
-<!-- Heatmap + Top NCs -->
-<div class="row g-3 mb-4">
-    @if (Model.CanViewSectionChart)
+    @if (Model.CanViewHeatmap)
     {
-    <div class="col-md-5">
+    <div class="widget w-col-5" data-widget="heatmap">
         <div class="card h-100">
-            <div class="card-header fw-bold"><i class="bi bi-grid-3x3 me-2"></i>Checklist — detalhe por campo<span data-bs-toggle="tooltip" data-bs-placement="top" title="Mostra o resultado de cada item da checklist. Verde=OK, Vermelho=NOT OK, Cinza=N/A. Agrupado por secção." style="cursor:help; margin-left:6px; font-size:13px; color:#94a3b8"><i class="bi bi-info-circle"></i></span></div>
+            <div class="card-header fw-bold"><i class="bi bi-grid-3x3 me-2"></i>Checklist — detalhe por campo<span data-bs-toggle="tooltip" data-bs-placement="top" title="Mostra o resultado de cada item da checklist. Verde=OK, Vermelho=NOT OK, Cinza=N/A." style="cursor:help; margin-left:6px; font-size:13px; color:#94a3b8"><i class="bi bi-info-circle"></i></span></div>
             <div class="card-body p-0" style="max-height:500px;overflow-y:auto">
                 <table class="table table-sm table-hover mb-0">
                     <thead class="table-dark sticky-top">
@@ -183,7 +179,10 @@
                                         {
                                             <a href="/Auditorias?ncFilter=@Uri.EscapeDataString(item.Label)" class="text-danger fw-bold text-decoration-none" title="Ver auditorias com NOT OK neste campo">@item.No</a>
                                         }
-                                        else { <span>0</span> }
+                                        else
+                                        {
+                                            <span>0</span>
+                                        }
                                     </td>
                                     <td class="text-center text-secondary">@item.Na</td>
                                     <td class="text-end fw-bold @confColor">@(conf >= 0 ? conf + "%" : "-")</td>
@@ -196,26 +195,79 @@
         </div>
     </div>
     }
+
     @if (Model.CanViewNonConformities)
     {
-    <div class="col-md-7">
+    <div class="widget w-col-7" data-widget="reasons">
         <div class="card h-100">
-            <div class="card-header fw-bold"><i class="bi bi-bar-chart-horizontal me-2"></i>Top não conformidades <small class="text-muted fw-normal">(clique para filtrar)</small><span data-bs-toggle="tooltip" data-bs-placement="top" title="Os 10 itens da checklist com maior número de ocorrências NOT OK. Ordenado por frequência absoluta." style="cursor:help; margin-left:6px; font-size:13px; color:#94a3b8"><i class="bi bi-info-circle"></i></span></div>
-            <div class="card-body"><canvas id="ncChart" height="200"></canvas></div>
+            <div class="card-header fw-bold"><i class="bi bi-bar-chart-horizontal me-2"></i>Razões de NOT OK <small class="text-muted fw-normal">(clique para ver auditorias)</small><span data-bs-toggle="tooltip" data-bs-placement="top" title="Razões pré-definidas selecionadas quando um item foi marcado como NOT OK." style="cursor:help; margin-left:6px; font-size:13px; color:#94a3b8"><i class="bi bi-info-circle"></i></span></div>
+            <div class="card-body"><canvas id="reasonChart" height="200"></canvas></div>
         </div>
     </div>
     }
-</div>
 
-<!-- Pareto + Section bar -->
-<div class="row g-3 mb-4">
+    @if (Model.CanViewAirlineChart)
+    {
+    <div class="widget w-col-6" data-widget="airline">
+        <div class="card h-100">
+            <div class="card-header fw-bold"><i class="bi bi-airplane me-2"></i>Por Airline <small class="text-muted fw-normal">(clique para filtrar)</small><span data-bs-toggle="tooltip" data-bs-placement="top" title="Número de auditorias por companhia aérea." style="cursor:help; margin-left:6px; font-size:13px; color:#94a3b8"><i class="bi bi-info-circle"></i></span></div>
+            <div class="card-body"><canvas id="airlineChart" height="200"></canvas></div>
+        </div>
     </div>
+    }
+    @if (Model.CanViewAgentChart)
+    {
+    <div class="widget w-col-6" data-widget="agent">
+        <div class="card h-100">
+            <div class="card-header fw-bold"><i class="bi bi-person me-2"></i>Por Agente<span data-bs-toggle="tooltip" data-bs-placement="top" title="Número de auditorias por Audit Agent." style="cursor:help; margin-left:6px; font-size:13px; color:#94a3b8"><i class="bi bi-info-circle"></i></span></div>
+            <div class="card-body"><canvas id="agentChart" height="200"></canvas></div>
+        </div>
+    </div>
+    }
 
-<!-- Progresso trimestral -->
-<div class="row g-3 mb-4">
-    <div class="col-md-12">
+    @if (Model.CanViewComparativeChart)
+    {
+    <div class="widget w-col-4" data-widget="comparativo">
+        <div class="card h-100">
+            <div class="card-header fw-bold"><i class="bi bi-calendar me-2"></i>Comparativo anual<span data-bs-toggle="tooltip" data-bs-placement="top" title="Comparação da conformidade entre o ano atual e o anterior." style="cursor:help; margin-left:6px; font-size:13px; color:#94a3b8"><i class="bi bi-info-circle"></i></span></div>
+            <div class="card-body">
+                <div class="d-flex justify-content-between mb-2">
+                    <span>@Model.CurrentDataYear</span><strong>@Model.PctYes%</strong>
+                </div>
+                <div class="progress mb-3" style="height:20px">
+                    <div class="progress-bar bg-success" style="width:@Model.PctYes%"></div>
+                </div>
+                <div class="d-flex justify-content-between mb-2">
+                    <span>@Model.CompareYear</span><strong>@Model.PrevPctYes%</strong>
+                </div>
+                <div class="progress mb-3" style="height:20px">
+                    <div class="progress-bar bg-secondary" style="width:@Model.PrevPctYes%"></div>
+                </div>
+                <div class="text-center mt-2">
+                    @{ var diff = Model.DiffPctYes; }
+                    <span class="badge @(diff >= 0 ? "bg-success" : "bg-danger") fs-6">
+                        <i class="bi bi-arrow-@(diff >= 0 ? "up" : "down")"></i> @Math.Abs(diff)% vs @Model.CompareYear
+                    </span>
+                </div>
+            </div>
+        </div>
+    </div>
+    }
+    @if (Model.CanViewOfficerChart)
+    {
+    <div class="widget w-col-8" data-widget="officer">
+        <div class="card h-100">
+            <div class="card-header fw-bold"><i class="bi bi-person-badge me-2"></i>Conformidade por Officer <small class="text-muted fw-normal">(clique para detalhe)</small><span data-bs-toggle="tooltip" data-bs-placement="top" title="Taxa de conformidade por AHM Officer. Verde ≥95%, amarelo 80-94%, vermelho <80%." style="cursor:help; margin-left:6px; font-size:13px; color:#94a3b8"><i class="bi bi-info-circle"></i></span></div>
+            <div class="card-body"><canvas id="officerChart" height="120"></canvas></div>
+        </div>
+    </div>
+    }
+
+    @if (Model.CanViewQuarterProgress)
+    {
+    <div class="widget w-col-12" data-widget="quarterprogress">
         <div class="card">
-            <div class="card-header fw-bold"><i class="bi bi-calendar3 me-2"></i>Progresso trimestral @Model.CurrentYear<span data-bs-toggle="tooltip" data-bs-placement="top" title="Número de auditorias realizadas em cada trimestre do ano atual. O trimestre corrente está destacado." style="cursor:help; margin-left:6px; font-size:13px; color:#94a3b8"><i class="bi bi-info-circle"></i></span></div>
+            <div class="card-header fw-bold"><i class="bi bi-calendar3 me-2"></i>Progresso trimestral @Model.CurrentYear<span data-bs-toggle="tooltip" data-bs-placement="top" title="Auditorias por trimestre do ano atual." style="cursor:help; margin-left:6px; font-size:13px; color:#94a3b8"><i class="bi bi-info-circle"></i></span></div>
             <div class="card-body">
                 <div class="row g-3">
                     @foreach (var q in Model.QuarterProgress)
@@ -233,75 +285,29 @@
             </div>
         </div>
     </div>
-</div>
+    }
 
-<!-- Por airline + Por agente -->
-<div class="row g-3 mb-4">
-    <div class="col-md-6">
-        <div class="card h-100">
-            <div class="card-header fw-bold"><i class="bi bi-airplane me-2"></i>Por Airline <small class="text-muted fw-normal">(clique para filtrar)</small><span data-bs-toggle="tooltip" data-bs-placement="top" title="Número de auditorias realizadas por companhia aérea no período selecionado." style="cursor:help; margin-left:6px; font-size:13px; color:#94a3b8"><i class="bi bi-info-circle"></i></span></div>
-            <div class="card-body"><canvas id="airlineChart" height="200"></canvas></div>
-        </div>
-    </div>
-    <div class="col-md-6">
-        <div class="card h-100">
-            <div class="card-header fw-bold"><i class="bi bi-person me-2"></i>Por Agente<span data-bs-toggle="tooltip" data-bs-placement="top" title="Número de auditorias realizadas por cada Audit Agent no período selecionado." style="cursor:help; margin-left:6px; font-size:13px; color:#94a3b8"><i class="bi bi-info-circle"></i></span></div>
-            <div class="card-body"><canvas id="agentChart" height="200"></canvas></div>
-        </div>
-    </div>
-</div>
+</div><!-- end dashboardGrid -->
 
-<!-- Comparativo ano anterior -->
-<div class="row g-3 mb-4">
-    <div class="col-md-4">
-        <div class="card">
-            <div class="card-header fw-bold"><i class="bi bi-calendar me-2"></i>Comparativo anual<span data-bs-toggle="tooltip" data-bs-placement="top" title="Comparação da conformidade global entre o ano atual e o ano anterior." style="cursor:help; margin-left:6px; font-size:13px; color:#94a3b8"><i class="bi bi-info-circle"></i></span></div>
-            <div class="card-body">
-                <div class="d-flex justify-content-between mb-2">
-                    <span>@Model.CurrentDataYear</span>
-                    <strong>@Model.PctYes%</strong>
-                </div>
-                <div class="progress mb-3" style="height:20px">
-                    <div class="progress-bar bg-success" style="width:@Model.PctYes%"></div>
-                </div>
-                <div class="d-flex justify-content-between mb-2">
-                    <span>@Model.CompareYear</span>
-                    <strong>@Model.PrevPctYes%</strong>
-                </div>
-                <div class="progress mb-3" style="height:20px">
-                    <div class="progress-bar bg-secondary" style="width:@Model.PrevPctYes%"></div>
-                </div>
-                <div class="text-center mt-2">
-                    @{ var diff = Model.DiffPctYes; }
-                    <span class="badge @(diff >= 0 ? "bg-success" : "bg-danger") fs-6">
-                        <i class="bi bi-arrow-@(diff >= 0 ? "up" : "down")"></i> @Math.Abs(diff)% vs @Model.CompareYear
-                    </span>
-                </div>
-            </div>
-        </div>
-    </div>
-    <div class="col-md-8">
-        <div class="card h-100">
-            <div class="card-header fw-bold"><i class="bi bi-person-badge me-2"></i>Conformidade por Officer<span data-bs-toggle="tooltip" data-bs-placement="top" title="Taxa de conformidade das auditorias supervisionadas por cada AHM Officer. Verde ≥95%, amarelo 80-94%, vermelho <80%." style="cursor:help; margin-left:6px; font-size:13px; color:#94a3b8"><i class="bi bi-info-circle"></i></span></div>
-            <div class="card-body"><canvas id="officerChart" height="120"></canvas></div>
-        </div>
-    </div>
-</div>
-
-<!-- Agent drill-down modal -->
-<div class="modal fade" id="agentDrillModal" tabindex="-1">
+<!-- Officer drill-down modal: razões de NO + link para auditorias -->
+<div class="modal fade" id="officerDrillModal" tabindex="-1">
     <div class="modal-dialog modal-lg">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title"><i class="bi bi-person-badge me-2"></i>Falhas de <span id="drillAgentName"></span></h5>
+                <h5 class="modal-title"><i class="bi bi-person-badge me-2"></i>Razões de NOT OK — <span id="drillOfficerName"></span></h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body p-0">
+                <div class="p-3 border-bottom">
+                    <a id="drillOfficerAllLink" href="#" class="btn btn-sm btn-outline-primary">
+                        <i class="bi bi-list-check me-1"></i>Ver todas as auditorias deste officer
+                    </a>
+                </div>
                 <table class="table table-sm table-hover mb-0">
                     <thead class="table-dark">
-                        <tr><th>Campo</th><th class="text-center">NOT OK</th><th class="text-end">% de falha</th></tr>
+                        <tr><th>Razão</th><th class="text-center">Ocorrências</th><th class="text-end">Ver auditorias</th></tr>
                     </thead>
-                    <tbody id="drillAgentBody"></tbody>
+                    <tbody id="drillOfficerBody"></tbody>
                 </table>
             </div>
         </div>
@@ -319,20 +325,28 @@
 .bg-success-soft { background: #dcfce7; }
 .bg-danger-soft  { background: #fee2e2; }
 
-/* Dark mode */
-body.dark-mode { background: #0f172a !important; color: #e2e8f0 !important; }
-body.dark-mode .card { background: #1e293b !important; border-color: #334155 !important; color: #e2e8f0 !important; }
-body.dark-mode .card-header { background: #1e293b !important; border-color: #334155 !important; color: #e2e8f0 !important; }
-body.dark-mode .kpi-value { color: #f1f5f9 !important; }
-body.dark-mode .kpi-label { color: #94a3b8 !important; }
-body.dark-mode .table { color: #e2e8f0 !important; }
-body.dark-mode .table-hover tbody tr:hover { background: #334155 !important; }
-body.dark-mode .form-control, body.dark-mode .form-select { background: #1e293b !important; color: #e2e8f0 !important; border-color: #334155 !important; }
-body.dark-mode .sidebar { background: #0f172a !important; }
-body.dark-mode .progress { background: #334155 !important; }
+/* Dashboard grid — cada card é um widget individual e independentemente arrastável */
+#dashboardGrid { display: grid; grid-template-columns: repeat(12, 1fr); gap: 1rem; margin-bottom: 1.5rem; }
+#dashboardGrid .widget { min-width: 0; }
+.w-col-4  { grid-column: span 4; }
+.w-col-5  { grid-column: span 5; }
+.w-col-6  { grid-column: span 6; }
+.w-col-7  { grid-column: span 7; }
+.w-col-8  { grid-column: span 8; }
+.w-col-12 { grid-column: span 12; }
+@@media (max-width: 991px) {
+    #dashboardGrid .widget { grid-column: 1 / -1 !important; }
+}
+
+/* Drag & drop */
+.drag-handle { cursor: grab; color: #94a3b8; font-size: 14px; margin-right: 8px; }
+.drag-handle:hover { color: #3b82f6; }
+.sortable-ghost { opacity: 0.4; border: 2px dashed #3b82f6 !important; }
+.sortable-chosen { box-shadow: 0 8px 25px rgba(0,0,0,0.15); }
 </style>
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
 <script>
 // Bootstrap tooltips
 document.addEventListener('DOMContentLoaded', function() {
@@ -340,19 +354,51 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 </script>
 <script>
-// Dark mode
-const darkToggle = document.getElementById('darkToggle');
-const darkIcon   = document.getElementById('darkIcon');
-const savedTheme = localStorage.getItem('theme');
-if (savedTheme === 'dark') { document.body.classList.add('dark-mode'); darkIcon.className = 'bi bi-sun-fill'; }
+// Drag & drop for admin only
+const isAdmin = @((Model.IsAdmin ? "true" : "false"));
 
-darkToggle.addEventListener('click', () => {
-    document.body.classList.toggle('dark-mode');
-    const isDark = document.body.classList.contains('dark-mode');
-    darkIcon.className = isDark ? 'bi bi-sun-fill' : 'bi bi-moon-fill';
-    localStorage.setItem('theme', isDark ? 'dark' : 'light');
-});
+const DASHBOARD_ORDER_KEY = 'dashboardWidgetOrder';
 
+if (typeof Sortable !== 'undefined') {
+    const grid = document.getElementById('dashboardGrid');
+    if (grid) {
+        // Restore saved widget order (applies for every user viewing the dashboard)
+        const savedOrder = JSON.parse(localStorage.getItem(DASHBOARD_ORDER_KEY) || '[]');
+        if (savedOrder.length > 0) {
+            savedOrder.forEach(widgetId => {
+                const el = grid.querySelector(`.widget[data-widget="${widgetId}"]`);
+                if (el) grid.appendChild(el);
+            });
+        }
+
+        // Only admins can actually drag cards around
+        if (isAdmin) {
+            grid.querySelectorAll('.card-header').forEach(header => {
+                const handle = document.createElement('span');
+                handle.className = 'drag-handle float-end';
+                handle.innerHTML = '<i class="bi bi-grip-vertical"></i>';
+                handle.title = 'Arrastar para reordenar';
+                header.appendChild(handle);
+            });
+
+            new Sortable(grid, {
+                animation: 150,
+                ghostClass: 'sortable-ghost',
+                chosenClass: 'sortable-chosen',
+                handle: '.drag-handle',
+                draggable: '.widget',
+                onEnd: () => {
+                    const order = Array.from(grid.querySelectorAll('.widget[data-widget]'))
+                        .map(el => el.dataset.widget);
+                    localStorage.setItem(DASHBOARD_ORDER_KEY, JSON.stringify(order));
+                }
+            });
+        }
+    }
+}
+</script>
+<script>
+// Chart color helpers — read the global dark-mode class toggled from the shared layout
 const isDark = () => document.body.classList.contains('dark-mode');
 const gridColor = () => isDark() ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)';
 const textColor = () => isDark() ? '#e2e8f0' : '#1e293b';
@@ -402,16 +448,15 @@ let resultChart = new Chart(document.getElementById('resultChart'), {
 </text>
 }
 
-// Top NCs horizontal bar
+// Razões de NOT OK — substitui o antigo gráfico de Top NCs
 @if (Model.CanViewNonConformities)
 {
 <text>
-const ncLabels = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.TopNonConformities.Select(x => x.label).ToList()));
-const ncData   = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.TopNonConformities.Select(x => x.count).ToList()));
-const ncFieldNames = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.TopNonConformities.Select(x => x.label).ToList()));
-const ncChart = new Chart(document.getElementById('ncChart'), {
+const reasonLabels = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.ReasonStats.Select(x => x.Reason).ToList()));
+const reasonData   = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.ReasonStats.Select(x => x.Count).ToList()));
+new Chart(document.getElementById('reasonChart'), {
     type: 'bar',
-    data: { labels: ncLabels, datasets: [{ label: 'Ocorrências', data: ncData, backgroundColor: '#ef4444', borderRadius: 6 }] },
+    data: { labels: reasonLabels, datasets: [{ label: 'Ocorrências', data: reasonData, backgroundColor: '#ef4444', borderRadius: 6 }] },
     options: {
         indexAxis: 'y',
         plugins: { legend: { display: false } },
@@ -421,15 +466,13 @@ const ncChart = new Chart(document.getElementById('ncChart'), {
         },
         onClick: (e, elements) => {
             if (elements.length > 0) {
-                const label = encodeURIComponent(ncLabels[elements[0].index]);
-                window.location.href = `/Auditorias?ncFilter=${label}`;
+                const reason = encodeURIComponent(reasonLabels[elements[0].index]);
+                window.location.href = `/Auditorias?ncReason=${reason}`;
             }
         }
     }
 });
-document.getElementById('ncChart').style.cursor = 'pointer';
-
-
+if (reasonLabels.length > 0) document.getElementById('reasonChart').style.cursor = 'pointer';
 </text>
 }
 
@@ -476,35 +519,31 @@ const airlineChart = new Chart(document.getElementById('airlineChart'), {
 });
 document.getElementById('airlineChart').style.cursor = 'pointer';
 
-// Agent chart
-// Agent drill-down data
-const agentDrillData = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(
-    Model.OfficerStats.ToDictionary(
-        kv => kv.Key,
-        kv => Model.ChecklistDetail
-            .Where(x => x.No > 0)
-            .Select(x => new { label = x.Label, no = x.No, pct = (x.Yes + x.No) > 0 ? x.No * 100 / (x.Yes + x.No) : 0 })
-            .OrderByDescending(x => x.no)
-            .Take(10)
-            .ToList()
-    )
+// Officer drill-down: razões de NO reais desse officer, cada uma com link para as auditorias
+const officerReasonDrill = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(
+    Model.OfficerReasonDrill.ToDictionary(kv => kv.Key, kv => kv.Value)
 ));
 
-function showAgentDrill(agentName) {
-    document.getElementById('drillAgentName').textContent = agentName;
-    const data = agentDrillData[agentName] || [];
-    const tbody = document.getElementById('drillAgentBody');
+function showOfficerDrill(officerName) {
+    document.getElementById('drillOfficerName').textContent = officerName;
+    document.getElementById('drillOfficerAllLink').href = `/Auditorias?officer=${encodeURIComponent(officerName)}`;
+    const data = officerReasonDrill[officerName] || [];
+    const tbody = document.getElementById('drillOfficerBody');
     if (data.length === 0) {
         tbody.innerHTML = '<tr><td colspan="3" class="text-center text-muted py-3">Sem não conformidades registadas</td></tr>';
     } else {
         tbody.innerHTML = data.map(d => `
             <tr>
-                <td><small>${d.label}</small></td>
-                <td class="text-center text-danger fw-bold">${d.no}</td>
-                <td class="text-end text-danger">${d.pct}%</td>
+                <td><small>${d.Reason}</small></td>
+                <td class="text-center text-danger fw-bold">${d.Count}</td>
+                <td class="text-end">
+                    <a href="/Auditorias?officer=${encodeURIComponent(officerName)}&ncReason=${encodeURIComponent(d.Reason)}" class="btn btn-sm btn-outline-danger">
+                        <i class="bi bi-eye"></i> Ver
+                    </a>
+                </td>
             </tr>`).join('');
     }
-    new bootstrap.Modal(document.getElementById('agentDrillModal')).show();
+    new bootstrap.Modal(document.getElementById('officerDrillModal')).show();
 }
 
 const agentLabels = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.AgentLabels));
@@ -538,7 +577,7 @@ new Chart(document.getElementById('officerChart'), {
             x: { ticks: { color: textColor() }, grid: { display: false } }
         },
         onClick: (e, elements) => {
-            if (elements.length > 0) showAgentDrill(officerChartLabels[elements[0].index]);
+            if (elements.length > 0) showOfficerDrill(officerChartLabels[elements[0].index]);
         }
     }
 });

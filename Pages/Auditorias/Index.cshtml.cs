@@ -16,8 +16,10 @@ namespace AHM.Audit.Pages.Auditorias
 
         public string? FilterAirline { get; set; }
         public string? FilterNcField { get; set; }
+        public string? FilterOfficer { get; set; }
+        public string? FilterNcReason { get; set; }
 
-        public IActionResult OnGet(string? airline, string? ncFilter)
+        public IActionResult OnGet(string? airline, string? ncFilter, string? officer, string? ncReason)
         {
             if (HttpContext.Session.GetString("User") == null)
                 return RedirectToPage("/Account/Login");
@@ -26,15 +28,32 @@ namespace AHM.Audit.Pages.Auditorias
             IsAdmin = _context.Users.Any(u => u.Username == username && u.IsAdmin);
             ViewData["IsAdmin"] = IsAdmin;
 
-            FilterAirline = airline;
-            FilterNcField = ncFilter;
+            FilterAirline  = airline;
+            FilterNcField  = ncFilter;
+            FilterOfficer  = officer;
+            FilterNcReason = ncReason;
 
             var query = _context.Auditorias.AsQueryable();
 
             if (!string.IsNullOrEmpty(airline))
                 query = query.Where(a => a.Airline == airline);
 
+            if (!string.IsNullOrEmpty(officer))
+                query = query.Where(a => a.AhmOfficer == officer);
+
             var audits = query.OrderByDescending(a => a.CreatedAt).ToList();
+
+            // Filtra por razão de NO pré-definida (selecionada a partir do gráfico "Razões de NOT OK"
+            // ou do drill-down por Officer no dashboard)
+            if (!string.IsNullOrEmpty(ncReason))
+            {
+                audits = audits.Where(a =>
+                    !string.IsNullOrEmpty(a.NoReasons) &&
+                    a.NoReasons.Split(';', StringSplitOptions.RemoveEmptyEntries)
+                        .Select(p => p.Split('=', 2))
+                        .Any(p => p.Length == 2 && p[1] == ncReason)
+                ).ToList();
+            }
 
             // Filter by NC field if specified (field label → show audits where that field = NO)
             if (!string.IsNullOrEmpty(ncFilter))

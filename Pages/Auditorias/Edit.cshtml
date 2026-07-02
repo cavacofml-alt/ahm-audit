@@ -35,6 +35,36 @@
     </div>
 }
 
+<!-- Modal para razão do NO -->
+<div class="modal fade" id="noReasonModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title"><i class="bi bi-x-circle me-2"></i>Motivo da não conformidade</h5>
+            </div>
+            <div class="modal-body">
+                <p id="noReasonItemLabel" class="fw-bold"></p>
+                <label class="form-label">Seleciona o motivo:</label>
+                <select class="form-select" id="noReasonSelect">
+                    <option value="">-- Seleciona --</option>
+                    @foreach (var r in Model.NonConformityReasons)
+                    {
+                        <option value="@r">@r</option>
+                    }
+                </select>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" id="noReasonCancel">Cancelar</button>
+                <button type="button" class="btn btn-danger" id="noReasonConfirm" disabled>Confirmar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<span class="badge bg-secondary" id="autosaveStatus" style="font-size:11px;display:none">
+    <i class="bi bi-cloud-check me-1"></i>Guardado
+</span>
+
 <form method="post">
     <input type="hidden" asp-for="Auditoria.Id" />
     <input type="hidden" asp-for="Auditoria.CreatedAt" />
@@ -158,13 +188,30 @@
                             ("Database Printout",                   "DatabasePrintout", Model.Auditoria.DatabasePrintout),
                         };
                     }
+                    @{
+                        var noReasons = string.IsNullOrEmpty(Model.Auditoria.NoReasons)
+                            ? new Dictionary<string, string>()
+                            : Model.Auditoria.NoReasons.Split(';', StringSplitOptions.RemoveEmptyEntries)
+                                .Select(p => p.Split('=', 2))
+                                .Where(p => p.Length == 2)
+                                .ToDictionary(p => p[0], p => p[1]);
+                    }
                     @foreach (var (label, field, value) in items)
                     {
-                        <tr>
-                            <td>@label</td>
-                            <td class="text-center"><input type="radio" name="Auditoria.@field" value="YES" class="form-check-input" @(value == "YES" ? "checked" : "") /></td>
-                            <td class="text-center"><input type="radio" name="Auditoria.@field" value="NO"  class="form-check-input" @(value == "NO"  ? "checked" : "") /></td>
-                            <td class="text-center"><input type="radio" name="Auditoria.@field" value="N/A" class="form-check-input" @(value == "N/A" ? "checked" : "") /></td>
+                        var currentReason = noReasons.TryGetValue(field, out var r) ? r : null;
+                        <tr id="row-@field">
+                            <td>
+                                @label
+                                @if (value == "NO")
+                                {
+                                    <div class="small text-danger" id="reason-@field">
+                                        <i class="bi bi-exclamation-circle me-1"></i>@(currentReason ?? "sem razão registada")
+                                    </div>
+                                }
+                            </td>
+                            <td class="text-center"><input type="radio" name="check-@field" value="YES" class="form-check-input checklist-radio" data-field="@field" data-label="@label" @(value == "YES" ? "checked" : "") @(Model.IsLocked ? "disabled" : "") /></td>
+                            <td class="text-center"><input type="radio" name="check-@field" value="NO"  class="form-check-input checklist-radio" data-field="@field" data-label="@label" @(value == "NO"  ? "checked" : "") @(Model.IsLocked ? "disabled" : "") /></td>
+                            <td class="text-center"><input type="radio" name="check-@field" value="N/A" class="form-check-input checklist-radio" data-field="@field" data-label="@label" @(value == "N/A" ? "checked" : "") @(Model.IsLocked ? "disabled" : "") /></td>
                         </tr>
                     }
                 </tbody>
@@ -226,3 +273,95 @@
         <a href="/Auditorias" class="btn btn-outline-secondary btn-lg">Cancelar</a>
     </div>
 </form>
+
+<script>
+const AUDIT_ID = @Model.Auditoria.Id;
+let currentNoField = null, currentNoLabel = null, currentNoRadio = null;
+
+function showAutosaveStatus() {
+    const el = document.getElementById('autosaveStatus');
+    el.style.display = 'inline-block';
+    el.classList.remove('bg-danger');
+    el.classList.add('bg-secondary');
+    el.innerHTML = '<i class="bi bi-cloud-check me-1"></i>Guardado';
+}
+function showAutosaveError() {
+    const el = document.getElementById('autosaveStatus');
+    el.style.display = 'inline-block';
+    el.classList.remove('bg-secondary');
+    el.classList.add('bg-danger');
+    el.innerHTML = '<i class="bi bi-exclamation-triangle me-1"></i>Erro ao guardar';
+}
+
+async function autosaveChecklist(field, value, reason) {
+    const fd = new FormData();
+    fd.append('id', AUDIT_ID);
+    fd.append('field', field);
+    fd.append('value', value);
+    if (reason) fd.append('reason', reason);
+
+    try {
+        const resp = await fetch('/api/autosave', { method: 'POST', body: fd });
+        if (!resp.ok) { showAutosaveError(); return; }
+        showAutosaveStatus();
+        const reasonEl = document.getElementById('reason-' + field);
+        if (value === 'NO') {
+            const text = '<i class="bi bi-exclamation-circle me-1"></i>' + (reason || 'sem razão registada');
+            if (reasonEl) { reasonEl.innerHTML = text; }
+            else {
+                const row = document.getElementById('row-' + field);
+                const cell = row.querySelector('td');
+                const div = document.createElement('div');
+                div.className = 'small text-danger';
+                div.id = 'reason-' + field;
+                div.innerHTML = text;
+                cell.appendChild(div);
+            }
+        } else if (reasonEl) {
+            reasonEl.remove();
+        }
+    } catch (e) { showAutosaveError(); }
+}
+
+// Checklist radios
+document.querySelectorAll('.checklist-radio').forEach(radio => {
+    radio.addEventListener('change', function() {
+        const field = this.dataset.field;
+        const label = this.dataset.label;
+        if (this.value === 'NO') {
+            currentNoField = field;
+            currentNoLabel = label;
+            currentNoRadio = this;
+            this.dataset.confirmed = "false";
+            document.getElementById('noReasonItemLabel').textContent = label;
+            document.getElementById('noReasonSelect').value = '';
+            document.getElementById('noReasonConfirm').disabled = true;
+            new bootstrap.Modal(document.getElementById('noReasonModal')).show();
+        } else {
+            autosaveChecklist(field, this.value, null);
+        }
+    });
+});
+
+document.getElementById('noReasonSelect').addEventListener('change', function() {
+    document.getElementById('noReasonConfirm').disabled = !this.value;
+});
+
+document.getElementById('noReasonConfirm').addEventListener('click', function() {
+    const reason = document.getElementById('noReasonSelect').value;
+    if (currentNoRadio) currentNoRadio.dataset.confirmed = "true";
+    autosaveChecklist(currentNoField, 'NO', reason);
+    bootstrap.Modal.getInstance(document.getElementById('noReasonModal')).hide();
+});
+
+document.getElementById('noReasonCancel').addEventListener('click', function() {
+    if (currentNoRadio) currentNoRadio.checked = false;
+    bootstrap.Modal.getInstance(document.getElementById('noReasonModal')).hide();
+});
+
+document.getElementById('noReasonModal').addEventListener('hidden.bs.modal', function() {
+    if (currentNoRadio && currentNoRadio.checked && !currentNoRadio.dataset.confirmed) {
+        currentNoRadio.checked = false;
+    }
+});
+</script>

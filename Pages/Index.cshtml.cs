@@ -12,9 +12,16 @@ namespace AHM.Audit.Pages
         public IndexModel(AuditDbContext context) { _context = context; }
 
         public bool IsAdmin { get; set; }
-        public bool CanViewSectionChart { get; set; } = true;
-        public bool CanViewNonConformities { get; set; } = true;
+        public bool CanViewSectionChart     { get; set; } = true;
+        public bool CanViewNonConformities  { get; set; } = true;
         public bool CanViewGlobalConformity { get; set; } = true;
+        public bool CanViewTrend            { get; set; } = true;
+        public bool CanViewHeatmap          { get; set; } = true;
+        public bool CanViewAirlineChart     { get; set; } = true;
+        public bool CanViewAgentChart       { get; set; } = true;
+        public bool CanViewOfficerChart     { get; set; } = true;
+        public bool CanViewComparativeChart { get; set; } = true;
+        public bool CanViewQuarterProgress  { get; set; } = true;
 
         // KPIs
         public int Total        { get; set; }
@@ -67,6 +74,34 @@ namespace AHM.Audit.Pages
         public List<MonthTrend>        MonthlyTrend         { get; set; } = new();
         public List<ChecklistFieldDetail> ChecklistDetail   { get; set; } = new();
         public Dictionary<string, OfficerStat> OfficerStats { get; set; } = new();
+
+        // Razões de NO (gráfico global) e drill-down por Officer
+        public List<ReasonStat> ReasonStats { get; set; } = new();
+        public Dictionary<string, List<ReasonStat>> OfficerReasonDrill { get; set; } = new();
+
+        // Extrai o dicionário campo->razão do texto guardado em Auditoria.NoReasons ("campo=razão;...")
+        private static Dictionary<string, string> ParseNoReasons(string? noReasons)
+        {
+            if (string.IsNullOrEmpty(noReasons)) return new Dictionary<string, string>();
+            return noReasons.Split(';', StringSplitOptions.RemoveEmptyEntries)
+                .Select(p => p.Split('=', 2))
+                .Where(p => p.Length == 2)
+                .ToDictionary(p => p[0], p => p[1]);
+        }
+
+        private static List<ReasonStat> CountReasons(IEnumerable<Auditoria> audits, int take = 10)
+        {
+            var counts = new Dictionary<string, int>();
+            foreach (var a in audits)
+                foreach (var reason in ParseNoReasons(a.NoReasons).Values)
+                    counts[reason] = counts.GetValueOrDefault(reason) + 1;
+
+            return counts
+                .OrderByDescending(kv => kv.Value)
+                .Take(take)
+                .Select(kv => new ReasonStat { Reason = kv.Key, Count = kv.Value })
+                .ToList();
+        }
 
 
         private static readonly (string field, string label, string sectionKey, string sectionName)[] ChecklistItems = new[]
@@ -139,6 +174,13 @@ namespace AHM.Audit.Pages
             CanViewSectionChart     = IsAdmin || user.CanViewSectionChart;
             CanViewNonConformities  = IsAdmin || user.CanViewNonConformities;
             CanViewGlobalConformity = IsAdmin || user.CanViewGlobalConformity;
+            CanViewTrend            = IsAdmin || user.CanViewTrend;
+            CanViewHeatmap          = IsAdmin || user.CanViewHeatmap;
+            CanViewAirlineChart     = IsAdmin || user.CanViewAirlineChart;
+            CanViewAgentChart       = IsAdmin || user.CanViewAgentChart;
+            CanViewOfficerChart     = IsAdmin || user.CanViewOfficerChart;
+            CanViewComparativeChart = IsAdmin || user.CanViewComparativeChart;
+            CanViewQuarterProgress  = IsAdmin || user.CanViewQuarterProgress;
 
             FilterFrom   = from;
             FilterTo     = to;
@@ -283,6 +325,9 @@ namespace AHM.Audit.Pages
                 .OrderByDescending(x => x.count)
                 .Take(10).ToList();
 
+            // Razões de NO pré-definidas selecionadas (gráfico que substitui o Top NCs)
+            ReasonStats = CountReasons(audits);
+
             foreach (var s in sectionMap.Values)
                 s.pct = (s.yes + s.no) > 0 ? s.yes * 100 / (s.yes + s.no) : 0;
 
@@ -321,6 +366,7 @@ namespace AHM.Audit.Pages
                 int oPct = (oYes + oNo) > 0 ? oYes * 100 / (oYes + oNo) : 0;
                 OfficerConformity.Add(oPct);
                 OfficerStats[og.Key] = new OfficerStat { yes = oYes, no = oNo, na = oNA, pct = oPct };
+                OfficerReasonDrill[og.Key] = CountReasons(og);
             }
 
             return Page();
