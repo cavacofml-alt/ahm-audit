@@ -43,7 +43,7 @@ namespace AHM.Audit.Pages.Admin
 
             _context.Users.Add(new User
             {
-                Username = newUsername, PasswordHash = newPassword, IsAdmin = isAdmin, Active = true,
+                Username = newUsername, PasswordHash = BCrypt.Net.BCrypt.HashPassword(newPassword), IsAdmin = isAdmin, Active = true,
                 PersonId = personId,
                 CanViewDashboard = true, CanViewSectionChart = true,
                 CanViewNonConformities = true, CanViewGlobalConformity = true
@@ -59,7 +59,12 @@ namespace AHM.Audit.Pages.Admin
             if (!IsAdmin()) return RedirectToPage("/Account/Login");
             ViewData["IsAdmin"] = true;
             var user = _context.Users.Find(userId);
-            if (user != null) { user.PasswordHash = newPass; _context.SaveChanges(); Message = $"Password de '{user.Username}' atualizada."; }
+            if (user != null)
+            {
+                user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(newPass);
+                _context.SaveChanges();
+                Message = $"Password de '{user.Username}' atualizada.";
+            }
             LoadLists();
             return Page();
         }

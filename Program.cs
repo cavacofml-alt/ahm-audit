@@ -3,6 +3,7 @@ using AHM.Audit.Data;
 using AHM.Audit.Models;
 using System.Reflection;
 using Microsoft.AspNetCore.DataProtection;
+using BCrypt.Net;
 
 AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehavior", true);
 
@@ -32,6 +33,20 @@ else
         options.UseSqlServer(builder.Configuration.GetConnectionString("Default")));
 }
 
+// Rate limiting
+builder.Services.AddRateLimiter(options =>
+{
+    options.AddPolicy("login", context =>
+        System.Threading.RateLimiting.RateLimitPartition.GetFixedWindowLimiter(
+            context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+            _ => new System.Threading.RateLimiting.FixedWindowRateLimiterOptions
+            {
+                Window = TimeSpan.FromMinutes(5),
+                PermitLimit = 10,
+                QueueLimit = 0
+            }));
+});
+
 builder.Services.AddSession(options =>
 {
     options.IdleTimeout = TimeSpan.FromMinutes(30);
@@ -41,9 +56,12 @@ builder.Services.AddSession(options =>
 
 var app = builder.Build();
 
+app.UseMiddleware<AHM.Audit.Middleware.ExceptionMiddleware>();
 app.UseStaticFiles();
 app.UseRouting();
 app.UseSession();
+app.UseMiddleware<AHM.Audit.Middleware.AuthMiddleware>();
+app.UseRateLimiter();
 app.UseAuthorization();
 app.MapRazorPages();
 
@@ -89,6 +107,15 @@ app.MapPost("/api/autosave", async (HttpContext ctx, AuditDbContext db) =>
             if (!isAdmin) return Results.Forbid();
         }
     }
+
+    // Whitelist de campos permitidos na checklist
+    var allowedChecklistFields = new HashSet<string> {
+        "B1","B2","B3","C1","C2","C2_3","C3","C4_TakeOff","C4_ZeroFuel",
+        "C4_Landing","C4_Inflight","C4_IdealTrim","C5","C7_1","D1","D2",
+        "D3","D5_1","D5_2","D6_2","E1_DOW","E1_MRW","E1_MTOW","E1_MZFW",
+        "E1_MLAW","E2_1","E2_2","E3_1","G1","RevisionUpdate","LIR","LS","DatabasePrintout"
+    };
+    if (!allowedChecklistFields.Contains(field)) return Results.BadRequest("Campo não permitido");
 
     var prop = typeof(Auditoria).GetProperty(field);
     if (prop == null || prop.PropertyType != typeof(string)) return Results.BadRequest("Campo desconhecido");
@@ -165,7 +192,7 @@ using (var scope = app.Services.CreateScope())
     // Seed admin
     if (!db.Users.Any())
     {
-        db.Users.Add(new User { Username = "admin", PasswordHash = "AHM123%%", IsAdmin = true, Active = true,
+        db.Users.Add(new User { Username = "admin", PasswordHash = BCrypt.Net.BCrypt.HashPassword("AHM123%%"), IsAdmin = true, Active = true,
             CanViewDashboard = true, CanViewSectionChart = true, CanViewNonConformities = true, CanViewGlobalConformity = true });
         db.SaveChanges();
     }

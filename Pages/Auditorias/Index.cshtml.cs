@@ -14,7 +14,10 @@ namespace AHM.Audit.Pages.Auditorias
         public List<Auditoria> Auditorias { get; set; } = new();
         public bool IsAdmin { get; set; }
 
-        public IActionResult OnGet()
+        public string? FilterAirline { get; set; }
+        public string? FilterNcField { get; set; }
+
+        public IActionResult OnGet(string? airline, string? ncFilter)
         {
             if (HttpContext.Session.GetString("User") == null)
                 return RedirectToPage("/Account/Login");
@@ -23,7 +26,44 @@ namespace AHM.Audit.Pages.Auditorias
             IsAdmin = _context.Users.Any(u => u.Username == username && u.IsAdmin);
             ViewData["IsAdmin"] = IsAdmin;
 
-            Auditorias = _context.Auditorias.OrderByDescending(a => a.CreatedAt).ToList();
+            FilterAirline = airline;
+            FilterNcField = ncFilter;
+
+            var query = _context.Auditorias.AsQueryable();
+
+            if (!string.IsNullOrEmpty(airline))
+                query = query.Where(a => a.Airline == airline);
+
+            var audits = query.OrderByDescending(a => a.CreatedAt).ToList();
+
+            // Filter by NC field if specified (field label → show audits where that field = NO)
+            if (!string.IsNullOrEmpty(ncFilter))
+            {
+                var fieldMap = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+                {
+                    {"B1 - Standard units","B1"},{"B2 - Crew baggage","B2"},{"B3 - Pax baggage","B3"},
+                    {"C1 - Aircraft Type","C1"},{"C2 - Balance/Special","C2"},{"C2.3 - Sup info","C2_3"},
+                    {"C3 - Basic index","C3"},{"C4.1 - Take-off","C4_TakeOff"},{"C4.1 - Zero-Fuel","C4_ZeroFuel"},
+                    {"C4.1 - Landing","C4_Landing"},{"C4.1 - Inflight","C4_Inflight"},{"C4.1 - Ideal Trim","C4_IdealTrim"},
+                    {"C5 - Fuel","C5"},{"C7.1 - Stab trim","C7_1"},{"D1 - Dimensions","D1"},
+                    {"D2 - Holds","D2"},{"D3 - ULD","D3"},{"D5.1 - Cabin","D5_1"},
+                    {"D5.2 - Cabin Crew Seats","D5_2"},{"D6.2 - Seatmap","D6_2"},
+                    {"E1 - DOW/DOI","E1_DOW"},{"E1 - MRW","E1_MRW"},{"E1 - MTOW","E1_MTOW"},
+                    {"E1 - MZFW","E1_MZFW"},{"E1 - MLAW","E1_MLAW"},
+                    {"E2.1 - Crew Codes","E2_1"},{"E2.2 - Crew Distribution","E2_2"},
+                    {"E3.1 - Pantry","E3_1"},{"G1 - ULD Compatibility","G1"},
+                    {"Revision update","RevisionUpdate"},{"LIR","LIR"},{"LS","LS"},{"Database Printout","DatabasePrintout"}
+                };
+
+                if (fieldMap.TryGetValue(ncFilter, out var fieldName))
+                {
+                    audits = audits.Where(a =>
+                        typeof(Auditoria).GetProperty(fieldName)?.GetValue(a)?.ToString() == "NO"
+                    ).ToList();
+                }
+            }
+
+            Auditorias = audits;
             return Page();
         }
 

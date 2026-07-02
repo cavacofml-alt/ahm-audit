@@ -2,323 +2,546 @@
 @model AHM.Audit.Pages.IndexModel
 @{
     ViewData["Title"] = "Dashboard";
+    var pctInt = int.Parse(Model.PctYes);
+    var scoreColor = pctInt >= 95 ? "#22c55e" : pctInt >= 85 ? "#f59e0b" : "#ef4444";
 }
 
-<style>
-.db3{padding:16px;background:#f0f2f5;min-height:600px}
-.db3 .header{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
-.db3 .title{font-size:17px;font-weight:500;color:var(--color-text-primary);display:flex;align-items:center;gap:6px}
-.db3 .title span{font-size:12px;color:var(--color-text-secondary);font-weight:400}
-.db3 .fbar{display:flex;gap:6px;align-items:center;background:#fff;border:0.5px solid var(--color-border-tertiary);border-radius:8px;padding:6px 12px}
-.db3 .fbar input{font-size:11px;padding:3px 6px;border:0.5px solid var(--color-border-secondary);border-radius:5px;background:var(--color-background-secondary);color:var(--color-text-primary);width:120px}
-.db3 .fbar button{font-size:11px;padding:3px 8px;border:none;border-radius:5px;cursor:pointer}
-.db3 .fbar .bp{background:#0078d4;color:#fff}
-.db3 .fbar .bs{background:var(--color-background-secondary);color:var(--color-text-secondary);border:0.5px solid var(--color-border-secondary)}
-.db3 .krow{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:12px}
-.db3 .kc{background:#fff;border-radius:8px;padding:12px 14px;border:0.5px solid var(--color-border-tertiary);display:flex;gap:12px;align-items:center}
-.db3 .kc .circle{width:44px;height:44px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0}
-.db3 .kc.tot .circle{background:#e6f1fb;color:#185fa5}
-.db3 .kc.ok .circle{background:#eaf3de;color:#3b6d11}
-.db3 .kc.no .circle{background:#fde7e9;color:#a32d2d}
-.db3 .kc.na .circle{background:#f1efe8;color:#5f5e5a}
-.db3 .kc .info .lbl{font-size:10px;text-transform:uppercase;letter-spacing:.5px;color:var(--color-text-secondary);margin-bottom:2px}
-.db3 .kc .info .val{font-size:22px;font-weight:500;line-height:1}
-.db3 .kc.tot .info .val{color:#185fa5}
-.db3 .kc.ok .info .val{color:#3b6d11}
-.db3 .kc.no .info .val{color:#a32d2d}
-.db3 .kc.na .info .val{color:#888780}
-.db3 .kc .info .sub{font-size:10px;color:var(--color-text-secondary);margin-top:1px}
-.db3 .kc .info .diff{font-size:10px;font-weight:500;margin-top:2px}
-.diff-up{color:#3b6d11}.diff-down{color:#a32d2d}.diff-same{color:#888780}
-.db3 .main{display:grid;grid-template-columns:3fr 1fr;gap:8px;margin-bottom:12px}
-.db3 .card{background:#fff;border-radius:8px;border:0.5px solid var(--color-border-tertiary);padding:12px 14px}
-.db3 .ch{font-size:12px;font-weight:500;color:var(--color-text-primary);margin-bottom:10px;display:flex;align-items:center;justify-content:space-between}
-.db3 .ch select{font-size:10px;padding:2px 5px;border:0.5px solid var(--color-border-secondary);border-radius:4px;background:var(--color-background-secondary);color:var(--color-text-secondary)}
-.db3 .btm{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:8px}
-.db3 .qrow{display:grid;grid-template-columns:repeat(2,1fr);gap:6px}
-.db3 .qc{border-radius:6px;padding:8px 10px;background:var(--color-background-secondary)}
-.db3 .ql{font-size:10px;color:var(--color-text-secondary);margin-bottom:4px;font-weight:500}
-.db3 .qp{height:6px;background:var(--color-border-tertiary);border-radius:3px;overflow:hidden;margin-bottom:4px}
-.db3 .qf{height:100%;border-radius:3px}
-.db3 .qn{font-size:13px;font-weight:500}
-.db3 .leg{display:flex;gap:10px;margin-bottom:8px}
-.db3 .li{display:flex;align-items:center;gap:3px;font-size:10px;color:var(--color-text-secondary)}
-.db3 .ld{width:8px;height:8px;border-radius:2px}
-.nc-row{display:flex;align-items:center;gap:8px;margin-bottom:6px}
-.nc-label{font-size:10px;color:var(--color-text-primary);width:140px;flex-shrink:0;text-overflow:ellipsis;overflow:hidden;white-space:nowrap}
-.nc-bar{flex:1;height:8px;background:#f1efe8;border-radius:4px;overflow:hidden}
-.nc-fill{height:100%;background:#d1343899;border-radius:4px}
-.nc-pct{font-size:10px;font-weight:500;color:#a32d2d;width:30px;text-align:right}
-</style>
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h2 class="mb-0"><i class="bi bi-speedometer2 me-2"></i>Dashboard</h2>
+    <div class="d-flex gap-2 align-items-center">
+        <button class="btn btn-sm btn-outline-secondary" id="darkToggle" title="Toggle dark mode">
+            <i class="bi bi-moon-fill" id="darkIcon"></i>
+        </button>
+    </div>
+</div>
 
-<div class="db3">
-    <div class="header">
-        <div class="title">
-            <i class="bi bi-chart-bar" style="font-size:18px;color:#0078d4"></i>
-            Dashboard
-            <span>AHM Audit System</span>
+<!-- Filters -->
+<form method="get" class="card mb-4 p-3">
+    <div class="row g-2 align-items-end">
+        <div class="col-md-2">
+            <label class="form-label small fw-bold">De</label>
+            <input type="date" name="from" class="form-control form-control-sm" value="@(Model.FilterFrom?.ToString("yyyy-MM-dd"))" />
         </div>
-        <div style="display:flex;gap:8px;align-items:center">
-            <a href="/Admin/Backup" style="text-decoration:none;color:var(--color-text-secondary);font-size:11px;background:#fff;border:0.5px solid var(--color-border-tertiary);border-radius:8px;padding:6px 12px">
-                <i class="bi bi-download" style="font-size:13px"></i> Backup
-            </a>
-            <form method="get" class="fbar">
-                <i class="bi bi-calendar3" style="font-size:13px;color:var(--color-text-secondary)"></i>
-                <input type="date" name="from" value="@Model.FilterFrom?.ToString("yyyy-MM-dd")" />
-                <span style="font-size:11px;color:var(--color-text-secondary)">—</span>
-                <input type="date" name="to" value="@Model.FilterTo?.ToString("yyyy-MM-dd")" />
-                <button type="submit" class="bp"><i class="bi bi-funnel" style="font-size:11px"></i></button>
-                <a href="/" class="bs" style="padding:3px 8px;border-radius:5px;text-decoration:none;font-size:11px;border:0.5px solid var(--color-border-secondary)"><i class="bi bi-x" style="font-size:11px"></i></a>
-            </form>
+        <div class="col-md-2">
+            <label class="form-label small fw-bold">Até</label>
+            <input type="date" name="to" class="form-control form-control-sm" value="@(Model.FilterTo?.ToString("yyyy-MM-dd"))" />
+        </div>
+        <div class="col-md-2">
+            <label class="form-label small fw-bold">Airline</label>
+            <select name="airline" class="form-select form-select-sm">
+                <option value="">Todas</option>
+                @foreach (var a in Model.AllAirlines)
+                { <option value="@a" selected="@(Model.FilterAirline == a)">@a</option> }
+            </select>
+        </div>
+        <div class="col-md-2">
+            <label class="form-label small fw-bold">Agente</label>
+            <select name="agent" class="form-select form-select-sm">
+                <option value="">Todos</option>
+                @foreach (var a in Model.AllAgents)
+                { <option value="@a" selected="@(Model.FilterAgent == a)">@a</option> }
+            </select>
+        </div>
+        <div class="col-md-2">
+            <button type="submit" class="btn btn-primary btn-sm w-100">Filtrar</button>
+        </div>
+        <div class="col-md-2">
+            <a href="/" class="btn btn-outline-secondary btn-sm w-100">Limpar</a>
         </div>
     </div>
+</form>
 
-    @if (Model.FilterFrom.HasValue || Model.FilterTo.HasValue)
-    {
-        <div style="background:#e6f1fb;border-radius:6px;padding:6px 12px;margin-bottom:12px;font-size:12px;color:#185fa5;border:0.5px solid #b5d4f4">
-            <i class="bi bi-funnel-fill me-1"></i>
-            Período: <strong>@(Model.FilterFrom?.ToString("dd/MM/yyyy") ?? "início")</strong> — <strong>@(Model.FilterTo?.ToString("dd/MM/yyyy") ?? "hoje")</strong> · @Model.Total auditoria(s)
-        </div>
+<!-- KPI Cards -->
+<div class="row g-3 mb-4">
+    @{
+        var tmDiffTotal = Model.ThisMonthTotal - Model.LastMonthTotal;
+        var tmDiffPct   = Model.ThisMonthPct - Model.LastMonthPct;
+        var tmDiffNC    = Model.ThisMonthNC - Model.LastMonthNC;
     }
-
-    <!-- KPIs -->
-    <div class="krow">
-        <div class="kc tot">
-            <div class="circle"><i class="bi bi-clipboard-check"></i></div>
-            <div class="info">
-                <div class="lbl">Auditorias @Model.CurrentDataYear</div>
-                <div class="val">@Model.Total</div>
-                @if (Model.PrevTotal > 0)
-                {
-                    var dc = Model.DiffTotal > 0 ? "diff-up" : Model.DiffTotal < 0 ? "diff-down" : "diff-same";
-                    var di = Model.DiffTotal > 0 ? "↑" : Model.DiffTotal < 0 ? "↓" : "—";
-                    <div class="diff @dc">@di @Math.Abs(Model.DiffTotal) vs @Model.CompareYear (@Model.PrevTotal)</div>
-                }
-                else { <div class="sub">este período</div> }
-            </div>
-        </div>
-        <div class="kc ok">
-            <div class="circle"><i class="bi bi-check-circle"></i></div>
-            <div class="info">
-                <div class="lbl">Conformes (OK)</div>
-                <div class="val">@Model.PctYes%</div>
-                @if (Model.PrevTotal > 0)
-                {
-                    var dc = Model.DiffPctYes > 0 ? "diff-up" : Model.DiffPctYes < 0 ? "diff-down" : "diff-same";
-                    var di = Model.DiffPctYes > 0 ? "↑" : Model.DiffPctYes < 0 ? "↓" : "—";
-                    <div class="diff @dc">@di @Math.Abs(Model.DiffPctYes)pp vs @Model.CompareYear (@Model.PrevPctYes%)</div>
-                }
-                else { <div class="sub">@Model.TotalYes respostas</div> }
-            </div>
-        </div>
-        <div class="kc no">
-            <div class="circle"><i class="bi bi-x-circle"></i></div>
-            <div class="info">
-                <div class="lbl">Não conformes (NOT OK)</div>
-                <div class="val">@Model.PctNo%</div>
-                <div class="sub">@Model.TotalNo respostas</div>
-            </div>
-        </div>
-        <div class="kc na">
-            <div class="circle"><i class="bi bi-dash-circle"></i></div>
-            <div class="info">
-                <div class="lbl">N/A</div>
-                <div class="val">@Model.PctNA%</div>
-                <div class="sub">@Model.TotalNA respostas</div>
+    <div class="col-md-3">
+        <div class="card kpi-card h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <div class="kpi-label">Auditorias este mês</div>
+                        <div class="kpi-value">@Model.ThisMonthTotal</div>
+                        <div class="kpi-trend @(tmDiffTotal >= 0 ? "text-success" : "text-danger")">
+                            <i class="bi bi-arrow-@(tmDiffTotal >= 0 ? "up" : "down")"></i>
+                            @(Math.Abs(tmDiffTotal)) vs mês anterior
+                        </div>
+                    </div>
+                    <div class="kpi-icon bg-primary-soft"><i class="bi bi-clipboard-check text-primary"></i></div>
+                </div>
             </div>
         </div>
     </div>
-
-    <!-- Section chart + Top não conformidades -->
-    <div class="main">
-        @if (Model.CanViewSectionChart)
-        {
-        <div class="card">
-            <div class="ch">
-                Resultados por section (%)
-                <select id="sectionFilter" onchange="filterSections()">
-                    <option value="">Todas as sections</option>
-                    <option value="B">B - Standard/Crew/Pax Weights</option>
-                    <option value="C">C - Balance & Fuel</option>
-                    <option value="D">D - Dimensions & Cabin</option>
-                    <option value="E">E - DOW/Crew/Pantry</option>
-                    <option value="G">G - ULD Compatibility</option>
-                    <option value="H">H - Administrative</option>
-                </select>
-            </div>
-            <div class="leg">
-                <div class="li"><div class="ld" style="background:#3b6d11"></div>% OK</div>
-                <div class="li"><div class="ld" style="background:#d13438"></div>% NOT OK</div>
-            </div>
-            <div style="position:relative;height:190px">
-                <canvas id="sectionChart" role="img" aria-label="Section results">Section results</canvas>
+    <div class="col-md-3">
+        <div class="card kpi-card h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <div class="kpi-label">Conformidade este mês</div>
+                        <div class="kpi-value">@Model.ThisMonthPct<span style="font-size:1rem">%</span></div>
+                        <div class="kpi-trend @(tmDiffPct >= 0 ? "text-success" : "text-danger")">
+                            <i class="bi bi-arrow-@(tmDiffPct >= 0 ? "up" : "down")"></i>
+                            @(Math.Abs(tmDiffPct))% vs mês anterior
+                        </div>
+                    </div>
+                    <div class="kpi-icon bg-success-soft"><i class="bi bi-check-circle text-success"></i></div>
+                </div>
             </div>
         </div>
-        }
-        @if (Model.CanViewGlobalConformity)
-        {
-        <div class="card">
-            <div class="ch">
-                Conformidade global
-                <select id="officerFilter" onchange="filterOfficer()">
-                    <option value="">Todos officers</option>
-                    @foreach (var o in Model.OfficerLabels)
-                    {
-                        <option value="@o">@o</option>
-                    }
-                </select>
-            </div>
-            <div style="position:relative;height:140px">
-                <canvas id="resultChart" role="img" aria-label="Doughnut chart">Conformidade</canvas>
-            </div>
-            <div style="text-align:center;margin-top:8px">
-                <span id="conformityPct" style="font-size:22px;font-weight:500;color:#3b6d11">@Model.PctYes%</span>
-                <span style="font-size:10px;color:var(--color-text-secondary);margin-left:4px">conformidade</span>
-            </div>
-        </div>
-        }
     </div>
-
-    <!-- Top não conformidades + outros gráficos -->
-    <div class="btm">
-        <!-- Top NCs -->
-        @if (Model.CanViewNonConformities)
-        {
-        <div class="card">
-            <div class="ch">Top não conformidades</div>
-            @if (!Model.TopNonConformities.Any())
-            {
-                <div style="font-size:11px;color:var(--color-text-secondary);text-align:center;padding:20px 0">Sem dados</div>
-            }
-            else
-            {
-                @foreach (var nc in Model.TopNonConformities)
-                {
-                    <div class="nc-row">
-                        <div class="nc-label" title="@nc.label">@nc.label</div>
-                        <div class="nc-bar"><div class="nc-fill" style="width:@nc.pctNo%"></div></div>
-                        <div class="nc-pct">@nc.pctNo%</div>
+    <div class="col-md-3">
+        <div class="card kpi-card h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <div class="kpi-label">Não conformidades</div>
+                        <div class="kpi-value">@Model.ThisMonthNC</div>
+                        <div class="kpi-trend @(tmDiffNC <= 0 ? "text-success" : "text-danger")">
+                            <i class="bi bi-arrow-@(tmDiffNC <= 0 ? "down" : "up")"></i>
+                            @(Math.Abs(tmDiffNC)) vs mês anterior
+                        </div>
                     </div>
-                }
-            }
-        </div>
-        }
-
-        <!-- Por airline -->
-        <div class="card">
-            <div class="ch">
-                Por airline
-                <input type="text" id="airlineFilter" style="font-size:10px;padding:2px 5px;border:0.5px solid var(--color-border-secondary);border-radius:4px;background:var(--color-background-secondary);width:70px" placeholder="Filtrar..." oninput="filterAirline()" />
-            </div>
-            <div style="position:relative;height:140px">
-                <canvas id="airlineChart" role="img" aria-label="Airlines">Airlines</canvas>
+                    <div class="kpi-icon bg-danger-soft"><i class="bi bi-exclamation-triangle text-danger"></i></div>
+                </div>
             </div>
         </div>
-
-        <!-- Por agent -->
-        <div class="card">
-            <div class="ch">
-                Por audit agent
-                <input type="text" id="agentFilter" style="font-size:10px;padding:2px 5px;border:0.5px solid var(--color-border-secondary);border-radius:4px;background:var(--color-background-secondary);width:70px" placeholder="Filtrar..." oninput="filterAgent()" />
-            </div>
-            <div style="position:relative;height:140px">
-                <canvas id="agentChart" role="img" aria-label="Agents">Agents</canvas>
-            </div>
-        </div>
-
-        <!-- Target trimestral -->
-        <div class="card">
-            <div class="ch">Target trimestral</div>
-            <div class="qrow">
-                @foreach (var q in Model.QuarterProgress)
-                {
-                    var pct = Math.Min(q.Count * 100 / 30, 100);
-                    var color = q.Count >= 30 ? "#3b6d11" : q.Count >= 20 ? "#ba7517" : "#d13438";
-                    <div class="qc">
-                        <div class="ql">@q.Label</div>
-                        <div class="qp"><div class="qf" style="width:@pct%;background:@color"></div></div>
-                        <div class="qn" style="color:@color">@q.Count<span style="font-size:9px;font-weight:400;color:var(--color-text-secondary)">/30</span></div>
-                    </div>
-                }
+    </div>
+    <div class="col-md-3">
+        <div class="card kpi-card h-100" style="border-left: 4px solid @scoreColor">
+            <div class="card-body text-center">
+                <div class="kpi-label">Overall Quality Score</div>
+                <div style="font-size:3rem;font-weight:900;color:@scoreColor;line-height:1">@Model.PctYes%</div>
+                <div style="font-size:1.5rem;font-weight:700;color:@scoreColor">@Model.ScoreGrade</div>
+                <div class="kpi-trend">Última: @Model.LastAuditTime</div>
             </div>
         </div>
     </div>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<!-- Trend + Global Conformity -->
+<div class="row g-3 mb-4">
+    <div class="col-md-8">
+        <div class="card h-100">
+            <div class="card-header fw-bold"><i class="bi bi-graph-up me-2"></i>Tendência 12 meses<span data-bs-toggle="tooltip" data-bs-placement="top" title="Evolução mensal da conformidade (YES/Total) nos últimos 12 meses. Permite identificar tendências de melhoria ou degradação." style="cursor:help; margin-left:6px; font-size:13px; color:#94a3b8"><i class="bi bi-info-circle"></i></span></div>
+            <div class="card-body"><canvas id="trendChart" height="120"></canvas></div>
+        </div>
+    </div>
+    @if (Model.CanViewGlobalConformity)
+    {
+    <div class="col-md-4">
+        <div class="card h-100">
+            <div class="card-header fw-bold"><i class="bi bi-pie-chart me-2"></i>Conformidade global<span data-bs-toggle="tooltip" data-bs-placement="top" title="Rácio global entre itens OK e NOT OK em todas as auditorias do período selecionado. N/A não é contabilizado." style="cursor:help; margin-left:6px; font-size:13px; color:#94a3b8"><i class="bi bi-info-circle"></i></span></div>
+            <div class="card-body d-flex flex-column align-items-center justify-content-center">
+                <canvas id="resultChart" width="200" height="200"></canvas>
+                <div class="mt-2 text-center">
+                    <span class="badge bg-success me-2">OK @Model.TotalYes</span>
+                    <span class="badge bg-danger">NOT OK @Model.TotalNo</span>
+                </div>
+            </div>
+        </div>
+    </div>
+    }
+</div>
+
+<!-- Heatmap + Top NCs -->
+<div class="row g-3 mb-4">
+    @if (Model.CanViewSectionChart)
+    {
+    <div class="col-md-5">
+        <div class="card h-100">
+            <div class="card-header fw-bold"><i class="bi bi-grid-3x3 me-2"></i>Checklist — detalhe por campo<span data-bs-toggle="tooltip" data-bs-placement="top" title="Mostra o resultado de cada item da checklist. Verde=OK, Vermelho=NOT OK, Cinza=N/A. Agrupado por secção." style="cursor:help; margin-left:6px; font-size:13px; color:#94a3b8"><i class="bi bi-info-circle"></i></span></div>
+            <div class="card-body p-0" style="max-height:500px;overflow-y:auto">
+                <table class="table table-sm table-hover mb-0">
+                    <thead class="table-dark sticky-top">
+                        <tr>
+                            <th style="width:45%">Campo</th>
+                            <th class="text-center text-success">YES</th>
+                            <th class="text-center text-danger">NO</th>
+                            <th class="text-center text-secondary">N/A</th>
+                            <th class="text-end">Conf.</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var s in Model.SectionData.OrderBy(x => x.key))
+                        {
+                            <tr class="table-secondary">
+                                <td colspan="5"><strong>@s.name</strong></td>
+                            </tr>
+                            @foreach (var item in Model.ChecklistDetail.Where(x => x.SectionKey == s.key))
+                            {
+                                var conf = (item.Yes + item.No) > 0 ? item.Yes * 100 / (item.Yes + item.No) : -1;
+                                var rowBg = conf == -1 ? "" : conf >= 95 ? "rgba(34,197,94,0.08)" : conf >= 80 ? "rgba(245,158,11,0.12)" : "rgba(239,68,68,0.08)";
+                                var confColor = conf == -1 ? "text-muted" : conf >= 95 ? "text-success" : conf >= 80 ? "text-warning" : "text-danger";
+                                <tr style="background:@rowBg">
+                                    <td><small>@item.Label</small></td>
+                                    <td class="text-center text-success fw-bold">@item.Yes</td>
+                                    <td class="text-center text-danger fw-bold">
+                                        @if (item.No > 0)
+                                        {
+                                            <a href="/Auditorias?ncFilter=@Uri.EscapeDataString(item.Label)" class="text-danger fw-bold text-decoration-none" title="Ver auditorias com NOT OK neste campo">@item.No</a>
+                                        }
+                                        else { <span>0</span> }
+                                    </td>
+                                    <td class="text-center text-secondary">@item.Na</td>
+                                    <td class="text-end fw-bold @confColor">@(conf >= 0 ? conf + "%" : "-")</td>
+                                </tr>
+                            }
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    }
+    @if (Model.CanViewNonConformities)
+    {
+    <div class="col-md-7">
+        <div class="card h-100">
+            <div class="card-header fw-bold"><i class="bi bi-bar-chart-horizontal me-2"></i>Top não conformidades <small class="text-muted fw-normal">(clique para filtrar)</small><span data-bs-toggle="tooltip" data-bs-placement="top" title="Os 10 itens da checklist com maior número de ocorrências NOT OK. Ordenado por frequência absoluta." style="cursor:help; margin-left:6px; font-size:13px; color:#94a3b8"><i class="bi bi-info-circle"></i></span></div>
+            <div class="card-body"><canvas id="ncChart" height="200"></canvas></div>
+        </div>
+    </div>
+    }
+</div>
+
+<!-- Pareto + Section bar -->
+<div class="row g-3 mb-4">
+    </div>
+
+<!-- Progresso trimestral -->
+<div class="row g-3 mb-4">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header fw-bold"><i class="bi bi-calendar3 me-2"></i>Progresso trimestral @Model.CurrentYear<span data-bs-toggle="tooltip" data-bs-placement="top" title="Número de auditorias realizadas em cada trimestre do ano atual. O trimestre corrente está destacado." style="cursor:help; margin-left:6px; font-size:13px; color:#94a3b8"><i class="bi bi-info-circle"></i></span></div>
+            <div class="card-body">
+                <div class="row g-3">
+                    @foreach (var q in Model.QuarterProgress)
+                    {
+                        var isCurrentQ = q.Label.Contains($"Q{Model.CurrentQuarter}");
+                        <div class="col-md-3">
+                            <div class="p-3 rounded @(isCurrentQ ? "border border-primary" : "bg-light")">
+                                <div class="fw-bold @(isCurrentQ ? "text-primary" : "")">@q.Label @(isCurrentQ ? "← atual" : "")</div>
+                                <div style="font-size:2rem;font-weight:900">@q.Count</div>
+                                <div class="text-muted small">auditorias</div>
+                            </div>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Por airline + Por agente -->
+<div class="row g-3 mb-4">
+    <div class="col-md-6">
+        <div class="card h-100">
+            <div class="card-header fw-bold"><i class="bi bi-airplane me-2"></i>Por Airline <small class="text-muted fw-normal">(clique para filtrar)</small><span data-bs-toggle="tooltip" data-bs-placement="top" title="Número de auditorias realizadas por companhia aérea no período selecionado." style="cursor:help; margin-left:6px; font-size:13px; color:#94a3b8"><i class="bi bi-info-circle"></i></span></div>
+            <div class="card-body"><canvas id="airlineChart" height="200"></canvas></div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card h-100">
+            <div class="card-header fw-bold"><i class="bi bi-person me-2"></i>Por Agente<span data-bs-toggle="tooltip" data-bs-placement="top" title="Número de auditorias realizadas por cada Audit Agent no período selecionado." style="cursor:help; margin-left:6px; font-size:13px; color:#94a3b8"><i class="bi bi-info-circle"></i></span></div>
+            <div class="card-body"><canvas id="agentChart" height="200"></canvas></div>
+        </div>
+    </div>
+</div>
+
+<!-- Comparativo ano anterior -->
+<div class="row g-3 mb-4">
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header fw-bold"><i class="bi bi-calendar me-2"></i>Comparativo anual<span data-bs-toggle="tooltip" data-bs-placement="top" title="Comparação da conformidade global entre o ano atual e o ano anterior." style="cursor:help; margin-left:6px; font-size:13px; color:#94a3b8"><i class="bi bi-info-circle"></i></span></div>
+            <div class="card-body">
+                <div class="d-flex justify-content-between mb-2">
+                    <span>@Model.CurrentDataYear</span>
+                    <strong>@Model.PctYes%</strong>
+                </div>
+                <div class="progress mb-3" style="height:20px">
+                    <div class="progress-bar bg-success" style="width:@Model.PctYes%"></div>
+                </div>
+                <div class="d-flex justify-content-between mb-2">
+                    <span>@Model.CompareYear</span>
+                    <strong>@Model.PrevPctYes%</strong>
+                </div>
+                <div class="progress mb-3" style="height:20px">
+                    <div class="progress-bar bg-secondary" style="width:@Model.PrevPctYes%"></div>
+                </div>
+                <div class="text-center mt-2">
+                    @{ var diff = Model.DiffPctYes; }
+                    <span class="badge @(diff >= 0 ? "bg-success" : "bg-danger") fs-6">
+                        <i class="bi bi-arrow-@(diff >= 0 ? "up" : "down")"></i> @Math.Abs(diff)% vs @Model.CompareYear
+                    </span>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-8">
+        <div class="card h-100">
+            <div class="card-header fw-bold"><i class="bi bi-person-badge me-2"></i>Conformidade por Officer<span data-bs-toggle="tooltip" data-bs-placement="top" title="Taxa de conformidade das auditorias supervisionadas por cada AHM Officer. Verde ≥95%, amarelo 80-94%, vermelho <80%." style="cursor:help; margin-left:6px; font-size:13px; color:#94a3b8"><i class="bi bi-info-circle"></i></span></div>
+            <div class="card-body"><canvas id="officerChart" height="120"></canvas></div>
+        </div>
+    </div>
+</div>
+
+<!-- Agent drill-down modal -->
+<div class="modal fade" id="agentDrillModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="bi bi-person-badge me-2"></i>Falhas de <span id="drillAgentName"></span></h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body p-0">
+                <table class="table table-sm table-hover mb-0">
+                    <thead class="table-dark">
+                        <tr><th>Campo</th><th class="text-center">NOT OK</th><th class="text-end">% de falha</th></tr>
+                    </thead>
+                    <tbody id="drillAgentBody"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.kpi-card { border: none; border-radius: 12px; transition: transform .2s; }
+.kpi-card:hover { transform: translateY(-2px); }
+.kpi-label { font-size: 12px; color: #64748b; text-transform: uppercase; letter-spacing: .5px; font-weight: 600; }
+.kpi-value { font-size: 2.2rem; font-weight: 900; line-height: 1.1; color: #1e293b; }
+.kpi-trend { font-size: 12px; margin-top: 4px; }
+.kpi-icon { width: 48px; height: 48px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 1.4rem; }
+.bg-primary-soft { background: #dbeafe; }
+.bg-success-soft { background: #dcfce7; }
+.bg-danger-soft  { background: #fee2e2; }
+
+/* Dark mode */
+body.dark-mode { background: #0f172a !important; color: #e2e8f0 !important; }
+body.dark-mode .card { background: #1e293b !important; border-color: #334155 !important; color: #e2e8f0 !important; }
+body.dark-mode .card-header { background: #1e293b !important; border-color: #334155 !important; color: #e2e8f0 !important; }
+body.dark-mode .kpi-value { color: #f1f5f9 !important; }
+body.dark-mode .kpi-label { color: #94a3b8 !important; }
+body.dark-mode .table { color: #e2e8f0 !important; }
+body.dark-mode .table-hover tbody tr:hover { background: #334155 !important; }
+body.dark-mode .form-control, body.dark-mode .form-select { background: #1e293b !important; color: #e2e8f0 !important; border-color: #334155 !important; }
+body.dark-mode .sidebar { background: #0f172a !important; }
+body.dark-mode .progress { background: #334155 !important; }
+</style>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <script>
-const sectionData      = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.SectionData));
-const allAirlineLabels = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.AirlineLabels));
-const allAirlineValues = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.AirlineValues));
-const allAgentLabels   = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.AgentLabels));
-const allAgentValues   = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.AgentValues));
-const officerLabels    = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.OfficerLabels));
-const officerStats     = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.OfficerStats));
+// Bootstrap tooltips
+document.addEventListener('DOMContentLoaded', function() {
+    document.querySelectorAll('[data-bs-toggle="tooltip"]').forEach(el => new bootstrap.Tooltip(el));
+});
+</script>
+<script>
+// Dark mode
+const darkToggle = document.getElementById('darkToggle');
+const darkIcon   = document.getElementById('darkIcon');
+const savedTheme = localStorage.getItem('theme');
+if (savedTheme === 'dark') { document.body.classList.add('dark-mode'); darkIcon.className = 'bi bi-sun-fill'; }
 
-const baseOpts = { responsive:true, maintainAspectRatio:false, plugins:{ legend:{ display:false } } };
-const gridColor = 'rgba(0,0,0,0.04)';
-
-function calcPct(s, type) {
-    const t = s.yes + s.no + s.na;
-    if (!t) return 0;
-    return Math.round(type === 'ok' ? s.yes*100/t : s.no*100/t);
-}
-
-let secFiltered = [...sectionData];
-let sectionChart = new Chart(document.getElementById('sectionChart'), {
-    type: 'bar',
-    data: {
-        labels: secFiltered.map(s => s.name),
-        datasets: [
-            { label:'% OK',     data: secFiltered.map(s=>calcPct(s,'ok')),  backgroundColor:'#3b6d1199', borderColor:'#3b6d11', borderWidth:1 },
-            { label:'% NOT OK', data: secFiltered.map(s=>calcPct(s,'no')),  backgroundColor:'#d1343899', borderColor:'#d13438', borderWidth:1 }
-        ]
-    },
-    options: { ...baseOpts, scales: { y:{ beginAtZero:true, max:100, ticks:{ callback:v=>v+'%', font:{size:9} }, grid:{ color:gridColor } }, x:{ ticks:{ font:{size:9} }, grid:{ display:false } } }, plugins:{ legend:{ display:false }, tooltip:{ callbacks:{ label: ctx => ctx.dataset.label+': '+ctx.raw+'%' } } } }
+darkToggle.addEventListener('click', () => {
+    document.body.classList.toggle('dark-mode');
+    const isDark = document.body.classList.contains('dark-mode');
+    darkIcon.className = isDark ? 'bi bi-sun-fill' : 'bi bi-moon-fill';
+    localStorage.setItem('theme', isDark ? 'dark' : 'light');
 });
 
-function filterSections() {
-    const f = document.getElementById('sectionFilter').value;
-    secFiltered = f ? sectionData.filter(s => s.key === f) : [...sectionData];
-    sectionChart.data.labels = secFiltered.map(s => s.name);
-    sectionChart.data.datasets[0].data = secFiltered.map(s=>calcPct(s,'ok'));
-    sectionChart.data.datasets[1].data = secFiltered.map(s=>calcPct(s,'no'));
-    sectionChart.update();
-}
+const isDark = () => document.body.classList.contains('dark-mode');
+const gridColor = () => isDark() ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)';
+const textColor = () => isDark() ? '#e2e8f0' : '#1e293b';
 
+// Trend chart
+const trendLabels = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.MonthlyTrend.Select(m => m.Label).ToList()));
+const trendData   = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.MonthlyTrend.Select(m => m.Pct).ToList()));
+const trendCounts = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.MonthlyTrend.Select(m => m.Count).ToList()));
+
+new Chart(document.getElementById('trendChart'), {
+    type: 'line',
+    data: {
+        labels: trendLabels,
+        datasets: [{
+            label: 'Conformidade %',
+            data: trendData,
+            borderColor: '#3b82f6',
+            backgroundColor: 'rgba(59,130,246,0.1)',
+            tension: 0.4,
+            fill: true,
+            pointRadius: 4,
+            pointHoverRadius: 7
+        }]
+    },
+    options: {
+        scales: {
+            y: { min: 0, max: 100, grid: { color: gridColor() }, ticks: { color: textColor(), callback: v => v + '%' } },
+            x: { grid: { display: false }, ticks: { color: textColor() } }
+        },
+        plugins: {
+            legend: { display: false },
+            tooltip: { callbacks: { afterLabel: (ctx) => `Auditorias: ${trendCounts[ctx.dataIndex]}` } }
+        }
+    }
+});
+
+// Global conformity doughnut
+@if (Model.CanViewGlobalConformity)
+{
+<text>
+const officerStats = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.OfficerStats));
 let resultChart = new Chart(document.getElementById('resultChart'), {
     type: 'doughnut',
-    data: { labels:['OK','NOT OK'], datasets:[{ data:[@Model.TotalYes,@Model.TotalNo], backgroundColor:['#3b6d11','#d13438'], borderWidth:2, borderColor:'#fff' }] },
-    options: { ...baseOpts, cutout:'72%' }
+    data: { labels:['OK','NOT OK'], datasets:[{ data:[@Model.TotalYes,@Model.TotalNo], backgroundColor:['#22c55e','#ef4444'], borderWidth:2, borderColor:'#fff' }] },
+    options: { plugins: { legend: { position: 'bottom' } }, cutout: '70%' }
 });
-
-function filterOfficer() {
-    const o = document.getElementById('officerFilter').value;
-    const s = !o ? { yes:@Model.TotalYes, no:@Model.TotalNo, pct:@Model.PctYes } : (officerStats[o]||{yes:0,no:0,pct:0});
-    resultChart.data.datasets[0].data = [s.yes, s.no];
-    resultChart.update();
-    document.getElementById('conformityPct').textContent = s.pct+'%';
+</text>
 }
 
-let airlineChart = new Chart(document.getElementById('airlineChart'), {
+// Top NCs horizontal bar
+@if (Model.CanViewNonConformities)
+{
+<text>
+const ncLabels = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.TopNonConformities.Select(x => x.label).ToList()));
+const ncData   = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.TopNonConformities.Select(x => x.count).ToList()));
+const ncFieldNames = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.TopNonConformities.Select(x => x.label).ToList()));
+const ncChart = new Chart(document.getElementById('ncChart'), {
     type: 'bar',
-    data: { labels: allAirlineLabels, datasets:[{ data:allAirlineValues, backgroundColor:'#185fa599', borderColor:'#185fa5', borderWidth:1 }] },
-    options: { ...baseOpts, scales:{ y:{ beginAtZero:true, ticks:{ font:{size:9} }, grid:{ color:gridColor } }, x:{ ticks:{ font:{size:9} }, grid:{ display:false } } } }
+    data: { labels: ncLabels, datasets: [{ label: 'Ocorrências', data: ncData, backgroundColor: '#ef4444', borderRadius: 6 }] },
+    options: {
+        indexAxis: 'y',
+        plugins: { legend: { display: false } },
+        scales: {
+            x: { grid: { color: gridColor() }, ticks: { color: textColor() } },
+            y: { grid: { display: false }, ticks: { color: textColor(), font: { size: 11 } } }
+        },
+        onClick: (e, elements) => {
+            if (elements.length > 0) {
+                const label = encodeURIComponent(ncLabels[elements[0].index]);
+                window.location.href = `/Auditorias?ncFilter=${label}`;
+            }
+        }
+    }
 });
-function filterAirline() {
-    const f = document.getElementById('airlineFilter').value.toLowerCase();
-    const fil = allAirlineLabels.map((l,i)=>({l,v:allAirlineValues[i]})).filter(x=>x.l.toLowerCase().includes(f));
-    airlineChart.data.labels = fil.map(x=>x.l); airlineChart.data.datasets[0].data = fil.map(x=>x.v); airlineChart.update();
+document.getElementById('ncChart').style.cursor = 'pointer';
+
+
+</text>
 }
 
-let agentChart = new Chart(document.getElementById('agentChart'), {
+// Section chart
+@if (Model.CanViewSectionChart)
+{
+<text>
+const secLabels = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.SectionData.Select(s => s.name).ToList()));
+const secData   = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.SectionData.Select(s => s.pct).ToList()));
+const secColors = secData.map(v => v >= 95 ? '#22c55e' : v >= 80 ? '#f59e0b' : '#ef4444');
+new Chart(document.getElementById('sectionChart'), {
     type: 'bar',
-    data: { labels: allAgentLabels, datasets:[{ data:allAgentValues, backgroundColor:'#53409999', borderColor:'#534099', borderWidth:1 }] },
-    options: { ...baseOpts, indexAxis:'y', scales:{ x:{ beginAtZero:true, ticks:{ font:{size:9} }, grid:{ color:gridColor } }, y:{ ticks:{ font:{size:9} }, grid:{ display:false } } } }
+    data: { labels: secLabels, datasets: [{ label: 'Conformidade %', data: secData, backgroundColor: secColors, borderRadius: 6 }] },
+    options: {
+        plugins: { legend: { display: false } },
+        scales: {
+            y: { min: 0, max: 100, ticks: { color: textColor(), callback: v => v + '%' }, grid: { color: gridColor() } },
+            x: { ticks: { color: textColor(), font: { size: 11 } }, grid: { display: false } }
+        }
+    }
 });
-function filterAgent() {
-    const f = document.getElementById('agentFilter').value.toLowerCase();
-    const fil = allAgentLabels.map((l,i)=>({l,v:allAgentValues[i]})).filter(x=>x.l.toLowerCase().includes(f));
-    agentChart.data.labels = fil.map(x=>x.l); agentChart.data.datasets[0].data = fil.map(x=>x.v); agentChart.update();
+</text>
 }
+
+// Airline chart
+const airlineLabels = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.AirlineLabels));
+const airlineValues = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.AirlineValues));
+const airlineChart = new Chart(document.getElementById('airlineChart'), {
+    type: 'bar',
+    data: { labels: airlineLabels, datasets: [{ label: 'Auditorias', data: airlineValues, backgroundColor: '#3b82f6', borderRadius: 6 }] },
+    options: {
+        plugins: { legend: { display: false } },
+        scales: {
+            y: { ticks: { color: textColor() }, grid: { color: gridColor() } },
+            x: { ticks: { color: textColor() }, grid: { display: false } }
+        },
+        onClick: (e, elements) => {
+            if (elements.length > 0) {
+                const airline = encodeURIComponent(airlineLabels[elements[0].index]);
+                window.location.href = `/Auditorias?airline=${airline}`;
+            }
+        }
+    }
+});
+document.getElementById('airlineChart').style.cursor = 'pointer';
+
+// Agent chart
+// Agent drill-down data
+const agentDrillData = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(
+    Model.OfficerStats.ToDictionary(
+        kv => kv.Key,
+        kv => Model.ChecklistDetail
+            .Where(x => x.No > 0)
+            .Select(x => new { label = x.Label, no = x.No, pct = (x.Yes + x.No) > 0 ? x.No * 100 / (x.Yes + x.No) : 0 })
+            .OrderByDescending(x => x.no)
+            .Take(10)
+            .ToList()
+    )
+));
+
+function showAgentDrill(agentName) {
+    document.getElementById('drillAgentName').textContent = agentName;
+    const data = agentDrillData[agentName] || [];
+    const tbody = document.getElementById('drillAgentBody');
+    if (data.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="3" class="text-center text-muted py-3">Sem não conformidades registadas</td></tr>';
+    } else {
+        tbody.innerHTML = data.map(d => `
+            <tr>
+                <td><small>${d.label}</small></td>
+                <td class="text-center text-danger fw-bold">${d.no}</td>
+                <td class="text-end text-danger">${d.pct}%</td>
+            </tr>`).join('');
+    }
+    new bootstrap.Modal(document.getElementById('agentDrillModal')).show();
+}
+
+const agentLabels = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.AgentLabels));
+const agentValues = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.AgentValues));
+new Chart(document.getElementById('agentChart'), {
+    type: 'bar',
+    data: { labels: agentLabels, datasets: [{ label: 'Auditorias', data: agentValues, backgroundColor: '#8b5cf6', borderRadius: 6 }] },
+    options: {
+        plugins: { legend: { display: false } },
+        scales: {
+            y: { ticks: { color: textColor() }, grid: { color: gridColor() } },
+            x: { ticks: { color: textColor() }, grid: { display: false } }
+        }
+    }
+});
+
+// Officer conformity chart
+const officerChartLabels = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.OfficerLabels));
+const officerChartData   = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.OfficerConformity));
+const officerColors      = officerChartData.map(v => v >= 95 ? '#22c55e' : v >= 80 ? '#f59e0b' : '#ef4444');
+new Chart(document.getElementById('officerChart'), {
+    type: 'bar',
+    data: { labels: officerChartLabels, datasets: [{ label: 'Conformidade %', data: officerChartData, backgroundColor: officerColors, borderRadius: 6 }] },
+    options: {
+        plugins: {
+            legend: { display: false },
+            tooltip: { callbacks: { footer: () => 'Clique para ver falhas detalhadas' } }
+        },
+        scales: {
+            y: { min: 0, max: 100, ticks: { color: textColor(), callback: v => v + '%' }, grid: { color: gridColor() } },
+            x: { ticks: { color: textColor() }, grid: { display: false } }
+        },
+        onClick: (e, elements) => {
+            if (elements.length > 0) showAgentDrill(officerChartLabels[elements[0].index]);
+        }
+    }
+});
+document.getElementById('officerChart').style.cursor = 'pointer';
+document.getElementById('agentChart') && (document.getElementById('agentChart').style.cursor = 'pointer');
 </script>

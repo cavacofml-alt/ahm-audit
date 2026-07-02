@@ -2,13 +2,27 @@
 @model AHM.Audit.Pages.Auditorias.IndexModel
 @{
     ViewData["Title"] = "Auditorias";
+    bool pt = true; // app is PT
+}
+
+@if (!string.IsNullOrEmpty(Model.FilterAirline) || !string.IsNullOrEmpty(Model.FilterNcField))
+{
+    <div class="alert alert-info d-flex align-items-center justify-content-between mb-3">
+        <span>
+            <i class="bi bi-funnel-fill me-2"></i>
+            <strong>Filtro ativo:</strong>
+            @if (!string.IsNullOrEmpty(Model.FilterAirline)) { <span class="badge bg-primary me-2">Airline: @Model.FilterAirline</span> }
+            @if (!string.IsNullOrEmpty(Model.FilterNcField)) { <span class="badge bg-danger me-2">NOT OK: @Model.FilterNcField</span> }
+        </span>
+        <a href="/Auditorias" class="btn btn-sm btn-outline-secondary"><i class="bi bi-x me-1"></i>Limpar filtro</a>
+    </div>
 }
 
 <div class="d-flex justify-content-between align-items-center mb-4">
-    <h2 class="mb-0"><i class="bi bi-clipboard-check me-2"></i>Auditorias</h2>
+    <h2 class="mb-0"><i class="bi bi-clipboard-check me-2"></i>@(pt ? "Auditorias" : "Audits")</h2>
     <div class="d-flex gap-2">
-        <a class="btn btn-outline-success" href="/Auditorias/Export"><i class="bi bi-file-earmark-excel me-1"></i>Exportar CSV</a>
-        <a class="btn btn-primary" href="/Auditorias/Create"><i class="bi bi-plus-circle me-1"></i>Nova Auditoria</a>
+        <a class="btn btn-outline-success" href="/Auditorias/Export"><i class="bi bi-file-earmark-excel me-1"></i>@(pt ? "Exportar CSV" : "Export CSV")</a>
+        <a class="btn btn-primary" href="/Auditorias/Create"><i class="bi bi-plus-circle me-1"></i>@(pt ? "Nova Auditoria" : "New Audit")</a>
     </div>
 </div>
 
@@ -18,36 +32,36 @@
         <div class="row g-2 align-items-end">
             <div class="col-md-2">
                 <label class="form-label small">Ticket</label>
-                <input type="text" id="fTicket" class="form-control form-control-sm" placeholder="Filtrar..." />
+                <input type="text" id="fTicket" class="form-control form-control-sm" placeholder="@(pt ? "Filtrar..." : "Filter...")" />
             </div>
             <div class="col-md-2">
                 <label class="form-label small">Agent</label>
-                <input type="text" id="fAgent" class="form-control form-control-sm" placeholder="Filtrar..." />
+                <input type="text" id="fAgent" class="form-control form-control-sm" placeholder="@(pt ? "Filtrar..." : "Filter...")" />
             </div>
             <div class="col-md-2">
                 <label class="form-label small">Airline</label>
-                <input type="text" id="fAirline" class="form-control form-control-sm" placeholder="Filtrar..." />
+                <input type="text" id="fAirline" class="form-control form-control-sm" placeholder="@(pt ? "Filtrar..." : "Filter...")" />
             </div>
             <div class="col-md-2">
                 <label class="form-label small">Aircraft</label>
-                <input type="text" id="fAircraft" class="form-control form-control-sm" placeholder="Filtrar..." />
+                <input type="text" id="fAircraft" class="form-control form-control-sm" placeholder="@(pt ? "Filtrar..." : "Filter...")" />
             </div>
             <div class="col-md-2">
                 <label class="form-label small">Registration</label>
-                <input type="text" id="fReg" class="form-control form-control-sm" placeholder="Filtrar..." />
+                <input type="text" id="fReg" class="form-control form-control-sm" placeholder="@(pt ? "Filtrar..." : "Filter...")" />
             </div>
             <div class="col-md-1">
-                <label class="form-label small">De</label>
+                <label class="form-label small">@(pt ? "De" : "From")</label>
                 <input type="date" id="fDateFrom" class="form-control form-control-sm" />
             </div>
             <div class="col-md-1">
-                <label class="form-label small">Até</label>
+                <label class="form-label small">@(pt ? "Até" : "To")</label>
                 <input type="date" id="fDateTo" class="form-control form-control-sm" />
             </div>
         </div>
         <div class="mt-2">
             <button class="btn btn-sm btn-outline-secondary" onclick="clearFilters()">
-                <i class="bi bi-x-circle me-1"></i>Limpar Filtros
+                <i class="bi bi-x-circle me-1"></i>@(pt ? "Limpar Filtros" : "Clear Filters")
             </button>
         </div>
     </div>
@@ -55,19 +69,18 @@
 
 @if (!Model.Auditorias.Any())
 {
-    <div class="alert alert-info">Ainda não existem auditorias registadas.</div>
+    <div class="alert alert-info">@(pt ? "Ainda não existem auditorias registadas." : "No audits registered yet.")</div>
 }
 else
 {
-    <!-- Barra de ações para selecionados -->
     <div id="selectionBar" class="alert alert-warning py-2 d-none d-flex align-items-center justify-content-between mb-2">
-        <span><i class="bi bi-check2-square me-2"></i><strong id="selCount">0</strong> auditoria(s) selecionada(s)</span>
+        <span><i class="bi bi-check2-square me-2"></i><strong id="selCount">0</strong> @(pt ? "auditoria(s) selecionada(s)" : "audit(s) selected")</span>
         <div class="d-flex gap-2">
-            <button class="btn btn-sm btn-outline-secondary" onclick="clearSelection()">Limpar seleção</button>
+            <button class="btn btn-sm btn-outline-secondary" onclick="clearSelection()">@(pt ? "Limpar seleção" : "Clear selection")</button>
             @if (Model.IsAdmin)
             {
                 <button class="btn btn-sm btn-danger" onclick="deleteSelected()">
-                    <i class="bi bi-trash me-1"></i>Apagar selecionadas
+                    <i class="bi bi-trash me-1"></i>@(pt ? "Apagar selecionadas" : "Delete selected")
                 </button>
             }
         </div>
@@ -100,9 +113,7 @@ else
                             var nos = Model.CountNo(item);
                             var rowClass = nos > 0 ? "table-danger" : "table-success";
                             <tr class="@rowClass" data-date="@item.Date.ToString("yyyy-MM-dd")">
-                                <td>
-                                    <input type="checkbox" class="form-check-input row-check" name="selectedIds" value="@item.Id" onchange="updateSelection()" />
-                                </td>
+                                <td><input type="checkbox" class="form-check-input row-check" name="selectedIds" value="@item.Id" onchange="updateSelection()" /></td>
                                 <td><strong>@item.Ticket</strong></td>
                                 <td>@item.Agent</td>
                                 <td>@item.Airline</td>
@@ -113,18 +124,11 @@ else
                                 <td class="text-center"><span class="badge bg-danger">@nos</span></td>
                                 <td class="text-center"><span class="badge bg-secondary">@Model.CountNA(item)</span></td>
                                 <td class="text-nowrap">
-                                    <a class="btn btn-sm btn-info text-white me-1" href="/Auditorias/Detail?id=@item.Id" title="Ver detalhe">
-                                        <i class="bi bi-eye"></i>
-                                    </a>
-                                    <a class="btn btn-sm btn-warning me-1" href="/Auditorias/Edit?id=@item.Id" title="Editar">
-                                        <i class="bi bi-pencil"></i>
-                                    </a>
+                                    <a class="btn btn-sm btn-info text-white me-1" href="/Auditorias/Detail?id=@item.Id" title="@(pt ? "Ver detalhe" : "View detail")"><i class="bi bi-eye"></i></a>
+                                    <a class="btn btn-sm btn-warning me-1" href="/Auditorias/Edit?id=@item.Id" title="@(pt ? "Editar" : "Edit")"><i class="bi bi-pencil"></i></a>
                                     @if (Model.IsAdmin)
                                     {
-                                        <button type="button" class="btn btn-sm btn-danger" title="Apagar"
-                                            onclick="deleteSingle(@item.Id)">
-                                            <i class="bi bi-trash"></i>
-                                        </button>
+                                        <button type="button" class="btn btn-sm btn-danger" onclick="deleteSingle(@item.Id)"><i class="bi bi-trash"></i></button>
                                     }
                                 </td>
                             </tr>
@@ -143,7 +147,10 @@ else
 </style>
 
 <script>
-// Sorting
+const pt = document.documentElement.lang === "pt" || true; // app is PT
+const confirmMsg = pt ? 'Tens a certeza que queres apagar' : 'Are you sure you want to delete';
+const auditWord  = pt ? 'auditoria(s)?' : 'audit(s)?';
+
 let sortDir = {};
 document.querySelectorAll('.sortable').forEach(th => {
     th.addEventListener('click', () => {
@@ -162,7 +169,6 @@ document.querySelectorAll('.sortable').forEach(th => {
     });
 });
 
-// Filtering
 function applyFilters() {
     const fTicket  = document.getElementById('fTicket').value.toLowerCase();
     const fAgent   = document.getElementById('fAgent').value.toLowerCase();
@@ -171,7 +177,6 @@ function applyFilters() {
     const fReg     = document.getElementById('fReg').value.toLowerCase();
     const fFrom    = document.getElementById('fDateFrom').value;
     const fTo      = document.getElementById('fDateTo').value;
-
     document.querySelectorAll('#tableBody tr').forEach(row => {
         const cells = row.cells;
         const rowDate = row.dataset.date;
@@ -181,24 +186,19 @@ function applyFilters() {
             (!fAirline || cells[3]?.innerText.toLowerCase().includes(fAirline)) &&
             (!fAcraft  || cells[4]?.innerText.toLowerCase().includes(fAcraft)) &&
             (!fReg     || cells[5]?.innerText.toLowerCase().includes(fReg));
-        const dateMatch =
-            (!fFrom || rowDate >= fFrom) &&
-            (!fTo   || rowDate <= fTo);
+        const dateMatch = (!fFrom || rowDate >= fFrom) && (!fTo || rowDate <= fTo);
         row.style.display = (textMatch && dateMatch) ? '' : 'none';
     });
 }
 
 function clearFilters() {
-    ['fTicket','fAgent','fAirline','fAircraft','fReg','fDateFrom','fDateTo'].forEach(id => {
-        document.getElementById(id).value = '';
-    });
+    ['fTicket','fAgent','fAirline','fAircraft','fReg','fDateFrom','fDateTo'].forEach(id => document.getElementById(id).value = '');
     applyFilters();
 }
 
 ['fTicket','fAgent','fAirline','fAircraft','fReg','fDateFrom','fDateTo'].forEach(id =>
     document.getElementById(id)?.addEventListener('input', applyFilters));
 
-// Selection
 function updateSelection() {
     const checked = document.querySelectorAll('.row-check:checked');
     const bar = document.getElementById('selectionBar');
@@ -209,8 +209,7 @@ function updateSelection() {
 
 function toggleAll(cb) {
     document.querySelectorAll('.row-check').forEach(c => {
-        const row = c.closest('tr');
-        if (row.style.display !== 'none') c.checked = cb.checked;
+        if (c.closest('tr').style.display !== 'none') c.checked = cb.checked;
     });
     updateSelection();
 }
@@ -223,14 +222,14 @@ function clearSelection() {
 
 function deleteSelected() {
     const ids = Array.from(document.querySelectorAll('.row-check:checked')).map(c => c.value);
-    if (ids.length === 0) return;
-    if (!confirm(`Tens a certeza que queres apagar ${ids.length} auditoria(s)?`)) return;
+    if (!ids.length) return;
+    if (!confirm(`${confirmMsg} ${ids.length} ${auditWord}`)) return;
     document.getElementById('hiddenIds').value = ids.join(',');
     document.getElementById('deleteForm').submit();
 }
 
 function deleteSingle(id) {
-    if (!confirm('Tens a certeza que queres apagar esta auditoria?')) return;
+    if (!confirm(`${confirmMsg} 1 ${auditWord}`)) return;
     document.getElementById('hiddenIds').value = id;
     document.getElementById('deleteForm').submit();
 }

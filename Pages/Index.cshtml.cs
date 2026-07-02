@@ -6,36 +6,6 @@ using System.Reflection;
 
 namespace AHM.Audit.Pages
 {
-    public class SectionStat
-    {
-        public string name { get; set; } = "";
-        public string key  { get; set; } = "";
-        public int yes { get; set; }
-        public int no  { get; set; }
-        public int na  { get; set; }
-        public int pct { get; set; }
-    }
-
-    public class OfficerStat
-    {
-        public int yes { get; set; }
-        public int no  { get; set; }
-        public int na  { get; set; }
-        public int pct { get; set; }
-    }
-
-    public class QuarterStat
-    {
-        public string Label { get; set; } = "";
-        public int Count    { get; set; }
-    }
-
-    public class ItemNonConformity
-    {
-        public string label { get; set; } = "";
-        public int pctNo    { get; set; }
-    }
-
     public class IndexModel : PageModel
     {
         private readonly AuditDbContext _context;
@@ -45,25 +15,44 @@ namespace AHM.Audit.Pages
         public bool CanViewSectionChart { get; set; } = true;
         public bool CanViewNonConformities { get; set; } = true;
         public bool CanViewGlobalConformity { get; set; } = true;
-        public int Total    { get; set; }
-        public int TotalYes { get; set; }
-        public int TotalNo  { get; set; }
-        public int TotalNA  { get; set; }
-        public string PctYes { get; set; } = "0";
-        public string PctNo  { get; set; } = "0";
-        public string PctNA  { get; set; } = "0";
 
-        public int PrevTotal     { get; set; }
-        public string PrevPctYes { get; set; } = "0";
-        public int DiffTotal     { get; set; }
-        public int DiffPctYes    { get; set; }
-        public int CompareYear   { get; set; }
-        public int CurrentDataYear { get; set; }
+        // KPIs
+        public int Total        { get; set; }
+        public int TotalYes     { get; set; }
+        public int TotalNo      { get; set; }
+        public int TotalNA      { get; set; }
+        public string PctYes    { get; set; } = "0";
+        public string PctNo     { get; set; } = "0";
+        public string PctNA     { get; set; } = "0";
+        public string ScoreGrade { get; set; } = "N/A";
 
+        // Comparação com período anterior
+        public int PrevTotal        { get; set; }
+        public string PrevPctYes    { get; set; } = "0";
+        public int DiffTotal        { get; set; }
+        public int DiffPctYes       { get; set; }
+        public int CompareYear      { get; set; }
+        public int CurrentDataYear  { get; set; }
+
+        // KPI mês atual vs anterior
+        public int ThisMonthTotal   { get; set; }
+        public int LastMonthTotal   { get; set; }
+        public int ThisMonthNC      { get; set; }
+        public int LastMonthNC      { get; set; }
+        public int ThisMonthPct     { get; set; }
+        public int LastMonthPct     { get; set; }
+        public string LastAuditTime { get; set; } = "-";
+
+        // Filtros
         public DateTime? FilterFrom { get; set; }
         public DateTime? FilterTo   { get; set; }
-        public int CurrentQuarter   { get; set; }
-        public int CurrentYear      { get; set; }
+        public string? FilterAirline { get; set; }
+        public string? FilterAgent   { get; set; }
+        public int CurrentQuarter    { get; set; }
+        public int CurrentYear       { get; set; }
+
+        public List<string> AllAirlines { get; set; } = new();
+        public List<string> AllAgents   { get; set; } = new();
 
         public List<QuarterStat>       QuarterProgress      { get; set; } = new();
         public List<string>            AirlineLabels        { get; set; } = new();
@@ -72,10 +61,13 @@ namespace AHM.Audit.Pages
         public List<int>               AgentValues          { get; set; } = new();
         public List<string>            OfficerLabels        { get; set; } = new();
         public List<int>               OfficerConformity    { get; set; } = new();
-        public List<string>            SectionNames         { get; set; } = new();
         public List<SectionStat>       SectionData          { get; set; } = new();
+        public List<string>            SectionNames         { get; set; } = new();
         public List<ItemNonConformity> TopNonConformities   { get; set; } = new();
+        public List<MonthTrend>        MonthlyTrend         { get; set; } = new();
+        public List<ChecklistFieldDetail> ChecklistDetail   { get; set; } = new();
         public Dictionary<string, OfficerStat> OfficerStats { get; set; } = new();
+
 
         private static readonly (string field, string label, string sectionKey, string sectionName)[] ChecklistItems = new[]
         {
@@ -120,15 +112,17 @@ namespace AHM.Audit.Pages
             foreach (var audit in audits)
                 foreach (var (f, _, _, _) in ChecklistItems)
                 {
-                    var val = typeof(Auditoria).GetProperty(f)?.GetValue(audit)?.ToString() ?? "N/A";
+                    var val = typeof(Auditoria).GetProperty(f)?.GetValue(audit)?.ToString() ?? "";
                     if (val == "YES") y++;
                     else if (val == "NO") n++;
-                    else a++;
+                    else if (val == "N/A") a++;
                 }
             return (y, n, a);
         }
 
-        public IActionResult OnGet(DateTime? from, DateTime? to)
+        private string GetGrade(int pct) => pct >= 98 ? "A+" : pct >= 95 ? "A" : pct >= 90 ? "B" : pct >= 80 ? "C" : "D";
+
+        public IActionResult OnGet(DateTime? from, DateTime? to, string? airline, string? agent)
         {
             var username = HttpContext.Session.GetString("User");
             if (username == null) return RedirectToPage("/Account/Login");
@@ -139,32 +133,44 @@ namespace AHM.Audit.Pages
             IsAdmin = user.IsAdmin;
             ViewData["IsAdmin"] = IsAdmin;
 
-            // Não-admins precisam de permissão para ver o dashboard
             if (!IsAdmin && !user.CanViewDashboard)
                 return RedirectToPage("/Auditorias/Index");
 
-            CanViewSectionChart = IsAdmin || user.CanViewSectionChart;
-            CanViewNonConformities = IsAdmin || user.CanViewNonConformities;
+            CanViewSectionChart     = IsAdmin || user.CanViewSectionChart;
+            CanViewNonConformities  = IsAdmin || user.CanViewNonConformities;
             CanViewGlobalConformity = IsAdmin || user.CanViewGlobalConformity;
 
-            FilterFrom = from;
-            FilterTo   = to;
+            FilterFrom   = from;
+            FilterTo     = to;
+            FilterAirline = airline;
+            FilterAgent   = agent;
 
             var now = DateTime.Now;
             CurrentQuarter = (now.Month - 1) / 3 + 1;
             CurrentYear    = now.Year;
 
+            // Filter dropdowns
+            AllAirlines = _context.Auditorias.Select(a => a.Airline).Distinct().Where(x => !string.IsNullOrEmpty(x)).OrderBy(x => x).ToList();
+            AllAgents   = _context.Auditorias.Select(a => a.Agent).Distinct().Where(x => !string.IsNullOrEmpty(x)).OrderBy(x => x).ToList();
+
+            // Quarter progress
             for (int q = 1; q <= 4; q++)
             {
                 var qStart = new DateTime(now.Year, (q - 1) * 3 + 1, 1);
                 var qEnd   = qStart.AddMonths(3);
-                var count  = _context.Auditorias.Count(a => a.Date >= qStart && a.Date < qEnd);
-                QuarterProgress.Add(new QuarterStat { Label = $"Q{q} {now.Year}", Count = count });
+                QuarterProgress.Add(new QuarterStat
+                {
+                    Label = $"Q{q} {now.Year}",
+                    Count = _context.Auditorias.Count(a => a.Date >= qStart && a.Date < qEnd)
+                });
             }
 
+            // Main query with filters
             var query = _context.Auditorias.AsQueryable();
-            if (from.HasValue) query = query.Where(a => a.Date >= from.Value);
-            if (to.HasValue)   query = query.Where(a => a.Date <= to.Value);
+            if (from.HasValue)    query = query.Where(a => a.Date >= from.Value);
+            if (to.HasValue)      query = query.Where(a => a.Date <= to.Value);
+            if (!string.IsNullOrEmpty(airline)) query = query.Where(a => a.Airline == airline);
+            if (!string.IsNullOrEmpty(agent))   query = query.Where(a => a.Agent == agent);
             var audits = query.ToList();
 
             Total = audits.Count;
@@ -174,34 +180,75 @@ namespace AHM.Audit.Pages
             int grand = TotalYes + TotalNo;
             if (grand > 0)
             {
-                PctYes = (TotalYes * 100 / grand).ToString();
-                PctNo  = (TotalNo  * 100 / grand).ToString();
-                PctNA  = (TotalNA  * 100 / grand).ToString();
+                int pctInt = TotalYes * 100 / grand;
+                PctYes = pctInt.ToString();
+                PctNo  = (TotalNo * 100 / grand).ToString();
+                PctNA  = TotalNA.ToString();
+                ScoreGrade = GetGrade(pctInt);
             }
 
-            // Comparação ano anterior
-            var dataYear = from.HasValue ? from.Value.Year : now.Year;
+            // KPI this month vs last month
+            var thisMonthStart = new DateTime(now.Year, now.Month, 1);
+            var lastMonthStart = thisMonthStart.AddMonths(-1);
+            var thisMonthAudits = _context.Auditorias.Where(a => a.Date >= thisMonthStart).ToList();
+            var lastMonthAudits = _context.Auditorias.Where(a => a.Date >= lastMonthStart && a.Date < thisMonthStart).ToList();
+
+            ThisMonthTotal = thisMonthAudits.Count;
+            LastMonthTotal = lastMonthAudits.Count;
+
+            var (tmy, tmn, _) = CountChecklist(thisMonthAudits);
+            var (lmy, lmn, _) = CountChecklist(lastMonthAudits);
+            ThisMonthPct = (tmy + tmn) > 0 ? tmy * 100 / (tmy + tmn) : 0;
+            LastMonthPct = (lmy + lmn) > 0 ? lmy * 100 / (lmy + lmn) : 0;
+            ThisMonthNC  = tmn;
+            LastMonthNC  = lmn;
+
+            // Last audit time
+            var lastAudit = _context.Auditorias.OrderByDescending(a => a.CreatedAt).FirstOrDefault();
+            if (lastAudit != null)
+            {
+                var diff = DateTime.Now - lastAudit.CreatedAt;
+                if (diff.TotalMinutes < 60) LastAuditTime = $"há {(int)diff.TotalMinutes} min";
+                else if (diff.TotalHours < 24) LastAuditTime = $"há {(int)diff.TotalHours}h";
+                else LastAuditTime = $"há {(int)diff.TotalDays}d";
+            }
+
+            // Previous year comparison
+            var dataYear    = from.HasValue ? from.Value.Year : now.Year;
             CurrentDataYear = dataYear;
-            CompareYear = dataYear - 1;
-
-            var prevAudits = _context.AuditoriaArchives.Where(a => a.ArchiveYear == CompareYear).ToList();
-            PrevTotal = prevAudits.Count;
-
+            CompareYear     = dataYear - 1;
+            var prevAudits  = _context.AuditoriaArchives.Where(a => a.ArchiveYear == CompareYear).ToList();
+            PrevTotal       = prevAudits.Count;
             if (prevAudits.Any())
             {
-                int py = 0, pn = 0, pa = 0;
+                int py = 0, pn = 0;
                 foreach (var a in prevAudits)
                     foreach (var (f, _, _, _) in ChecklistItems)
                     {
-                        var val = typeof(AuditoriaArchive).GetProperty(f)?.GetValue(a)?.ToString() ?? "N/A";
+                        var val = typeof(AuditoriaArchive).GetProperty(f)?.GetValue(a)?.ToString() ?? "";
                         if (val == "YES") py++;
                         else if (val == "NO") pn++;
-                        else pa++;
                     }
                 int prevPct = (py + pn) > 0 ? py * 100 / (py + pn) : 0;
-                PrevPctYes = prevPct.ToString();
-                DiffPctYes = int.Parse(PctYes) - prevPct;
-                DiffTotal  = Total - PrevTotal;
+                PrevPctYes  = prevPct.ToString();
+                DiffPctYes  = int.Parse(PctYes) - prevPct;
+                DiffTotal   = Total - PrevTotal;
+            }
+
+            // Monthly trend (last 12 months)
+            for (int i = 11; i >= 0; i--)
+            {
+                var mStart = new DateTime(now.Year, now.Month, 1).AddMonths(-i);
+                var mEnd   = mStart.AddMonths(1);
+                var mAudits = _context.Auditorias.Where(a => a.Date >= mStart && a.Date < mEnd).ToList();
+                var (my, mn, _) = CountChecklist(mAudits);
+                int mPct = (my + mn) > 0 ? my * 100 / (my + mn) : 0;
+                MonthlyTrend.Add(new MonthTrend
+                {
+                    Label = mStart.ToString("MMM yy"),
+                    Pct   = mPct,
+                    Count = mAudits.Count
+                });
             }
 
             // Section map
@@ -210,7 +257,7 @@ namespace AHM.Audit.Pages
                 if (!sectionMap.ContainsKey(key))
                     sectionMap[key] = new SectionStat { name = name, key = key };
 
-            // Top não conformidades por item
+            // Item non-conformities
             var itemNos = new Dictionary<string, (string label, int yes, int no, int na)>();
             foreach (var (f, lbl, _, _) in ChecklistItems)
                 itemNos[f] = (lbl, 0, 0, 0);
@@ -218,11 +265,11 @@ namespace AHM.Audit.Pages
             foreach (var a in audits)
                 foreach (var (f, _, key, _) in ChecklistItems)
                 {
-                    var val = typeof(Auditoria).GetProperty(f)?.GetValue(a)?.ToString() ?? "N/A";
+                    var val = typeof(Auditoria).GetProperty(f)?.GetValue(a)?.ToString() ?? "";
                     var (lbl, yes, no, na) = itemNos[f];
-                    if (val == "YES") { sectionMap[key].yes++; itemNos[f] = (lbl, yes + 1, no, na); }
-                    else if (val == "NO") { sectionMap[key].no++; itemNos[f] = (lbl, yes, no + 1, na); }
-                    else { sectionMap[key].na++; itemNos[f] = (lbl, yes, no, na + 1); }
+                    if (val == "YES")      { sectionMap[key].yes++; itemNos[f] = (lbl, yes + 1, no, na); }
+                    else if (val == "NO")  { sectionMap[key].no++;  itemNos[f] = (lbl, yes, no + 1, na); }
+                    else if (val == "N/A") { sectionMap[key].na++;  itemNos[f] = (lbl, yes, no, na + 1); }
                 }
 
             TopNonConformities = itemNos
@@ -230,19 +277,28 @@ namespace AHM.Audit.Pages
                 .Select(x => new ItemNonConformity
                 {
                     label  = x.Value.label,
-                    pctNo  = (x.Value.no + x.Value.yes) > 0 ? x.Value.no * 100 / (x.Value.no + x.Value.yes) : 0
+                    pctNo  = (x.Value.no + x.Value.yes) > 0 ? x.Value.no * 100 / (x.Value.no + x.Value.yes) : 0,
+                    count  = x.Value.no
                 })
-                .OrderByDescending(x => x.pctNo)
-                .Take(10)
-                .ToList();
+                .OrderByDescending(x => x.count)
+                .Take(10).ToList();
 
             foreach (var s in sectionMap.Values)
-            {
                 s.pct = (s.yes + s.no) > 0 ? s.yes * 100 / (s.yes + s.no) : 0;
-            }
 
             SectionData  = sectionMap.Values.ToList();
             SectionNames = sectionMap.Keys.ToList();
+
+            // Checklist field detail
+            ChecklistDetail = itemNos.Select(kv => new ChecklistFieldDetail
+            {
+                Field      = kv.Key,
+                Label      = kv.Value.label,
+                SectionKey = ChecklistItems.First(x => x.field == kv.Key).sectionKey,
+                Yes        = kv.Value.yes,
+                No         = kv.Value.no,
+                Na         = kv.Value.na
+            }).ToList();
 
             foreach (var g in audits.GroupBy(a => a.Airline).OrderByDescending(g => g.Count()))
             { AirlineLabels.Add(g.Key); AirlineValues.Add(g.Count()); }
@@ -257,7 +313,7 @@ namespace AHM.Audit.Pages
                 foreach (var a in og)
                     foreach (var (f, _, _, _) in ChecklistItems)
                     {
-                        var val = typeof(Auditoria).GetProperty(f)?.GetValue(a)?.ToString() ?? "N/A";
+                        var val = typeof(Auditoria).GetProperty(f)?.GetValue(a)?.ToString() ?? "";
                         if (val == "YES") oYes++;
                         else if (val == "NO") oNo++;
                         else oNA++;
