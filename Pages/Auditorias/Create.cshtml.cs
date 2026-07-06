@@ -119,25 +119,43 @@ namespace AHM.Audit.Pages.Auditorias
             LoadDropdowns();
             LoadRecentRegistrations();
 
-            var existing = _context.Auditorias.Find(Auditoria.Id);
-            if (existing == null)
+            Auditoria existing;
+            if (Auditoria.Id == 0)
             {
-                ErrorMessage = "Auditoria não encontrada. Tenta novamente.";
-                return Page();
+                // O utilizador preencheu a Informação Geral mas nunca chegou a marcar
+                // nenhum item da checklist — nesse caso o autosave nunca criou a linha
+                // na base de dados. Em vez de falhar com "não encontrada", cria-se agora
+                // a auditoria (a validação da checklist mais abaixo vai avisar de forma
+                // clara que faltam itens por preencher).
+                existing = new Auditoria { CreatedAt = DateTime.Now, IsDraft = true, Date = DateTime.Today, Agent = CurrentAgentName };
+                _context.Auditorias.Add(existing);
+                _context.SaveChanges();
+            }
+            else
+            {
+                var found = _context.Auditorias.Find(Auditoria.Id);
+                if (found == null)
+                {
+                    ErrorMessage = "Auditoria não encontrada. Tenta novamente.";
+                    return Page();
+                }
+                existing = found;
             }
 
             // Ticket obrigatório e único
             if (string.IsNullOrWhiteSpace(Auditoria.Ticket))
             {
                 ErrorMessage = "O Ticket Number é obrigatório.";
+                Auditoria = existing;
                 return Page();
             }
             if (!Auditoria.Ticket.StartsWith("#"))
                 Auditoria.Ticket = "#" + Auditoria.Ticket;
 
-            if (_context.Auditorias.Any(a => a.Ticket == Auditoria.Ticket && a.Id != Auditoria.Id))
+            if (_context.Auditorias.Any(a => a.Ticket == Auditoria.Ticket && a.Id != existing.Id))
             {
                 ErrorMessage = $"O Ticket '{Auditoria.Ticket}' já existe.";
+                Auditoria = existing;
                 return Page();
             }
 
@@ -175,9 +193,10 @@ namespace AHM.Audit.Pages.Auditorias
             {
                 if (!Auditoria.CorrectionTicket.StartsWith("#"))
                     Auditoria.CorrectionTicket = "#" + Auditoria.CorrectionTicket;
-                if (_context.Auditorias.Any(a => a.CorrectionTicket == Auditoria.CorrectionTicket && a.Id != Auditoria.Id))
+                if (_context.Auditorias.Any(a => a.CorrectionTicket == Auditoria.CorrectionTicket && a.Id != existing.Id))
                 {
                     ErrorMessage = $"O Correction Ticket '{Auditoria.CorrectionTicket}' já existe.";
+                    Auditoria = existing;
                     return Page();
                 }
             }
@@ -185,12 +204,14 @@ namespace AHM.Audit.Pages.Auditorias
             if (Auditoria.AircraftRecertified == "YES" && string.IsNullOrWhiteSpace(Auditoria.CorrectionTicket))
             {
                 ErrorMessage = "O Correction Ticket é obrigatório quando o Aircraft é Re-certificado.";
+                Auditoria = existing;
                 return Page();
             }
 
             if (!string.IsNullOrEmpty(CurrentAgentName) && CurrentAgentName == Auditoria.AhmOfficer)
             {
                 ErrorMessage = "O Audit Agent não pode ser o mesmo que o AHM Officer.";
+                Auditoria = existing;
                 return Page();
             }
 
