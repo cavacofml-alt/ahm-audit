@@ -21,6 +21,7 @@
             <div class="card-header fw-bold"><i class="bi bi-airplane me-2"></i>Airlines</div>
             <div class="card-body">
                 <form action="/Admin/Settings?handler=AddAirline" method="post" class="row g-2 mb-3">
+                    @Html.AntiForgeryToken()
                     <div class="col-4">
                         <input class="form-control" name="code" placeholder="Código (TP)" maxlength="3" required style="text-transform:uppercase" />
                     </div>
@@ -45,6 +46,7 @@
                                     <td><span class="badge @(a.Active ? "bg-success" : "bg-secondary")">@(a.Active ? "Ativo" : "Inativo")</span></td>
                                     <td>
                                         <form action="/Admin/Settings?handler=ToggleAirline" method="post" class="d-inline">
+                    @Html.AntiForgeryToken()
                                             <input type="hidden" name="id" value="@a.Id" />
                                             <button type="submit" class="btn btn-sm @(a.Active ? "btn-outline-warning" : "btn-outline-success")">
                                                 @(a.Active ? "Desativar" : "Ativar")
@@ -66,6 +68,7 @@
             <div class="card-header fw-bold"><i class="bi bi-exclamation-triangle me-2"></i>Motivos de Não Conformidade</div>
             <div class="card-body">
                 <form action="/Admin/Settings?handler=AddReason" method="post" class="d-flex gap-2 mb-3">
+                    @Html.AntiForgeryToken()
                     <input class="form-control" name="reason" placeholder="Novo motivo..." required />
                     <button type="submit" class="btn btn-primary">Adicionar</button>
                 </form>
@@ -77,12 +80,14 @@
                                 <span class="@(r.Active ? "" : "text-muted text-decoration-line-through")">@r.Reason</span>
                                 <div class="d-flex gap-1">
                                     <form action="/Admin/Settings?handler=ToggleReason" method="post" class="d-inline">
+                    @Html.AntiForgeryToken()
                                         <input type="hidden" name="id" value="@r.Id" />
                                         <button type="submit" class="btn btn-sm @(r.Active ? "btn-outline-warning" : "btn-outline-success")">
                                             @(r.Active ? "Desativar" : "Ativar")
                                         </button>
                                     </form>
                                     <form action="/Admin/Settings?handler=DeleteReason" method="post" class="d-inline" onsubmit="return confirm('Apagar este motivo?')">
+                    @Html.AntiForgeryToken()
                                         <input type="hidden" name="id" value="@r.Id" />
                                         <button type="submit" class="btn btn-sm btn-danger"><i class="bi bi-trash"></i></button>
                                     </form>

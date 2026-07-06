@@ -19,6 +19,7 @@
     <div class="card-header fw-bold"><i class="bi bi-person-plus me-2"></i>Criar Utilizador</div>
     <div class="card-body">
         <form action="/Admin/Users?handler=Create" method="post" class="row g-3 align-items-end">
+                    @Html.AntiForgeryToken()
             <div class="col-md-2">
                 <label class="form-label small">Username</label>
                 <input class="form-control" name="newUsername" placeholder="Username" required />
@@ -82,6 +83,7 @@
                         </td>
                         <td class="align-middle">
                             <form action="/Admin/Users?handler=SetPerson" method="post" class="d-flex gap-1">
+                    @Html.AntiForgeryToken()
                                 <input type="hidden" name="userId" value="@u.Id" />
                                 <select name="personId" class="form-select form-select-sm" onchange="this.form.submit()" style="max-width:160px">
                                     <option value="">-- Nenhum --</option>
@@ -108,6 +110,7 @@
                                     <i class="bi bi-pencil"></i>
                                 </button>
                                 <form action="/Admin/Users?handler=EditUsername" method="post" id="editUForm-@u.Id" class="d-none">
+                    @Html.AntiForgeryToken()
                                     <input type="hidden" name="userId" value="@u.Id" />
                                     <input type="hidden" name="newUsername" id="uHidden-@u.Id" />
                                     <button type="submit" class="btn btn-sm btn-success"><i class="bi bi-check"></i></button>
@@ -119,18 +122,21 @@
                                     <i class="bi bi-key"></i>
                                 </button>
                                 <form action="/Admin/Users?handler=ToggleAdmin" method="post" class="d-inline">
+                    @Html.AntiForgeryToken()
                                     <input type="hidden" name="userId" value="@u.Id" />
                                     <button type="submit" class="btn btn-sm @(u.IsAdmin ? "btn-outline-danger" : "btn-outline-primary")" title="@(u.IsAdmin ? "Remover admin" : "Dar admin")">
                                         <i class="bi bi-shield@(u.IsAdmin ? "-x" : "-check")"></i>
                                     </button>
                                 </form>
                                 <form action="/Admin/Users?handler=ToggleActive" method="post" class="d-inline">
+                    @Html.AntiForgeryToken()
                                     <input type="hidden" name="userId" value="@u.Id" />
                                     <button type="submit" class="btn btn-sm @(u.Active ? "btn-outline-warning" : "btn-outline-success")">
                                         @(u.Active ? "Desativar" : "Ativar")
                                     </button>
                                 </form>
                                 <form action="/Admin/Users?handler=Delete" method="post" class="d-inline" onsubmit="return confirm('Apagar utilizador @u.Username?')">
+                    @Html.AntiForgeryToken()
                                     <input type="hidden" name="userId" value="@u.Id" />
                                     <button type="submit" class="btn btn-sm btn-danger"><i class="bi bi-trash"></i></button>
                                 </form>
@@ -152,6 +158,7 @@
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <form action="/Admin/Users?handler=ResetPassword" method="post">
+                    @Html.AntiForgeryToken()
                 <div class="modal-body">
                     <input type="hidden" name="userId" id="resetPwId" />
                     <label class="form-label">Nova Password</label>
@@ -175,6 +182,7 @@
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <form action="/Admin/Users?handler=SetPermissions" method="post">
+                    @Html.AntiForgeryToken()
                 <div class="modal-body">
                     <input type="hidden" name="userId" id="permsUserId" />
                     <div class="form-check mb-2">

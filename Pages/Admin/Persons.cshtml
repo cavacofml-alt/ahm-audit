@@ -21,6 +21,7 @@
             <div class="card-header fw-bold">Audit Agents</div>
             <div class="card-body">
                 <form action="/Admin/Persons?handler=Add" method="post" class="d-flex gap-2 mb-3">
+                    @Html.AntiForgeryToken()
                     <input type="hidden" name="role" value="Agent" />
                     <input class="form-control" name="name" placeholder="Nome do agente" required />
                     <button class="btn btn-primary">Adicionar</button>
@@ -36,6 +37,7 @@
                                     <i class="bi bi-pencil"></i>
                                 </button>
                                 <form action="/Admin/Persons?handler=EditName" method="post" id="editForm-@p.Id" class="d-none">
+                    @Html.AntiForgeryToken()
                                     <input type="hidden" name="personId" value="@p.Id" />
                                     <input type="hidden" name="newName" id="editHidden-@p.Id" />
                                     <button type="submit" class="btn btn-sm btn-success"><i class="bi bi-check"></i></button>
@@ -44,6 +46,7 @@
                                     <i class="bi bi-x"></i>
                                 </button>
                                 <form action="/Admin/Persons?handler=Toggle" method="post" class="d-inline">
+                    @Html.AntiForgeryToken()
                                     <input type="hidden" name="personId" value="@p.Id" />
                                     <button class="btn btn-sm @(p.Active ? "btn-outline-danger" : "btn-outline-success")">
                                         @(p.Active ? "Desativar" : "Ativar")
@@ -63,6 +66,7 @@
             <div class="card-header fw-bold">AHM Officers</div>
             <div class="card-body">
                 <form action="/Admin/Persons?handler=Add" method="post" class="d-flex gap-2 mb-3">
+                    @Html.AntiForgeryToken()
                     <input type="hidden" name="role" value="Officer" />
                     <input class="form-control" name="name" placeholder="Nome do officer" required />
                     <button class="btn btn-primary">Adicionar</button>
@@ -78,6 +82,7 @@
                                     <i class="bi bi-pencil"></i>
                                 </button>
                                 <form action="/Admin/Persons?handler=EditName" method="post" id="editForm-@p.Id" class="d-none">
+                    @Html.AntiForgeryToken()
                                     <input type="hidden" name="personId" value="@p.Id" />
                                     <input type="hidden" name="newName" id="editHidden-@p.Id" />
                                     <button type="submit" class="btn btn-sm btn-success"><i class="bi bi-check"></i></button>
@@ -86,6 +91,7 @@
                                     <i class="bi bi-x"></i>
                                 </button>
                                 <form action="/Admin/Persons?handler=Toggle" method="post" class="d-inline">
+                    @Html.AntiForgeryToken()
                                     <input type="hidden" name="personId" value="@p.Id" />
                                     <button class="btn btn-sm @(p.Active ? "btn-outline-danger" : "btn-outline-success")">
                                         @(p.Active ? "Desativar" : "Ativar")
