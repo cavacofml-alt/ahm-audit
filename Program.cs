@@ -66,7 +66,7 @@ builder.Services.AddRateLimiter(options =>
 
 builder.Services.AddSession(options =>
 {
-    options.IdleTimeout = TimeSpan.FromMinutes(30);
+    options.IdleTimeout = TimeSpan.FromHours(6);
     options.Cookie.HttpOnly = true;
     options.Cookie.IsEssential = true;
     // Protege o cookie de sessão contra CSRF (não é enviado em pedidos cross-site).
