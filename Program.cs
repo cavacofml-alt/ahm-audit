@@ -138,6 +138,9 @@ app.MapPost("/api/autosave", async (HttpContext ctx, AuditDbContext db) =>
     };
     if (!allowedChecklistFields.Contains(field)) return Results.BadRequest("Campo não permitido");
 
+    var allowedValues = new HashSet<string> { "YES", "NO", "N/A" };
+    if (!allowedValues.Contains(value)) return Results.BadRequest("Valor inválido");
+
     var prop = typeof(Auditoria).GetProperty(field);
     if (prop == null || prop.PropertyType != typeof(string)) return Results.BadRequest("Campo desconhecido");
     prop.SetValue(audit, value);
@@ -188,6 +191,11 @@ app.MapPost("/api/autosave-field", async (HttpContext ctx, AuditDbContext db) =>
     var id = int.Parse(idStr);
     var audit = db.Auditorias.Find(id);
     if (audit == null) return Results.NotFound();
+    if (audit.IsFinalized)
+    {
+        var isAdmin = db.Users.Any(u => u.Username == username && u.IsAdmin);
+        if (!isAdmin) return Results.Forbid();
+    }
 
     var allowedFields = new[] { "Ticket", "Airline", "Aircraft", "Registration", "Date", "RevisionUpdates",
         "AhmOfficer", "CorrectionTicket", "ReasonForRecertification", "CorrectionsMade", "AircraftRecertified", "Notes" };
@@ -253,9 +261,12 @@ using (var scope = app.Services.CreateScope())
     }
     db.SaveChanges();
 
-    // Arquivo anual
+    // Arquivo anual — só arquiva auditorias já FINALIZADAS de anos anteriores.
+    // (Antes também arquivava auditorias não-draft mas ainda por finalizar, o que podia
+    // "congelar" no arquivo, de forma irreversível, uma auditoria que ainda estava a ser
+    // trabalhada só porque o ano civil mudou entretanto.)
     var currentYear = DateTime.Now.Year;
-    var toArchive = db.Auditorias.Where(a => a.Date.Year < currentYear && !a.IsDraft).ToList();
+    var toArchive = db.Auditorias.Where(a => a.Date.Year < currentYear && !a.IsDraft && a.IsFinalized).ToList();
 
     if (toArchive.Any())
     {

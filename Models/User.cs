@@ -9,6 +9,10 @@ namespace AHM.Audit.Models
         public bool Active { get; set; } = true;
         public int? PersonId { get; set; }
 
+        // Bloqueio de conta após várias tentativas de login falhadas
+        public int FailedLoginAttempts { get; set; } = 0;
+        public DateTime? LockoutUntil  { get; set; }
+
         // Permissões de dashboard
         public bool CanViewDashboard          { get; set; } = true;
         public bool CanViewSectionChart       { get; set; } = true;

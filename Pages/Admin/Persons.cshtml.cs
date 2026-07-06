@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
+using Microsoft.EntityFrameworkCore;
 using AHM.Audit.Data;
 using AHM.Audit.Models;
 
@@ -51,9 +52,34 @@ namespace AHM.Audit.Pages.Admin
             var p = _context.Persons.Find(personId);
             if (p != null && !string.IsNullOrWhiteSpace(newName))
             {
-                p.Name = newName.Trim();
-                _context.SaveChanges();
-                Message = $"Nome atualizado para '{p.Name}'.";
+                var oldName = p.Name;
+                var trimmedNewName = newName.Trim();
+
+                if (oldName != trimmedNewName)
+                {
+                    // Atualiza em cascata as auditorias (e arquivo) que referenciam este agent/officer
+                    // pelo nome em texto, para não "partir" o histórico em dois nomes diferentes
+                    // nos gráficos e filtros do dashboard.
+                    int updatedCount = 0;
+                    if (p.Role == "Agent")
+                    {
+                        updatedCount += _context.Auditorias.Where(a => a.Agent == oldName)
+                            .ExecuteUpdate(s => s.SetProperty(a => a.Agent, trimmedNewName));
+                        _context.AuditoriaArchives.Where(a => a.Agent == oldName)
+                            .ExecuteUpdate(s => s.SetProperty(a => a.Agent, trimmedNewName));
+                    }
+                    else if (p.Role == "Officer")
+                    {
+                        updatedCount += _context.Auditorias.Where(a => a.AhmOfficer == oldName)
+                            .ExecuteUpdate(s => s.SetProperty(a => a.AhmOfficer, trimmedNewName));
+                        _context.AuditoriaArchives.Where(a => a.AhmOfficer == oldName)
+                            .ExecuteUpdate(s => s.SetProperty(a => a.AhmOfficer, trimmedNewName));
+                    }
+
+                    p.Name = trimmedNewName;
+                    _context.SaveChanges();
+                    Message = $"Nome atualizado para '{p.Name}' ({updatedCount} auditoria(s) atualizada(s) com o novo nome).";
+                }
             }
             LoadLists();
             return Page();

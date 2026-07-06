@@ -38,6 +38,10 @@ namespace AHM.Audit.Pages.Admin
 
             var validAgents   = _context.Persons.Where(p => p.Role == "Agent").Select(p => p.Name.Trim().ToLower()).ToHashSet();
             var validOfficers = _context.Persons.Where(p => p.Role == "Officer").Select(p => p.Name.Trim().ToLower()).ToHashSet();
+            // Tickets já existentes na BD + tickets já vistos neste próprio ficheiro (para não
+            // deixar passar duplicados dentro do mesmo CSV, já que só há um SaveChanges no fim).
+            var existingTickets = _context.Auditorias.Select(a => a.Ticket).ToHashSet();
+            var seenInThisFile  = new HashSet<string>();
 
             int imported = 0, skipped = 0, nameFixed = 0;
 
@@ -52,7 +56,7 @@ namespace AHM.Audit.Pages.Admin
                 if (cols.Length < 10) continue;
                 var ticket = cols[0].Trim();
                 if (string.IsNullOrEmpty(ticket)) continue;
-                if (_context.Auditorias.Any(a => a.Ticket == ticket)) { skipped++; continue; }
+                if (existingTickets.Contains(ticket) || !seenInThisFile.Add(ticket)) { skipped++; continue; }
 
                 try
                 {
