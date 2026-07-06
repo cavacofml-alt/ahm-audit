@@ -539,17 +539,14 @@ namespace AHM.Audit.Migrations
                     b.Property<bool>("CanViewQuarterProgress")
                         .HasColumnType("boolean");
 
+                    b.Property<bool>("CanViewSectionChart")
+                        .HasColumnType("boolean");
+
                     b.Property<bool>("CanViewTrend")
                         .HasColumnType("boolean");
 
-                    b.Property<int>("FailedLoginAttempts")
-                        .HasColumnType("integer");
-
                     b.Property<bool>("IsAdmin")
                         .HasColumnType("boolean");
-
-                    b.Property<DateTime?>("LockoutUntil")
-                        .HasColumnType("timestamp without time zone");
 
                     b.Property<string>("PasswordHash")
                         .IsRequired()

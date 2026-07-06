@@ -225,7 +225,7 @@
     <div class="widget w-col-7" data-widget="reasons">
         <div class="card h-100">
             <div class="card-header fw-bold"><i class="bi bi-bar-chart-horizontal me-2"></i>Razões de NOT OK <small class="text-muted fw-normal">(clique para ver auditorias)</small><span data-bs-toggle="tooltip" data-bs-placement="top" title="Razões pré-definidas selecionadas quando um item foi marcado como NOT OK." style="cursor:help; margin-left:6px; font-size:13px; color:#94a3b8"><i class="bi bi-info-circle"></i></span></div>
-            <div class="card-body"><canvas id="reasonChart" height="200"></canvas></div>
+            <div class="card-body"><canvas id="reasonChart" height="220"></canvas></div>
         </div>
     </div>
     }
@@ -430,14 +430,38 @@ document.getElementById('resultChart').style.cursor = 'pointer';
 <text>
 const reasonLabels = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.ReasonStats.Select(x => x.Reason).ToList()));
 const reasonData   = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.ReasonStats.Select(x => x.Count).ToList()));
+
+// Quebra nomes de razões compridos em várias linhas (mais legível do que rodar o texto)
+function wrapChartLabel(label, maxCharsPerLine = 14) {
+    const words = String(label).split(' ');
+    const lines = [];
+    let current = '';
+    for (const w of words) {
+        const candidate = current ? current + ' ' + w : w;
+        if (candidate.length > maxCharsPerLine && current) {
+            lines.push(current);
+            current = w;
+        } else {
+            current = candidate;
+        }
+    }
+    if (current) lines.push(current);
+    return lines;
+}
+const reasonLabelsWrapped = reasonLabels.map(l => wrapChartLabel(l));
+
+const reasonAxisColor = textColor();
 new Chart(document.getElementById('reasonChart'), {
     type: 'bar',
-    data: { labels: reasonLabels, datasets: [{ label: 'Ocorrências', data: reasonData, backgroundColor: '#ef4444', borderRadius: 6 }] },
+    data: { labels: reasonLabelsWrapped, datasets: [{ label: 'Ocorrências', data: reasonData, backgroundColor: '#ef4444', borderRadius: 6 }] },
     options: {
-        plugins: { legend: { display: false } },
+        plugins: {
+            legend: { display: false },
+            tooltip: { callbacks: { title: (items) => reasonLabels[items[0].dataIndex] } }
+        },
         scales: {
-            y: { grid: { color: gridColor() }, ticks: { color: textColor() } },
-            x: { grid: { display: false }, ticks: { color: textColor(), font: { size: 11 }, autoSkip: true, maxRotation: 45, minRotation: 0 } }
+            y: { grid: { color: gridColor() }, ticks: { color: reasonAxisColor } },
+            x: { grid: { display: false }, ticks: { color: reasonAxisColor, font: { size: 12, weight: '600' }, autoSkip: true } }
         },
         onClick: (e, elements) => {
             if (elements.length > 0) {
