@@ -206,6 +206,16 @@
     </div>
     }
 
+    @if (Model.CanViewSectionChart)
+    {
+    <div class="widget w-col-12" data-widget="section">
+        <div class="card h-100">
+            <div class="card-header fw-bold"><i class="bi bi-bar-chart-steps me-2"></i>Resultados por secção (%)<span data-bs-toggle="tooltip" data-bs-placement="top" title="Conformidade agregada por secção da checklist (B, C, D, E, G)." style="cursor:help; margin-left:6px; font-size:13px; color:#94a3b8"><i class="bi bi-info-circle"></i></span></div>
+            <div class="card-body"><canvas id="sectionChart" height="80"></canvas></div>
+        </div>
+    </div>
+    }
+
     @if (Model.CanViewAirlineChart)
     {
     <div class="widget w-col-6" data-widget="airline">
@@ -325,8 +335,9 @@
 .bg-success-soft { background: #dcfce7; }
 .bg-danger-soft  { background: #fee2e2; }
 
-/* Dashboard grid — cada card é um widget individual e independentemente arrastável */
-#dashboardGrid { display: grid; grid-template-columns: repeat(12, 1fr); gap: 1rem; margin-bottom: 1.5rem; }
+/* Dashboard grid — cada card é um widget independente; grid-auto-flow: dense fecha
+   automaticamente os espaços quando algum widget fica escondido por permissões. */
+#dashboardGrid { display: grid; grid-template-columns: repeat(12, 1fr); grid-auto-flow: dense; gap: 1rem; margin-bottom: 1.5rem; }
 #dashboardGrid .widget { min-width: 0; }
 .w-col-4  { grid-column: span 4; }
 .w-col-5  { grid-column: span 5; }
@@ -337,65 +348,14 @@
 @@media (max-width: 991px) {
     #dashboardGrid .widget { grid-column: 1 / -1 !important; }
 }
-
-/* Drag & drop */
-.drag-handle { cursor: grab; color: #94a3b8; font-size: 14px; margin-right: 8px; }
-.drag-handle:hover { color: #3b82f6; }
-.sortable-ghost { opacity: 0.4; border: 2px dashed #3b82f6 !important; }
-.sortable-chosen { box-shadow: 0 8px 25px rgba(0,0,0,0.15); }
 </style>
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
 <script>
 // Bootstrap tooltips
 document.addEventListener('DOMContentLoaded', function() {
     document.querySelectorAll('[data-bs-toggle="tooltip"]').forEach(el => new bootstrap.Tooltip(el));
 });
-</script>
-<script>
-// Drag & drop for admin only
-const isAdmin = @((Model.IsAdmin ? "true" : "false"));
-
-const DASHBOARD_ORDER_KEY = 'dashboardWidgetOrder';
-
-if (typeof Sortable !== 'undefined') {
-    const grid = document.getElementById('dashboardGrid');
-    if (grid) {
-        // Restore saved widget order (applies for every user viewing the dashboard)
-        const savedOrder = JSON.parse(localStorage.getItem(DASHBOARD_ORDER_KEY) || '[]');
-        if (savedOrder.length > 0) {
-            savedOrder.forEach(widgetId => {
-                const el = grid.querySelector(`.widget[data-widget="${widgetId}"]`);
-                if (el) grid.appendChild(el);
-            });
-        }
-
-        // Only admins can actually drag cards around
-        if (isAdmin) {
-            grid.querySelectorAll('.card-header').forEach(header => {
-                const handle = document.createElement('span');
-                handle.className = 'drag-handle float-end';
-                handle.innerHTML = '<i class="bi bi-grip-vertical"></i>';
-                handle.title = 'Arrastar para reordenar';
-                header.appendChild(handle);
-            });
-
-            new Sortable(grid, {
-                animation: 150,
-                ghostClass: 'sortable-ghost',
-                chosenClass: 'sortable-chosen',
-                handle: '.drag-handle',
-                draggable: '.widget',
-                onEnd: () => {
-                    const order = Array.from(grid.querySelectorAll('.widget[data-widget]'))
-                        .map(el => el.dataset.widget);
-                    localStorage.setItem(DASHBOARD_ORDER_KEY, JSON.stringify(order));
-                }
-            });
-        }
-    }
-}
 </script>
 <script>
 // Chart color helpers — read the global dark-mode class toggled from the shared layout
@@ -515,7 +475,7 @@ new Chart(document.getElementById('sectionChart'), {
         plugins: { legend: { display: false } },
         scales: {
             y: { min: 0, max: 100, ticks: { color: textColor(), callback: v => v + '%' }, grid: { color: gridColor() } },
-            x: { ticks: { color: textColor(), font: { size: 11 } }, grid: { display: false } }
+            x: { ticks: { color: textColor(), font: { size: 11 }, autoSkip: true, maxRotation: 30, minRotation: 0 }, grid: { display: false } }
         }
     }
 });
@@ -535,7 +495,7 @@ const airlineChart = new Chart(document.getElementById('airlineChart'), {
         plugins: { legend: { display: false } },
         scales: {
             y: { ticks: { color: textColor() }, grid: { color: gridColor() } },
-            x: { ticks: { color: textColor() }, grid: { display: false } }
+            x: { ticks: { color: textColor(), autoSkip: true, maxRotation: 45, minRotation: 0 }, grid: { display: false } }
         },
         onClick: (e, elements) => {
             if (elements.length > 0) {
@@ -589,7 +549,7 @@ new Chart(document.getElementById('agentChart'), {
         plugins: { legend: { display: false } },
         scales: {
             y: { ticks: { color: textColor() }, grid: { color: gridColor() } },
-            x: { ticks: { color: textColor() }, grid: { display: false } }
+            x: { ticks: { color: textColor(), autoSkip: true, maxRotation: 45, minRotation: 0 }, grid: { display: false } }
         }
     }
 });
@@ -614,7 +574,7 @@ new Chart(document.getElementById('officerChart'), {
         },
         scales: {
             y: { min: 0, max: 100, ticks: { color: textColor(), callback: v => v + '%' }, grid: { color: gridColor() } },
-            x: { ticks: { color: textColor() }, grid: { display: false } }
+            x: { ticks: { color: textColor(), autoSkip: true, maxRotation: 45, minRotation: 0 }, grid: { display: false } }
         },
         onClick: (e, elements) => {
             if (elements.length > 0) showOfficerDrill(officerChartLabels[elements[0].index]);
