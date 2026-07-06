@@ -171,16 +171,20 @@ namespace AHM.Audit.Pages
             if (!IsAdmin && !user.CanViewDashboard)
                 return RedirectToPage("/Auditorias/Index");
 
-            CanViewSectionChart     = IsAdmin || user.CanViewSectionChart;
-            CanViewNonConformities  = IsAdmin || user.CanViewNonConformities;
-            CanViewGlobalConformity = IsAdmin || user.CanViewGlobalConformity;
-            CanViewTrend            = IsAdmin || user.CanViewTrend;
-            CanViewHeatmap          = IsAdmin || user.CanViewHeatmap;
-            CanViewAirlineChart     = IsAdmin || user.CanViewAirlineChart;
-            CanViewAgentChart       = IsAdmin || user.CanViewAgentChart;
-            CanViewOfficerChart     = IsAdmin || user.CanViewOfficerChart;
-            CanViewComparativeChart = IsAdmin || user.CanViewComparativeChart;
-            CanViewQuarterProgress  = IsAdmin || user.CanViewQuarterProgress;
+            // Nota: ao contrário do acesso à página do dashboard (que os admins têm sempre,
+            // acima), a visibilidade de cada gráfico respeita sempre o que está configurado
+            // no modal de permissões — incluindo para admins. Um "IsAdmin ||" aqui faria com
+            // que desmarcar um gráfico para um admin não tivesse qualquer efeito.
+            CanViewSectionChart     = user.CanViewSectionChart;
+            CanViewNonConformities  = user.CanViewNonConformities;
+            CanViewGlobalConformity = user.CanViewGlobalConformity;
+            CanViewTrend            = user.CanViewTrend;
+            CanViewHeatmap          = user.CanViewHeatmap;
+            CanViewAirlineChart     = user.CanViewAirlineChart;
+            CanViewAgentChart       = user.CanViewAgentChart;
+            CanViewOfficerChart     = user.CanViewOfficerChart;
+            CanViewComparativeChart = user.CanViewComparativeChart;
+            CanViewQuarterProgress  = user.CanViewQuarterProgress;
 
             FilterFrom   = from;
             FilterTo     = to;
