@@ -20,9 +20,10 @@ namespace AHM.Audit.Middleware
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Exceção não tratada em {Path}", context.Request.Path);
-                context.Response.StatusCode = 500;
                 if (!context.Response.HasStarted)
                 {
+                    // Redirect já define o código de resposta (302) — definir 500 antes
+                    // era contraditório e nunca chegava a ser o que o browser via.
                     context.Response.Redirect("/Error");
                 }
             }

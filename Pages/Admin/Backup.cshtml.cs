@@ -7,7 +7,6 @@ using System.Globalization;
 
 namespace AHM.Audit.Pages.Admin
 {
-    [IgnoreAntiforgeryToken]
     public class BackupModel : PageModel
     {
         private readonly AuditDbContext _context;

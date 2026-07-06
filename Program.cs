@@ -3,6 +3,7 @@ using AHM.Audit.Data;
 using AHM.Audit.Models;
 using System.Reflection;
 using Microsoft.AspNetCore.DataProtection;
+using Microsoft.AspNetCore.HttpOverrides;
 using BCrypt.Net;
 
 AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehavior", true);
@@ -68,6 +69,14 @@ builder.Services.AddSession(options =>
     options.IdleTimeout = TimeSpan.FromMinutes(30);
     options.Cookie.HttpOnly = true;
     options.Cookie.IsEssential = true;
+    // Protege o cookie de sessão contra CSRF (não é enviado em pedidos cross-site).
+    options.Cookie.SameSite = SameSiteMode.Strict;
+    // "Always" só em produção (Railway corre em HTTPS). Em desenvolvimento local
+    // (http://localhost) isto teria de ficar "SameAsRequest", senão o browser
+    // recusa-se a enviar o cookie e o login deixa de funcionar.
+    options.Cookie.SecurePolicy = builder.Environment.IsProduction()
+        ? CookieSecurePolicy.Always
+        : CookieSecurePolicy.SameAsRequest;
 });
 
 var app = builder.Build();
@@ -77,6 +86,17 @@ var app = builder.Build();
 // (Models/DashboardPermissionCatalog.cs) e o modal em Pages/Admin/Users.cshtml.
 AHM.Audit.Models.DashboardPermissionCatalog.Validate();
 
+var forwardedHeadersOptions = new ForwardedHeadersOptions
+{
+    ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto
+};
+// O Railway coloca a app atrás do seu próprio proxy/edge, cuja rede não conhecemos
+// à partida — sem limpar estas listas (que por omissão só confiam em loopback), o
+// ASP.NET Core ignora o cabeçalho X-Forwarded-Proto e nunca reconhece o pedido como
+// HTTPS, o que impediria o cookie de sessão "Secure" de ser sequer enviado.
+forwardedHeadersOptions.KnownNetworks.Clear();
+forwardedHeadersOptions.KnownProxies.Clear();
+app.UseForwardedHeaders(forwardedHeadersOptions);
 app.UseMiddleware<AHM.Audit.Middleware.ExceptionMiddleware>();
 app.UseStaticFiles();
 app.UseRouting();
@@ -221,7 +241,14 @@ using (var scope = app.Services.CreateScope())
     // Seed admin
     if (!db.Users.Any())
     {
-        db.Users.Add(new User { Username = "admin", PasswordHash = BCrypt.Net.BCrypt.HashPassword("AHM123%%"), IsAdmin = true, Active = true,
+        // Permite definir a password inicial via variável de ambiente (ex.: no Railway,
+        // em Variables) em vez de ficar fixa no código-fonte. Se não for definida, usa
+        // a antiga por omissão só para não partir instalações já existentes — mas o
+        // recomendado é definir AHM_ADMIN_INITIAL_PASSWORD e trocar a password no primeiro login.
+        var initialAdminPassword = Environment.GetEnvironmentVariable("AHM_ADMIN_INITIAL_PASSWORD");
+        if (string.IsNullOrWhiteSpace(initialAdminPassword)) initialAdminPassword = "AHM123%%";
+
+        db.Users.Add(new User { Username = "admin", PasswordHash = BCrypt.Net.BCrypt.HashPassword(initialAdminPassword), IsAdmin = true, Active = true,
             CanViewDashboard = true, CanViewSectionChart = true, CanViewNonConformities = true, CanViewGlobalConformity = true });
         db.SaveChanges();
     }

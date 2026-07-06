@@ -339,7 +339,7 @@ namespace AHM.Audit.Pages
             {
                 Field      = kv.Key,
                 Label      = kv.Value.label,
-                SectionKey = ChecklistItems.First(x => x.field == kv.Key).sectionKey,
+                SectionKey = ChecklistItems.FirstOrDefault(x => x.field == kv.Key).sectionKey ?? "",
                 Yes        = kv.Value.yes,
                 No         = kv.Value.no,
                 Na         = kv.Value.na

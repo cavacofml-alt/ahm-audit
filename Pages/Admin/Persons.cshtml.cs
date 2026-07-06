@@ -6,7 +6,6 @@ using AHM.Audit.Models;
 
 namespace AHM.Audit.Pages.Admin
 {
-    [IgnoreAntiforgeryToken]
     public class PersonsModel : PageModel
     {
         private readonly AuditDbContext _context;

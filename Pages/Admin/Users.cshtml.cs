@@ -5,7 +5,6 @@ using AHM.Audit.Models;
 
 namespace AHM.Audit.Pages.Admin
 {
-    [IgnoreAntiforgeryToken]
     public class UsersModel : PageModel
     {
         private readonly AuditDbContext _context;
@@ -58,6 +57,12 @@ namespace AHM.Audit.Pages.Admin
         {
             if (!IsAdmin()) return RedirectToPage("/Account/Login");
             ViewData["IsAdmin"] = true;
+            if (string.IsNullOrWhiteSpace(newPass) || newPass.Trim().Length < 6)
+            {
+                Message = "A password tem de ter pelo menos 6 caracteres.";
+                LoadLists();
+                return Page();
+            }
             var user = _context.Users.Find(userId);
             if (user != null)
             {

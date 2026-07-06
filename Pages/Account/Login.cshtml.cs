@@ -1,9 +1,13 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
+using Microsoft.AspNetCore.RateLimiting;
 using AHM.Audit.Data;
 
 namespace AHM.Audit.Pages.Account
 {
+    // A política "login" já estava definida em Program.cs (10 pedidos/5min por IP)
+    // mas nunca tinha sido aplicada a nenhum endpoint — este atributo é o que a ativa.
+    [EnableRateLimiting("login")]
     public class LoginModel : PageModel
     {
         private readonly AuditDbContext _context;
