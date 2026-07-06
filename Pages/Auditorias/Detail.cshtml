@@ -58,7 +58,15 @@
                 {
                     var badgeClass = item.Value == "YES" ? "bg-success" : item.Value == "NO" ? "bg-danger" : "bg-secondary";
                     <tr class="@(item.Value == "NO" ? "table-danger" : "")">
-                        <td>@item.Label</td>
+                        <td>
+                            @item.Label
+                            @if (item.Value == "NO")
+                            {
+                                <div class="small text-danger">
+                                    <i class="bi bi-exclamation-circle me-1"></i>@(string.IsNullOrEmpty(item.Reason) ? "sem razão registada" : item.Reason)
+                                </div>
+                            }
+                        </td>
                         <td class="text-center"><span class="badge @badgeClass">@item.Value</span></td>
                     </tr>
                 }
