@@ -10,42 +10,6 @@
     <h2 class="mb-0"><i class="bi bi-speedometer2 me-2"></i>Dashboard</h2>
 </div>
 
-<!-- Filters -->
-<form method="get" class="card mb-4 p-3">
-    <div class="row g-2 align-items-end">
-        <div class="col-md-2">
-            <label class="form-label small fw-bold">De</label>
-            <input type="date" name="from" class="form-control form-control-sm" value="@(Model.FilterFrom?.ToString("yyyy-MM-dd"))" />
-        </div>
-        <div class="col-md-2">
-            <label class="form-label small fw-bold">Até</label>
-            <input type="date" name="to" class="form-control form-control-sm" value="@(Model.FilterTo?.ToString("yyyy-MM-dd"))" />
-        </div>
-        <div class="col-md-2">
-            <label class="form-label small fw-bold">Airline</label>
-            <select name="airline" class="form-select form-select-sm">
-                <option value="">Todas</option>
-                @foreach (var a in Model.AllAirlines)
-                { <option value="@a" selected="@(Model.FilterAirline == a)">@a</option> }
-            </select>
-        </div>
-        <div class="col-md-2">
-            <label class="form-label small fw-bold">Agente</label>
-            <select name="agent" class="form-select form-select-sm">
-                <option value="">Todos</option>
-                @foreach (var a in Model.AllAgents)
-                { <option value="@a" selected="@(Model.FilterAgent == a)">@a</option> }
-            </select>
-        </div>
-        <div class="col-md-2">
-            <button type="submit" class="btn btn-primary btn-sm w-100">Filtrar</button>
-        </div>
-        <div class="col-md-2">
-            <a href="/" class="btn btn-outline-secondary btn-sm w-100">Limpar</a>
-        </div>
-    </div>
-</form>
-
 <!-- KPI Cards -->
 <div class="row g-3 mb-4">
     @{
