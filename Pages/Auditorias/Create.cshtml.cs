@@ -52,19 +52,14 @@ namespace AHM.Audit.Pages.Auditorias
                 return Page();
             }
 
-            // Recuperar rascunho existente (auto-save) ou criar novo
+            // Recuperar rascunho específico (ex.: link "Continuar" na lista de auditorias)
+            // ou criar sempre uma nova. Um agent pode ter várias auditorias por finalizar
+            // em simultâneo — "Nova Auditoria" nunca deve ficar "preso" a reabrir
+            // automaticamente a última que ficou incompleta.
             Auditoria? draft = null;
             if (draftId.HasValue)
             {
                 draft = _context.Auditorias.Find(draftId.Value);
-            }
-            else
-            {
-                // Procurar rascunho mais recente deste agent sem ticket definido ainda
-                draft = _context.Auditorias
-                    .Where(a => a.IsDraft && a.Agent == CurrentAgentName)
-                    .OrderByDescending(a => a.CreatedAt)
-                    .FirstOrDefault();
             }
 
             if (draft != null)
@@ -80,6 +75,30 @@ namespace AHM.Audit.Pages.Auditorias
             LoadDropdowns();
             LoadRecentRegistrations();
             return Page();
+        }
+
+        // Permite ao utilizador descartar o rascunho autosave atual e começar
+        // uma auditoria completamente nova, em vez de ficar preso a reabrir
+        // sempre o mesmo rascunho por acabar.
+        public IActionResult OnGetDiscard(int id)
+        {
+            var username = HttpContext.Session.GetString("User");
+            if (username == null) return RedirectToPage("/Account/Login");
+
+            var user = _context.Users.FirstOrDefault(u => u.Username == username);
+            var isAdmin = user?.IsAdmin ?? false;
+            var agentName = user?.PersonId != null ? _context.Persons.Find(user.PersonId)?.Name : null;
+
+            var draft = _context.Auditorias.Find(id);
+            // Só permite descartar rascunhos (nunca auditorias finalizadas) e só o
+            // próprio agent (ou um admin) pode descartar o seu rascunho.
+            if (draft != null && draft.IsDraft && (isAdmin || draft.Agent == agentName))
+            {
+                _context.Auditorias.Remove(draft);
+                _context.SaveChanges();
+            }
+
+            return RedirectToPage("Create");
         }
 
         public IActionResult OnPost(string? action)

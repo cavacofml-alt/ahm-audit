@@ -106,6 +106,7 @@ else
                             <th class="text-center sortable" data-col="7">YES <i class="bi bi-arrow-down-up"></i></th>
                             <th class="text-center sortable" data-col="8">NO <i class="bi bi-arrow-down-up"></i></th>
                             <th class="text-center sortable" data-col="9">N/A <i class="bi bi-arrow-down-up"></i></th>
+                            <th>Prazo</th>
                             <th></th>
                         </tr>
                     </thead>
@@ -116,7 +117,7 @@ else
                             var rowClass = nos > 0 ? "table-danger" : "table-success";
                             <tr class="@rowClass" data-date="@item.Date.ToString("yyyy-MM-dd")">
                                 <td><input type="checkbox" class="form-check-input row-check" name="selectedIds" value="@item.Id" onchange="updateSelection()" /></td>
-                                <td><strong>@item.Ticket</strong></td>
+                                <td><strong>@(string.IsNullOrEmpty(item.Ticket) ? "" : item.Ticket)</strong> @if (item.IsDraft && !item.IsFinalized) { <span class="badge bg-secondary">Rascunho</span> }</td>
                                 <td>@item.Agent</td>
                                 <td>@item.Airline</td>
                                 <td>@item.Aircraft</td>
@@ -126,8 +127,35 @@ else
                                 <td class="text-center"><span class="badge bg-danger">@nos</span></td>
                                 <td class="text-center"><span class="badge bg-secondary">@Model.CountNA(item)</span></td>
                                 <td class="text-nowrap">
+                                    @{
+                                        var daysLeft = Model.DaysUntilDeadline(item);
+                                    }
+                                    @if (item.IsFinalized)
+                                    {
+                                        <span class="badge bg-success"><i class="bi bi-check-circle me-1"></i>Finalizada</span>
+                                    }
+                                    else if (daysLeft < 0)
+                                    {
+                                        <span class="badge bg-danger" title="@(pt ? "Prazo de 2 semanas ultrapassado" : "2-week deadline passed")">
+                                            <i class="bi bi-exclamation-triangle-fill me-1"></i>Prazo expirado há @(-daysLeft)d
+                                        </span>
+                                    }
+                                    else if (daysLeft <= 3)
+                                    {
+                                        <span class="badge bg-warning text-dark" title="@(pt ? "Prazo de 2 semanas a terminar" : "2-week deadline ending soon")">
+                                            <i class="bi bi-clock-fill me-1"></i>Faltam @(daysLeft)d
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-light text-dark border" title="@(pt ? "Prazo para finalizar: 2 semanas" : "Deadline to finalize: 2 weeks")">
+                                            Faltam @(daysLeft)d
+                                        </span>
+                                    }
+                                </td>
+                                <td class="text-nowrap">
                                     <a class="btn btn-sm btn-info text-white me-1" href="/Auditorias/Detail?id=@item.Id" title="@(pt ? "Ver detalhe" : "View detail")"><i class="bi bi-eye"></i></a>
-                                    <a class="btn btn-sm btn-warning me-1" href="/Auditorias/Edit?id=@item.Id" title="@(pt ? "Editar" : "Edit")"><i class="bi bi-pencil"></i></a>
+                                    <a class="btn btn-sm btn-warning me-1" href="@(item.IsDraft && !item.IsFinalized ? $"/Auditorias/Create?draftId={item.Id}" : $"/Auditorias/Edit?id={item.Id}")" title="@(pt ? (item.IsDraft && !item.IsFinalized ? "Continuar rascunho" : "Editar") : (item.IsDraft && !item.IsFinalized ? "Resume draft" : "Edit"))"><i class="bi bi-pencil"></i></a>
                                     @if (Model.IsAdmin)
                                     {
                                         <button type="button" class="btn btn-sm btn-danger" onclick="deleteSingle(@item.Id)"><i class="bi bi-trash"></i></button>

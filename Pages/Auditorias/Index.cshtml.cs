@@ -117,5 +117,14 @@ namespace AHM.Audit.Pages.Auditorias
         public int CountYes(Auditoria a) => GetValues(a).Count(v => v == "YES");
         public int CountNo(Auditoria a)  => GetValues(a).Count(v => v == "NO");
         public int CountNA(Auditoria a)  => GetValues(a).Count(v => v == "N/A");
+
+        // Prazo máximo para finalizar uma auditoria: 2 semanas a partir da criação.
+        public const int FinalizationDeadlineDays = 14;
+
+        public DateTime GetDeadline(Auditoria a) => a.CreatedAt.AddDays(FinalizationDeadlineDays);
+
+        // Dias que faltam até ao prazo (negativo = já passou o prazo). Só faz sentido
+        // para auditorias ainda não finalizadas.
+        public int DaysUntilDeadline(Auditoria a) => (GetDeadline(a).Date - DateTime.Now.Date).Days;
     }
 }

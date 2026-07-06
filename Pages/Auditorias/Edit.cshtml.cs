@@ -80,7 +80,10 @@ namespace AHM.Audit.Pages.Auditorias
             original.ReasonForRecertification = Auditoria.ReasonForRecertification ?? "";
             original.Notes                    = Auditoria.Notes                    ?? "";
 
-            // Finalizar ou manter rascunho
+            // Guardar/editar de forma explícita (seja "Guardar" ou "Finalizar") significa que
+            // deixou de ser um rascunho de autosave por acabar — evita ficar com os badges
+            // "Rascunho" e "Finalizada" em simultâneo.
+            original.IsDraft     = false;
             original.IsFinalized = action == "finalize";
 
             _context.SaveChanges();

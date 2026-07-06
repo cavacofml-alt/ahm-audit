@@ -18,6 +18,21 @@
     <div class="alert alert-danger"><i class="bi bi-exclamation-triangle-fill me-2"></i>@Model.ErrorMessage</div>
 }
 
+@if (Model.Auditoria.Id != 0 && Model.Auditoria.IsDraft && !Model.Auditoria.IsFinalized)
+{
+    <div class="alert alert-info d-flex align-items-center justify-content-between">
+        <span>
+            <i class="bi bi-info-circle-fill me-2"></i>
+            <strong>Continuaste um rascunho não finalizado</strong> (Ticket: @(string.IsNullOrEmpty(Model.Auditoria.Ticket) ? "ainda sem número" : Model.Auditoria.Ticket), criado em @Model.Auditoria.CreatedAt.ToString("dd/MM/yyyy HH:mm")).
+        </span>
+        <a href="/Auditorias/Create?handler=Discard&id=@Model.Auditoria.Id"
+           class="btn btn-sm btn-outline-danger"
+           onclick="return confirm('Descartar este rascunho e começar uma auditoria totalmente nova? Esta ação não pode ser desfeita.');">
+            <i class="bi bi-trash me-1"></i>Descartar e começar nova
+        </a>
+    </div>
+}
+
 @if (string.IsNullOrEmpty(Model.CurrentAgentName))
 {
     <div class="alert alert-warning">O teu utilizador não está associado a um Agent. Contacta o administrador.</div>
