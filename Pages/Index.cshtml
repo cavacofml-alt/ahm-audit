@@ -136,8 +136,8 @@
             <div class="card-body d-flex flex-column align-items-center justify-content-center">
                 <canvas id="resultChart" width="200" height="200"></canvas>
                 <div class="mt-2 text-center">
-                    <span class="badge bg-success me-2">OK @Model.TotalYes</span>
-                    <span class="badge bg-danger">NOT OK @Model.TotalNo</span>
+                    <a href="/Auditorias?compliance=ok" class="badge bg-success me-2 text-decoration-none">OK @Model.TotalYes</a>
+                    <a href="/Auditorias?compliance=notok" class="badge bg-danger text-decoration-none">NOT OK @Model.TotalNo</a>
                 </div>
             </div>
         </div>
@@ -404,6 +404,9 @@ const gridColor = () => isDark() ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)';
 const textColor = () => isDark() ? '#e2e8f0' : '#1e293b';
 
 // Trend chart
+@if (Model.CanViewTrend)
+{
+<text>
 const trendLabels = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.MonthlyTrend.Select(m => m.Label).ToList()));
 const trendData   = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.MonthlyTrend.Select(m => m.Pct).ToList()));
 const trendCounts = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.MonthlyTrend.Select(m => m.Count).ToList()));
@@ -434,6 +437,8 @@ new Chart(document.getElementById('trendChart'), {
         }
     }
 });
+</text>
+}
 
 // Global conformity doughnut
 @if (Model.CanViewGlobalConformity)
@@ -443,8 +448,28 @@ const officerStats = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.O
 let resultChart = new Chart(document.getElementById('resultChart'), {
     type: 'doughnut',
     data: { labels:['OK','NOT OK'], datasets:[{ data:[@Model.TotalYes,@Model.TotalNo], backgroundColor:['#22c55e','#ef4444'], borderWidth:2, borderColor:'#fff' }] },
-    options: { plugins: { legend: { position: 'bottom' } }, cutout: '70%' }
+    options: {
+        plugins: {
+            legend: { position: 'bottom' },
+            tooltip: {
+                callbacks: {
+                    label: (ctx) => {
+                        const total = ctx.dataset.data.reduce((a, b) => a + b, 0);
+                        const pct = total > 0 ? Math.round(ctx.parsed * 100 / total) : 0;
+                        return `${ctx.label}: ${ctx.parsed} (${pct}%)`;
+                    }
+                }
+            }
+        },
+        cutout: '70%',
+        onClick: (e, elements) => {
+            if (elements.length > 0) {
+                window.location.href = elements[0].index === 0 ? '/Auditorias?compliance=ok' : '/Auditorias?compliance=notok';
+            }
+        }
+    }
 });
+document.getElementById('resultChart').style.cursor = 'pointer';
 </text>
 }
 
@@ -498,6 +523,9 @@ new Chart(document.getElementById('sectionChart'), {
 }
 
 // Airline chart
+@if (Model.CanViewAirlineChart)
+{
+<text>
 const airlineLabels = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.AirlineLabels));
 const airlineValues = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.AirlineValues));
 const airlineChart = new Chart(document.getElementById('airlineChart'), {
@@ -518,8 +546,11 @@ const airlineChart = new Chart(document.getElementById('airlineChart'), {
     }
 });
 document.getElementById('airlineChart').style.cursor = 'pointer';
+</text>
+}
 
 // Officer drill-down: razões de NO reais desse officer, cada uma com link para as auditorias
+// (função e dados independentes de qualquer canvas — seguro definir sempre)
 const officerReasonDrill = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(
     Model.OfficerReasonDrill.ToDictionary(kv => kv.Key, kv => kv.Value)
 ));
@@ -546,6 +577,9 @@ function showOfficerDrill(officerName) {
     new bootstrap.Modal(document.getElementById('officerDrillModal')).show();
 }
 
+@if (Model.CanViewAgentChart)
+{
+<text>
 const agentLabels = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.AgentLabels));
 const agentValues = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.AgentValues));
 new Chart(document.getElementById('agentChart'), {
@@ -559,7 +593,13 @@ new Chart(document.getElementById('agentChart'), {
         }
     }
 });
+document.getElementById('agentChart').style.cursor = 'pointer';
+</text>
+}
 
+@if (Model.CanViewOfficerChart)
+{
+<text>
 // Officer conformity chart
 const officerChartLabels = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.OfficerLabels));
 const officerChartData   = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.OfficerConformity));
@@ -582,5 +622,6 @@ new Chart(document.getElementById('officerChart'), {
     }
 });
 document.getElementById('officerChart').style.cursor = 'pointer';
-document.getElementById('agentChart') && (document.getElementById('agentChart').style.cursor = 'pointer');
+</text>
+}
 </script>

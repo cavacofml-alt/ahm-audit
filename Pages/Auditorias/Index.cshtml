@@ -5,7 +5,7 @@
     bool pt = true; // app is PT
 }
 
-@if (!string.IsNullOrEmpty(Model.FilterAirline) || !string.IsNullOrEmpty(Model.FilterNcField) || !string.IsNullOrEmpty(Model.FilterOfficer) || !string.IsNullOrEmpty(Model.FilterNcReason))
+@if (!string.IsNullOrEmpty(Model.FilterAirline) || !string.IsNullOrEmpty(Model.FilterNcField) || !string.IsNullOrEmpty(Model.FilterOfficer) || !string.IsNullOrEmpty(Model.FilterNcReason) || !string.IsNullOrEmpty(Model.FilterCompliance))
 {
     <div class="alert alert-info d-flex align-items-center justify-content-between mb-3">
         <span>
@@ -15,6 +15,8 @@
             @if (!string.IsNullOrEmpty(Model.FilterNcField))  { <span class="badge bg-danger me-2">NOT OK: @Model.FilterNcField</span> }
             @if (!string.IsNullOrEmpty(Model.FilterOfficer))  { <span class="badge bg-secondary me-2">Officer: @Model.FilterOfficer</span> }
             @if (!string.IsNullOrEmpty(Model.FilterNcReason)) { <span class="badge bg-danger me-2">Razão: @Model.FilterNcReason</span> }
+            @if (Model.FilterCompliance == "ok")    { <span class="badge bg-success me-2">Sem NOT OK</span> }
+            @if (Model.FilterCompliance == "notok") { <span class="badge bg-danger me-2">Com NOT OK</span> }
         </span>
         <a href="/Auditorias" class="btn btn-sm btn-outline-secondary"><i class="bi bi-x me-1"></i>Limpar filtro</a>
     </div>

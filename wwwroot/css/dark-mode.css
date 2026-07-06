@@ -35,6 +35,17 @@ body.dark-mode .table > :not(caption) > * > * { background-color: transparent !i
 body.dark-mode .table-hover tbody tr:hover { background: #334155 !important; }
 body.dark-mode .table-secondary { background: #334155 !important; color: #e2e8f0 !important; }
 body.dark-mode .table-dark { background: #0b1120 !important; }
+
+/* As regras acima usam !important e sobrepunham-se às cores de estado do Bootstrap
+   (.text-success/.text-warning/.text-danger/.text-muted), fazendo com que YES/NO/Conf%
+   ficassem todos com o mesmo cinzento dentro de tabelas em modo escuro. Estas exceções,
+   mais específicas, repõem cores bem visíveis sobre o fundo escuro. */
+body.dark-mode .table .text-success { color: #4ade80 !important; }
+body.dark-mode .table .text-warning { color: #fbbf24 !important; }
+body.dark-mode .table .text-danger  { color: #f87171 !important; }
+body.dark-mode .table .text-muted   { color: #94a3b8 !important; }
+body.dark-mode .table a.text-danger:hover,
+body.dark-mode .table a.text-success:hover { filter: brightness(1.15); }
 body.dark-mode thead.sticky-top { background: #0b1120 !important; }
 
 /* Formulários */

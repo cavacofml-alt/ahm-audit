@@ -18,8 +18,9 @@ namespace AHM.Audit.Pages.Auditorias
         public string? FilterNcField { get; set; }
         public string? FilterOfficer { get; set; }
         public string? FilterNcReason { get; set; }
+        public string? FilterCompliance { get; set; }
 
-        public IActionResult OnGet(string? airline, string? ncFilter, string? officer, string? ncReason)
+        public IActionResult OnGet(string? airline, string? ncFilter, string? officer, string? ncReason, string? compliance)
         {
             if (HttpContext.Session.GetString("User") == null)
                 return RedirectToPage("/Account/Login");
@@ -28,10 +29,11 @@ namespace AHM.Audit.Pages.Auditorias
             IsAdmin = _context.Users.Any(u => u.Username == username && u.IsAdmin);
             ViewData["IsAdmin"] = IsAdmin;
 
-            FilterAirline  = airline;
-            FilterNcField  = ncFilter;
-            FilterOfficer  = officer;
-            FilterNcReason = ncReason;
+            FilterAirline    = airline;
+            FilterNcField    = ncFilter;
+            FilterOfficer    = officer;
+            FilterNcReason   = ncReason;
+            FilterCompliance = compliance;
 
             var query = _context.Auditorias.AsQueryable();
 
@@ -42,6 +44,13 @@ namespace AHM.Audit.Pages.Auditorias
                 query = query.Where(a => a.AhmOfficer == officer);
 
             var audits = query.OrderByDescending(a => a.CreatedAt).ToList();
+
+            // Filtra pelo doughnut "Conformidade global" do dashboard: "ok" = auditorias sem
+            // nenhum item NOT OK; "notok" = auditorias com pelo menos um item NOT OK.
+            if (compliance == "ok")
+                audits = audits.Where(a => CountNo(a) == 0).ToList();
+            else if (compliance == "notok")
+                audits = audits.Where(a => CountNo(a) > 0).ToList();
 
             // Filtra por razão de NO pré-definida (selecionada a partir do gráfico "Razões de NOT OK"
             // ou do drill-down por Officer no dashboard)
