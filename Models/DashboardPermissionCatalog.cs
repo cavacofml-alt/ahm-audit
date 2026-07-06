@@ -26,7 +26,6 @@ namespace AHM.Audit.Models
             new Entry(nameof(User.CanViewGlobalConformity),  "Conformidade global"),
             new Entry(nameof(User.CanViewHeatmap),           "Checklist — detalhe por campo"),
             new Entry(nameof(User.CanViewNonConformities),   "Razões de NOT OK"),
-            new Entry(nameof(User.CanViewSectionChart),      "Resultados por secção (%)"),
             new Entry(nameof(User.CanViewAirlineChart),      "Por Airline"),
             new Entry(nameof(User.CanViewAgentChart),        "Por Agente"),
             new Entry(nameof(User.CanViewOfficerChart),      "Conformidade por Officer"),

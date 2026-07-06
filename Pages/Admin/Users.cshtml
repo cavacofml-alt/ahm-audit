@@ -95,7 +95,7 @@
                             </form>
                         </td>
                         <td class="align-middle">
-                            <button class="btn btn-sm btn-outline-primary" onclick="showPermissions(@u.Id, '@u.Username', @u.CanViewDashboard.ToString().ToLower(), @u.CanViewSectionChart.ToString().ToLower(), @u.CanViewNonConformities.ToString().ToLower(), @u.CanViewGlobalConformity.ToString().ToLower(), @u.CanViewTrend.ToString().ToLower(), @u.CanViewHeatmap.ToString().ToLower(), @u.CanViewAirlineChart.ToString().ToLower(), @u.CanViewAgentChart.ToString().ToLower(), @u.CanViewOfficerChart.ToString().ToLower(), @u.CanViewComparativeChart.ToString().ToLower(), @u.CanViewQuarterProgress.ToString().ToLower())">
+                            <button class="btn btn-sm btn-outline-primary" onclick="showPermissions(@u.Id, '@u.Username', @u.CanViewDashboard.ToString().ToLower(), @u.CanViewNonConformities.ToString().ToLower(), @u.CanViewGlobalConformity.ToString().ToLower(), @u.CanViewTrend.ToString().ToLower(), @u.CanViewHeatmap.ToString().ToLower(), @u.CanViewAirlineChart.ToString().ToLower(), @u.CanViewAgentChart.ToString().ToLower(), @u.CanViewOfficerChart.ToString().ToLower(), @u.CanViewComparativeChart.ToString().ToLower(), @u.CanViewQuarterProgress.ToString().ToLower())">
                                 <i class="bi bi-eye me-1"></i>Gerir
                             </button>
                         </td>
@@ -213,11 +213,6 @@
                         <label class="form-check-label" for="permNC">⚠️ Razões de NOT OK</label>
                     </div>
                     <div class="form-check mb-2 ms-3">
-                        <input class="form-check-input" type="checkbox" name="canViewSectionChart" id="permSection" value="true" />
-                        <input type="hidden" name="canViewSectionChart" value="false" />
-                        <label class="form-check-label" for="permSection">📊 Resultados por secção (%)</label>
-                    </div>
-                    <div class="form-check mb-2 ms-3">
                         <input class="form-check-input" type="checkbox" name="canViewAirlineChart" id="permAirline" value="true" />
                         <input type="hidden" name="canViewAirlineChart" value="false" />
                         <label class="form-check-label" for="permAirline">✈️ Por Airline</label>
@@ -259,11 +254,10 @@ function showResetPw(id, username) {
     new bootstrap.Modal(document.getElementById('resetPwModal')).show();
 }
 
-function showPermissions(id, username, dash, section, nc, global, trend, heatmap, airline, agent, officer, comparative, quarter) {
+function showPermissions(id, username, dash, nc, global, trend, heatmap, airline, agent, officer, comparative, quarter) {
     document.getElementById('permsUserId').value = id;
     document.getElementById('permsUser').textContent = username;
     document.getElementById('permDashboard').checked    = dash === true || dash === 'true';
-    document.getElementById('permSection').checked      = section === true || section === 'true';
     document.getElementById('permNC').checked           = nc === true || nc === 'true';
     document.getElementById('permGlobal').checked       = global === true || global === 'true';
     document.getElementById('permTrend').checked        = trend === true || trend === 'true';

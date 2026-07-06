@@ -44,7 +44,7 @@ namespace AHM.Audit.Pages.Admin
             {
                 Username = newUsername, PasswordHash = BCrypt.Net.BCrypt.HashPassword(newPassword), IsAdmin = isAdmin, Active = true,
                 PersonId = personId,
-                CanViewDashboard = true, CanViewSectionChart = true,
+                CanViewDashboard = true,
                 CanViewNonConformities = true, CanViewGlobalConformity = true
             });
             _context.SaveChanges();
@@ -108,7 +108,7 @@ namespace AHM.Audit.Pages.Admin
         }
 
         public IActionResult OnPostSetPermissions(int userId,
-            bool canViewDashboard, bool canViewSectionChart, bool canViewNonConformities,
+            bool canViewDashboard, bool canViewNonConformities,
             bool canViewGlobalConformity, bool canViewTrend, bool canViewHeatmap,
             bool canViewAirlineChart, bool canViewAgentChart, bool canViewOfficerChart,
             bool canViewComparativeChart, bool canViewQuarterProgress)
@@ -119,7 +119,6 @@ namespace AHM.Audit.Pages.Admin
             if (user != null)
             {
                 user.CanViewDashboard        = canViewDashboard;
-                user.CanViewSectionChart     = canViewSectionChart;
                 user.CanViewNonConformities  = canViewNonConformities;
                 user.CanViewGlobalConformity = canViewGlobalConformity;
                 user.CanViewTrend            = canViewTrend;

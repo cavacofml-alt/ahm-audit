@@ -249,7 +249,7 @@ using (var scope = app.Services.CreateScope())
         if (string.IsNullOrWhiteSpace(initialAdminPassword)) initialAdminPassword = "AHM123%%";
 
         db.Users.Add(new User { Username = "admin", PasswordHash = BCrypt.Net.BCrypt.HashPassword(initialAdminPassword), IsAdmin = true, Active = true,
-            CanViewDashboard = true, CanViewSectionChart = true, CanViewNonConformities = true, CanViewGlobalConformity = true });
+            CanViewDashboard = true, CanViewNonConformities = true, CanViewGlobalConformity = true });
         db.SaveChanges();
     }
 

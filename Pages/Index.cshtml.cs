@@ -12,7 +12,6 @@ namespace AHM.Audit.Pages
         public IndexModel(AuditDbContext context) { _context = context; }
 
         public bool IsAdmin { get; set; }
-        public bool CanViewSectionChart     { get; set; } = true;
         public bool CanViewNonConformities  { get; set; } = true;
         public bool CanViewGlobalConformity { get; set; } = true;
         public bool CanViewTrend            { get; set; } = true;
@@ -175,7 +174,6 @@ namespace AHM.Audit.Pages
             // acima), a visibilidade de cada gráfico respeita sempre o que está configurado
             // no modal de permissões — incluindo para admins. Um "IsAdmin ||" aqui faria com
             // que desmarcar um gráfico para um admin não tivesse qualquer efeito.
-            CanViewSectionChart     = user.CanViewSectionChart;
             CanViewNonConformities  = user.CanViewNonConformities;
             CanViewGlobalConformity = user.CanViewGlobalConformity;
             CanViewTrend            = user.CanViewTrend;

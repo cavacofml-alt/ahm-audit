@@ -116,8 +116,32 @@
     </div>
 </div>
 
-<!-- Dashboard grid: cada card é um widget independente, arrastável (admin) -->
+<!-- Dashboard grid: cada card é um widget independente -->
 <div id="dashboardGrid">
+
+    @if (Model.CanViewQuarterProgress)
+    {
+    <div class="widget w-col-12" data-widget="quarterprogress">
+        <div class="card">
+            <div class="card-header fw-bold"><i class="bi bi-calendar3 me-2"></i>Progresso trimestral @Model.CurrentYear<span data-bs-toggle="tooltip" data-bs-placement="top" title="Auditorias por trimestre do ano atual." style="cursor:help; margin-left:6px; font-size:13px; color:#94a3b8"><i class="bi bi-info-circle"></i></span></div>
+            <div class="card-body">
+                <div class="row g-3">
+                    @foreach (var q in Model.QuarterProgress)
+                    {
+                        var isCurrentQ = q.Label.Contains($"Q{Model.CurrentQuarter}");
+                        <div class="col-md-3">
+                            <div class="p-3 rounded @(isCurrentQ ? "border border-primary" : "bg-light")">
+                                <div class="fw-bold @(isCurrentQ ? "text-primary" : "")">@q.Label @(isCurrentQ ? "← atual" : "")</div>
+                                <div style="font-size:2rem;font-weight:900">@q.Count</div>
+                                <div class="text-muted small">auditorias</div>
+                            </div>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+    }
 
     @if (Model.CanViewTrend)
     {
@@ -206,16 +230,6 @@
     </div>
     }
 
-    @if (Model.CanViewSectionChart)
-    {
-    <div class="widget w-col-12" data-widget="section">
-        <div class="card h-100">
-            <div class="card-header fw-bold"><i class="bi bi-bar-chart-steps me-2"></i>Resultados por secção (%)<span data-bs-toggle="tooltip" data-bs-placement="top" title="Conformidade agregada por secção da checklist (B, C, D, E, G)." style="cursor:help; margin-left:6px; font-size:13px; color:#94a3b8"><i class="bi bi-info-circle"></i></span></div>
-            <div class="card-body"><canvas id="sectionChart" height="80"></canvas></div>
-        </div>
-    </div>
-    }
-
     @if (Model.CanViewAirlineChart)
     {
     <div class="widget w-col-6" data-widget="airline">
@@ -273,29 +287,6 @@
     </div>
     }
 
-    @if (Model.CanViewQuarterProgress)
-    {
-    <div class="widget w-col-12" data-widget="quarterprogress">
-        <div class="card">
-            <div class="card-header fw-bold"><i class="bi bi-calendar3 me-2"></i>Progresso trimestral @Model.CurrentYear<span data-bs-toggle="tooltip" data-bs-placement="top" title="Auditorias por trimestre do ano atual." style="cursor:help; margin-left:6px; font-size:13px; color:#94a3b8"><i class="bi bi-info-circle"></i></span></div>
-            <div class="card-body">
-                <div class="row g-3">
-                    @foreach (var q in Model.QuarterProgress)
-                    {
-                        var isCurrentQ = q.Label.Contains($"Q{Model.CurrentQuarter}");
-                        <div class="col-md-3">
-                            <div class="p-3 rounded @(isCurrentQ ? "border border-primary" : "bg-light")">
-                                <div class="fw-bold @(isCurrentQ ? "text-primary" : "")">@q.Label @(isCurrentQ ? "← atual" : "")</div>
-                                <div style="font-size:2rem;font-weight:900">@q.Count</div>
-                                <div class="text-muted small">auditorias</div>
-                            </div>
-                        </div>
-                    }
-                </div>
-            </div>
-        </div>
-    </div>
-    }
 
 </div><!-- end dashboardGrid -->
 
@@ -443,11 +434,10 @@ new Chart(document.getElementById('reasonChart'), {
     type: 'bar',
     data: { labels: reasonLabels, datasets: [{ label: 'Ocorrências', data: reasonData, backgroundColor: '#ef4444', borderRadius: 6 }] },
     options: {
-        indexAxis: 'y',
         plugins: { legend: { display: false } },
         scales: {
-            x: { grid: { color: gridColor() }, ticks: { color: textColor() } },
-            y: { grid: { display: false }, ticks: { color: textColor(), font: { size: 11 } } }
+            y: { grid: { color: gridColor() }, ticks: { color: textColor() } },
+            x: { grid: { display: false }, ticks: { color: textColor(), font: { size: 11 }, autoSkip: true, maxRotation: 45, minRotation: 0 } }
         },
         onClick: (e, elements) => {
             if (elements.length > 0) {
@@ -458,27 +448,6 @@ new Chart(document.getElementById('reasonChart'), {
     }
 });
 if (reasonLabels.length > 0) document.getElementById('reasonChart').style.cursor = 'pointer';
-</text>
-}
-
-// Section chart
-@if (Model.CanViewSectionChart)
-{
-<text>
-const secLabels = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.SectionData.Select(s => s.name).ToList()));
-const secData   = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.SectionData.Select(s => s.pct).ToList()));
-const secColors = secData.map(v => v >= 95 ? '#22c55e' : v >= 80 ? '#f59e0b' : '#ef4444');
-new Chart(document.getElementById('sectionChart'), {
-    type: 'bar',
-    data: { labels: secLabels, datasets: [{ label: 'Conformidade %', data: secData, backgroundColor: secColors, borderRadius: 6 }] },
-    options: {
-        plugins: { legend: { display: false } },
-        scales: {
-            y: { min: 0, max: 100, ticks: { color: textColor(), callback: v => v + '%' }, grid: { color: gridColor() } },
-            x: { ticks: { color: textColor(), font: { size: 11 }, autoSkip: true, maxRotation: 30, minRotation: 0 }, grid: { display: false } }
-        }
-    }
-});
 </text>
 }
 

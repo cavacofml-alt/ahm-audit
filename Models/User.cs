@@ -15,7 +15,6 @@ namespace AHM.Audit.Models
 
         // Permissões de dashboard
         public bool CanViewDashboard          { get; set; } = true;
-        public bool CanViewSectionChart       { get; set; } = true;
         public bool CanViewNonConformities    { get; set; } = true;
         public bool CanViewGlobalConformity   { get; set; } = true;
         public bool CanViewTrend              { get; set; } = true;
