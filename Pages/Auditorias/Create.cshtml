@@ -213,8 +213,9 @@ else
                                 <input type="radio" name="check-@field" value="NO" class="form-check-input checklist-radio" data-field="@field" data-label="@label" @(currentVal == "NO" ? "checked" : "") />
                                 @if (currentVal == "NO")
                                 {
-                                    <div class="small text-danger" id="reason-@field">
+                                    <div class="small text-danger" id="reason-@field" data-reason-value="@currentReasonCreate" style="cursor:pointer" title="Clica para alterar a razão" onclick="openReasonModal('@field', '@label', this.previousElementSibling)">
                                         <i class="bi bi-exclamation-circle me-1"></i>@(currentReasonCreate ?? "sem razão registada")
+                                        <i class="bi bi-pencil-fill ms-1" style="font-size:10px"></i>
                                     </div>
                                 }
                             </td>
@@ -340,15 +341,21 @@ async function autosaveChecklist(field, value, reason) {
         // Mostra/atualiza a razão do NO diretamente na página, sem precisar de recarregar.
         const reasonEl = document.getElementById('reason-' + field);
         if (value === 'NO') {
-            const text = '<i class="bi bi-exclamation-circle me-1"></i>' + (reason || 'sem razão registada');
+            const text = '<i class="bi bi-exclamation-circle me-1"></i>' + (reason || 'sem razão registada') + ' <i class="bi bi-pencil-fill ms-1" style="font-size:10px"></i>';
             if (reasonEl) {
                 reasonEl.innerHTML = text;
+                reasonEl.dataset.reasonValue = reason || '';
             } else {
-                const noCell = document.querySelector(`#row-${field} input[value="NO"]`).closest('td');
+                const noRadio = document.querySelector(`#row-${field} input[value="NO"]`);
+                const noCell = noRadio.closest('td');
                 const div = document.createElement('div');
                 div.className = 'small text-danger';
                 div.id = 'reason-' + field;
+                div.style.cursor = 'pointer';
+                div.title = 'Clica para alterar a razão';
+                div.dataset.reasonValue = reason || '';
                 div.innerHTML = text;
+                div.onclick = () => openReasonModal(field, noRadio.dataset.label, noRadio);
                 noCell.appendChild(div);
             }
         } else if (reasonEl) {
@@ -371,19 +378,25 @@ async function autosaveField(field, value) {
 }
 
 // Checklist radios
+function openReasonModal(field, label, radio) {
+    currentNoField = field;
+    currentNoLabel = label;
+    currentNoRadio = radio;
+    radio.dataset.confirmed = "true"; // já estava confirmado antes (é uma edição, não uma seleção nova)
+    document.getElementById('noReasonItemLabel').textContent = label;
+    const existingReason = document.getElementById('reason-' + field)?.dataset.reasonValue || '';
+    document.getElementById('noReasonSelect').value = existingReason;
+    document.getElementById('noReasonConfirm').disabled = !existingReason;
+    new bootstrap.Modal(document.getElementById('noReasonModal')).show();
+}
+
 document.querySelectorAll('.checklist-radio').forEach(radio => {
     radio.addEventListener('change', function() {
         const field = this.dataset.field;
         const label = this.dataset.label;
         if (this.value === 'NO') {
-            currentNoField = field;
-            currentNoLabel = label;
-            currentNoRadio = this;
             this.dataset.confirmed = "false";
-            document.getElementById('noReasonItemLabel').textContent = label;
-            document.getElementById('noReasonSelect').value = '';
-            document.getElementById('noReasonConfirm').disabled = true;
-            new bootstrap.Modal(document.getElementById('noReasonModal')).show();
+            openReasonModal(field, label, this);
         } else {
             autosaveChecklist(field, this.value, null);
         }
@@ -402,13 +415,13 @@ document.getElementById('noReasonConfirm').addEventListener('click', function() 
 });
 
 document.getElementById('noReasonCancel').addEventListener('click', function() {
-    if (currentNoRadio) currentNoRadio.checked = false;
+    if (currentNoRadio && currentNoRadio.dataset.confirmed !== "true") currentNoRadio.checked = false;
     bootstrap.Modal.getInstance(document.getElementById('noReasonModal')).hide();
 });
 
 document.getElementById('noReasonModal').addEventListener('hidden.bs.modal', function() {
     // Se o modal fechar sem confirmar (X, ESC, clique fora), desmarca também
-    if (currentNoRadio && currentNoRadio.checked && !currentNoRadio.dataset.confirmed) {
+    if (currentNoRadio && currentNoRadio.checked && currentNoRadio.dataset.confirmed !== "true") {
         currentNoRadio.checked = false;
     }
 });
