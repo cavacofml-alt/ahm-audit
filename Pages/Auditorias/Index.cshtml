@@ -108,7 +108,7 @@ else
                             <th class="text-center sortable" data-col="7">YES <i class="bi bi-arrow-down-up"></i></th>
                             <th class="text-center sortable" data-col="8">NO <i class="bi bi-arrow-down-up"></i></th>
                             <th class="text-center sortable" data-col="9">N/A <i class="bi bi-arrow-down-up"></i></th>
-                            <th>Prazo</th>
+                            <th class="sortable" data-col="10">Prazo <i class="bi bi-arrow-down-up"></i></th>
                             <th></th>
                         </tr>
                     </thead>
@@ -128,10 +128,10 @@ else
                                 <td class="text-center"><span class="badge bg-success">@Model.CountYes(item)</span></td>
                                 <td class="text-center"><span class="badge bg-danger">@nos</span></td>
                                 <td class="text-center"><span class="badge bg-secondary">@Model.CountNA(item)</span></td>
-                                <td class="text-nowrap">
-                                    @{
-                                        var daysLeft = Model.DaysUntilDeadline(item);
-                                    }
+                                @{
+                                    var daysLeft = Model.DaysUntilDeadline(item);
+                                }
+                                <td class="text-nowrap" data-sort="@(item.IsFinalized ? 9999 : daysLeft)">
                                     @if (item.IsFinalized)
                                     {
                                         <span class="badge bg-success"><i class="bi bi-check-circle me-1"></i>Finalizada</span>
@@ -191,8 +191,9 @@ document.querySelectorAll('.sortable').forEach(th => {
         const tbody = document.getElementById('tableBody');
         const rows = Array.from(tbody.querySelectorAll('tr'));
         rows.sort((a, b) => {
-            const aVal = a.cells[col]?.innerText.trim() || '';
-            const bVal = b.cells[col]?.innerText.trim() || '';
+            const aCell = a.cells[col], bCell = b.cells[col];
+            const aVal = aCell?.dataset.sort ?? aCell?.innerText.trim() ?? '';
+            const bVal = bCell?.dataset.sort ?? bCell?.innerText.trim() ?? '';
             const n1 = parseFloat(aVal), n2 = parseFloat(bVal);
             if (!isNaN(n1) && !isNaN(n2)) return sortDir[col] ? n1 - n2 : n2 - n1;
             return sortDir[col] ? aVal.localeCompare(bVal) : bVal.localeCompare(aVal);
