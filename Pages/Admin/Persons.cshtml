@@ -52,6 +52,14 @@
                                         @(p.Active ? "Desativar" : "Ativar")
                                     </button>
                                 </form>
+                                <form action="/Admin/Persons?handler=Delete" method="post" class="d-inline"
+                                      onsubmit="return confirm('Apagar \'@p.Name\' de vez? Esta acao nao pode ser desfeita (as auditorias ja existentes mantem o nome, mas deixa de aparecer para novas auditorias).');">
+                    @Html.AntiForgeryToken()
+                                    <input type="hidden" name="personId" value="@p.Id" />
+                                    <button class="btn btn-sm btn-danger" title="Apagar">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </form>
                             </div>
                         </li>
                     }
@@ -95,6 +103,14 @@
                                     <input type="hidden" name="personId" value="@p.Id" />
                                     <button class="btn btn-sm @(p.Active ? "btn-outline-danger" : "btn-outline-success")">
                                         @(p.Active ? "Desativar" : "Ativar")
+                                    </button>
+                                </form>
+                                <form action="/Admin/Persons?handler=Delete" method="post" class="d-inline"
+                                      onsubmit="return confirm('Apagar \'@p.Name\' de vez? Esta acao nao pode ser desfeita (as auditorias ja existentes mantem o nome, mas deixa de aparecer para novas auditorias).');">
+                    @Html.AntiForgeryToken()
+                                    <input type="hidden" name="personId" value="@p.Id" />
+                                    <button class="btn btn-sm btn-danger" title="Apagar">
+                                        <i class="bi bi-trash"></i>
                                     </button>
                                 </form>
                             </div>

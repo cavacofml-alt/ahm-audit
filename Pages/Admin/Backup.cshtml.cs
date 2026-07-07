@@ -35,28 +35,68 @@ namespace AHM.Audit.Pages.Admin
                 Message = "Seleciona um ficheiro CSV."; IsError = true; return Page();
             }
 
-            var validAgents   = _context.Persons.Where(p => p.Role == "Agent").Select(p => p.Name.Trim().ToLower()).ToHashSet();
-            var validOfficers = _context.Persons.Where(p => p.Role == "Officer").Select(p => p.Name.Trim().ToLower()).ToHashSet();
+            var validAgents   = _context.Persons.Where(p => p.Role == "Agent").Select(p => p.Name).ToList();
+            var validOfficers = _context.Persons.Where(p => p.Role == "Officer").Select(p => p.Name).ToList();
             // Tickets já existentes na BD + tickets já vistos neste próprio ficheiro (para não
             // deixar passar duplicados dentro do mesmo CSV, já que só há um SaveChanges no fim).
             var existingTickets = _context.Auditorias.Select(a => a.Ticket).ToHashSet();
             var seenInThisFile  = new HashSet<string>();
 
-            int imported = 0, skipped = 0, nameFixed = 0;
-
-            using var reader = new System.IO.StreamReader(csvFile.OpenReadStream());
-            reader.ReadLine();
-
-            while (!reader.EndOfStream)
+            // Lê o ficheiro todo para memória primeiro, para se poder validar tudo antes de
+            // gravar qualquer coisa — se houver um nome de Agent/Officer não reconhecido em
+            // qualquer linha, a importação inteira falha e nada é gravado.
+            var lines = new List<string>();
+            using (var reader = new System.IO.StreamReader(csvFile.OpenReadStream()))
             {
-                var line = reader.ReadLine();
-                if (string.IsNullOrWhiteSpace(line)) continue;
+                reader.ReadLine(); // cabeçalho
+                while (!reader.EndOfStream)
+                {
+                    var line = reader.ReadLine();
+                    if (!string.IsNullOrWhiteSpace(line)) lines.Add(line);
+                }
+            }
+
+            var nameErrors = new List<string>();
+            var rowsToImport = new List<(string[] cols, string ticket, string agent, string officer)>();
+            int rowNum = 1; // linha 1 = cabeçalho, por isso as linhas de dados começam em 2
+
+            foreach (var line in lines)
+            {
+                rowNum++;
                 var cols = ParseCsvLine(line);
                 if (cols.Length < 10) continue;
                 var ticket = cols[0].Trim();
                 if (string.IsNullOrEmpty(ticket)) continue;
-                if (existingTickets.Contains(ticket) || !seenInThisFile.Add(ticket)) { skipped++; continue; }
+                if (existingTickets.Contains(ticket) || !seenInThisFile.Add(ticket)) continue;
 
+                var agentRaw   = SafeGet(cols, 1).Trim();
+                var officerRaw = SafeGet(cols, 2).Trim();
+
+                // Compara ignorando acentos/maiúsculas (ex.: "Joao" == "João" na BD).
+                var agentMatch   = validAgents.FirstOrDefault(p => NormalizeName(p) == NormalizeName(agentRaw));
+                var officerMatch = validOfficers.FirstOrDefault(p => NormalizeName(p) == NormalizeName(officerRaw));
+
+                if (!string.IsNullOrEmpty(agentRaw) && agentMatch == null)
+                    nameErrors.Add($"Linha {rowNum} (ticket {ticket}): Agent '{agentRaw}' não existe em Admin > Pessoas.");
+                if (!string.IsNullOrEmpty(officerRaw) && officerMatch == null)
+                    nameErrors.Add($"Linha {rowNum} (ticket {ticket}): AHM Officer '{officerRaw}' não existe em Admin > Pessoas.");
+
+                rowsToImport.Add((cols, ticket, agentMatch ?? agentRaw, officerMatch ?? officerRaw));
+            }
+
+            if (nameErrors.Any())
+            {
+                Message = "Importação cancelada — nenhuma auditoria foi gravada. Corrige os nomes no CSV (têm de ser exatamente iguais aos que existem em Admin > Pessoas) ou adiciona-os lá primeiro:\n"
+                    + string.Join("\n", nameErrors.Take(20))
+                    + (nameErrors.Count > 20 ? $"\n... e mais {nameErrors.Count - 20} problema(s)." : "");
+                IsError = true;
+                return Page();
+            }
+
+            int imported = 0, skipped = lines.Count - rowsToImport.Count;
+
+            foreach (var (cols, ticket, agent, officer) in rowsToImport)
+            {
                 try
                 {
                     var dateStr = SafeGet(cols, 6);
@@ -64,12 +104,6 @@ namespace AHM.Audit.Pages.Admin
                     DateTime.TryParseExact(dateStr,
                         new[] { "dd/MM/yyyy", "d/M/yyyy", "MM/dd/yyyy", "yyyy-MM-dd", "dd-MM-yyyy" },
                         CultureInfo.InvariantCulture, DateTimeStyles.None, out parsedDate);
-
-                    var agentRaw   = SafeGet(cols, 1);
-                    var officerRaw = SafeGet(cols, 2);
-                    var agent   = validAgents.Contains(agentRaw.Trim().ToLower())     ? agentRaw.Trim()   : "";
-                    var officer = validOfficers.Contains(officerRaw.Trim().ToLower()) ? officerRaw.Trim() : "";
-                    if (agent != agentRaw.Trim() || officer != officerRaw.Trim()) nameFixed++;
 
                     var a = new Auditoria
                     {
@@ -104,10 +138,23 @@ namespace AHM.Audit.Pages.Admin
             }
 
             _context.SaveChanges();
-            var msg = $"Importação concluída: {imported} auditoria(s) importada(s), {skipped} ignorada(s).";
-            if (nameFixed > 0) msg += $" {nameFixed} com Agent/Officer não reconhecido — campo ficou em branco.";
-            Message = msg;
+            Message = $"Importação concluída: {imported} auditoria(s) importada(s), {skipped} ignorada(s) (ticket em falta/duplicado).";
             return Page();
+        }
+
+        // Remove acentos e normaliza para comparação de nomes tolerante a diferenças de escrita
+        // (ex.: "Joao Viriato" == "João Viriato").
+        private static string NormalizeName(string name)
+        {
+            var normalized = name.Trim().ToLowerInvariant().Normalize(System.Text.NormalizationForm.FormD);
+            var sb = new System.Text.StringBuilder();
+            foreach (var c in normalized)
+            {
+                var category = System.Globalization.CharUnicodeInfo.GetUnicodeCategory(c);
+                if (category != System.Globalization.UnicodeCategory.NonSpacingMark)
+                    sb.Append(c);
+            }
+            return sb.ToString();
         }
 
         public IActionResult OnPostDeleteAll()
