@@ -84,19 +84,17 @@ namespace AHM.Audit.Pages.Admin
                 if (!string.IsNullOrEmpty(officerRaw) && officerMatch == null)
                     nameErrors.Add($"Linha {rowNum} (ticket {ticket}): AHM Officer '{officerRaw}' não existe em Admin > Pessoas.");
 
-                // Valida a razão de cada item marcado NO (formato "NO (razão)" dentro da célula,
-                // tal como o "Exportar CSV" agora produz).
+                // Valida a razão de cada item marcado NO (formato "NO (razão)" dentro da célula).
+                // Um NO sem razão nenhuma é aceite (fica "sem razão registada", como já acontece
+                // nas páginas de detalhe) — só bloqueia se a razão vier escrita mas não corresponder
+                // a nenhuma das predefinidas (proteção contra erros de escrita).
                 for (int i = 0; i < AuditCsvExporter.ChecklistFields.Length; i++)
                 {
                     var field = AuditCsvExporter.ChecklistFields[i];
                     var (val, reason) = ParseChecklistCell(SafeGet(cols, checklistStartCol + i));
-                    if (val != "NO") continue;
+                    if (val != "NO" || string.IsNullOrEmpty(reason)) continue;
 
-                    if (string.IsNullOrEmpty(reason))
-                    {
-                        nameErrors.Add($"Linha {rowNum} (ticket {ticket}): item '{field}' está NO mas sem razão — formato esperado na célula: \"NO (razão)\".");
-                    }
-                    else if (!validReasons.Any(r => NormalizeName(r) == NormalizeName(reason)))
+                    if (!validReasons.Any(r => NormalizeName(r) == NormalizeName(reason)))
                     {
                         nameErrors.Add($"Linha {rowNum} (ticket {ticket}): razão '{reason}' do item '{field}' não existe em Admin > Definições.");
                     }
