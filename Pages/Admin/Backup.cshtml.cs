@@ -45,18 +45,22 @@ namespace AHM.Audit.Pages.Admin
 
             // Lê o ficheiro todo para memória primeiro, para se poder validar tudo antes de
             // gravar qualquer coisa — se houver um nome de Agent/Officer não reconhecido, ou
-            // uma razão de NO não reconhecida/em falta, em qualquer linha, a importação inteira
-            // falha e nada é gravado.
-            var lines = new List<string>();
+            // uma razão de NO não reconhecida, em qualquer linha, a importação inteira falha e
+            // nada é gravado.
+            //
+            // IMPORTANTE: lê-se o ficheiro inteiro e processa-se com um parser de CSV a sério
+            // (ParseCsv), não linha a linha — células com texto em várias linhas (ex.: notas de
+            // correção longas) partiam uma única linha de dados em várias com StreamReader.ReadLine(),
+            // desalinhando todas as colunas a partir daí.
+            string csvContent;
             using (var reader = new System.IO.StreamReader(csvFile.OpenReadStream()))
             {
-                reader.ReadLine(); // cabeçalho
-                while (!reader.EndOfStream)
-                {
-                    var line = reader.ReadLine();
-                    if (!string.IsNullOrWhiteSpace(line)) lines.Add(line);
-                }
+                csvContent = reader.ReadToEnd();
             }
+            var allRows = ParseCsv(csvContent);
+            var dataRows = allRows.Skip(1) // salta o cabeçalho
+                .Where(r => r.Count > 1 || (r.Count == 1 && !string.IsNullOrWhiteSpace(r[0])))
+                .ToList();
 
             var nameErrors = new List<string>();
             var skippedDetails = new List<string>();
@@ -64,10 +68,10 @@ namespace AHM.Audit.Pages.Admin
             int rowNum = 1; // linha 1 = cabeçalho, por isso as linhas de dados começam em 2
             const int checklistStartCol = 8; // primeira coluna da checklist (B1) no CSV
 
-            foreach (var line in lines)
+            foreach (var row in dataRows)
             {
                 rowNum++;
-                var cols = ParseCsvLine(line);
+                var cols = row.ToArray();
                 if (cols.Length < 10) { skippedDetails.Add($"Linha {rowNum}: menos colunas do que o esperado."); continue; }
                 var ticket = cols[0].Trim();
                 if (string.IsNullOrEmpty(ticket)) { skippedDetails.Add($"Linha {rowNum}: sem número de ticket."); continue; }
@@ -238,19 +242,50 @@ namespace AHM.Audit.Pages.Admin
         private string SafeGet(string[] arr, int i) =>
             i < arr.Length ? arr[i].Trim('"', ' ') : "";
 
-        private string[] ParseCsvLine(string line)
+        // Parser de CSV a sério: lê o conteúdo inteiro do ficheiro (não linha a linha), respeitando
+        // aspas — incluindo quando uma célula tem texto com quebras de linha lá dentro (ex.: notas
+        // de correção longas), que com leitura linha a linha partiam uma linha de dados em várias
+        // e desalinhavam todas as colunas a partir daí.
+        private static List<List<string>> ParseCsv(string content)
         {
-            var result = new List<string>();
+            var rows = new List<List<string>>();
+            var currentRow = new List<string>();
+            var field = new StringBuilder();
             bool inQuotes = false;
-            var current = new StringBuilder();
-            foreach (char c in line)
+            int i = 0;
+            int n = content.Length;
+
+            while (i < n)
             {
-                if (c == '"') { inQuotes = !inQuotes; }
-                else if (c == ',' && !inQuotes) { result.Add(current.ToString()); current.Clear(); }
-                else current.Append(c);
+                char c = content[i];
+                if (inQuotes)
+                {
+                    if (c == '"')
+                    {
+                        if (i + 1 < n && content[i + 1] == '"') { field.Append('"'); i += 2; continue; }
+                        inQuotes = false; i++; continue;
+                    }
+                    field.Append(c); i++; continue;
+                }
+
+                if (c == '"') { inQuotes = true; i++; continue; }
+                if (c == ',') { currentRow.Add(field.ToString()); field.Clear(); i++; continue; }
+                if (c == '\r') { i++; continue; }
+                if (c == '\n')
+                {
+                    currentRow.Add(field.ToString()); field.Clear();
+                    rows.Add(currentRow); currentRow = new List<string>();
+                    i++; continue;
+                }
+                field.Append(c); i++;
             }
-            result.Add(current.ToString());
-            return result.ToArray();
+
+            if (field.Length > 0 || currentRow.Count > 0)
+            {
+                currentRow.Add(field.ToString());
+                rows.Add(currentRow);
+            }
+            return rows;
         }
 
         private bool CheckAdmin()
