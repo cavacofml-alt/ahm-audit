@@ -205,20 +205,18 @@ else
                         var currentVal = typeof(AHM.Audit.Models.Auditoria).GetProperty(field)?.GetValue(Model.Auditoria)?.ToString() ?? "";
                         var currentReasonCreate = noReasonsCreate.TryGetValue(field, out var rc) ? rc : null;
                         <tr id="row-@field" class="@(string.IsNullOrEmpty(currentVal) ? "table-warning" : "")">
-                            <td style="width:50%">
-                                @label
+                            <td style="width:50%">@label</td>
+                            <td class="text-center" style="width:17%">
+                                <input type="radio" name="check-@field" value="YES" class="form-check-input checklist-radio" data-field="@field" data-label="@label" @(currentVal == "YES" ? "checked" : "") />
+                            </td>
+                            <td class="text-center" style="width:17%">
+                                <input type="radio" name="check-@field" value="NO" class="form-check-input checklist-radio" data-field="@field" data-label="@label" @(currentVal == "NO" ? "checked" : "") />
                                 @if (currentVal == "NO")
                                 {
                                     <div class="small text-danger" id="reason-@field">
                                         <i class="bi bi-exclamation-circle me-1"></i>@(currentReasonCreate ?? "sem razão registada")
                                     </div>
                                 }
-                            </td>
-                            <td class="text-center" style="width:17%">
-                                <input type="radio" name="check-@field" value="YES" class="form-check-input checklist-radio" data-field="@field" data-label="@label" @(currentVal == "YES" ? "checked" : "") />
-                            </td>
-                            <td class="text-center" style="width:17%">
-                                <input type="radio" name="check-@field" value="NO" class="form-check-input checklist-radio" data-field="@field" data-label="@label" @(currentVal == "NO" ? "checked" : "") />
                             </td>
                             <td class="text-center" style="width:17%">
                                 <input type="radio" name="check-@field" value="N/A" class="form-check-input checklist-radio" data-field="@field" data-label="@label" @(currentVal == "N/A" ? "checked" : "") />
@@ -346,12 +344,12 @@ async function autosaveChecklist(field, value, reason) {
             if (reasonEl) {
                 reasonEl.innerHTML = text;
             } else {
-                const labelCell = document.getElementById('row-' + field).querySelector('td');
+                const noCell = document.querySelector(`#row-${field} input[value="NO"]`).closest('td');
                 const div = document.createElement('div');
                 div.className = 'small text-danger';
                 div.id = 'reason-' + field;
                 div.innerHTML = text;
-                labelCell.appendChild(div);
+                noCell.appendChild(div);
             }
         } else if (reasonEl) {
             reasonEl.remove();
@@ -488,6 +486,24 @@ updateSummary();
 function validateAndMaybeSubmit(actionValue) {
     const form = document.getElementById('auditForm');
     if (!form.checkValidity()) { form.reportValidity(); return; }
+
+    // Checklist incompleta: as linhas por preencher ficam a amarelo (table-warning).
+    const missingRows = document.querySelectorAll('tr.table-warning');
+    if (missingRows.length > 0) {
+        alert(`Ainda faltam preencher ${missingRows.length} item(ns) da checklist (marcados a amarelo).`);
+        missingRows[0].scrollIntoView({ behavior: 'smooth', block: 'center' });
+        return;
+    }
+
+    // NO sem razão selecionada (não devia acontecer, já que o popup obriga a escolher uma
+    // razão antes de gravar — mas serve de rede de segurança extra).
+    const noWithoutReason = Array.from(document.querySelectorAll('.checklist-radio[value="NO"]:checked'))
+        .filter(r => !document.getElementById('reason-' + r.dataset.field));
+    if (noWithoutReason.length > 0) {
+        alert(`Falta escolher a razão de ${noWithoutReason.length} item(ns) marcado(s) como NO.`);
+        noWithoutReason[0].closest('tr').scrollIntoView({ behavior: 'smooth', block: 'center' });
+        return;
+    }
 
     const aircraftRecertified = document.querySelector('input[name="Auditoria.AircraftRecertified"]:checked')?.value;
     const correctionTicketEl = document.querySelector('input[name="Auditoria.CorrectionTicket"]');

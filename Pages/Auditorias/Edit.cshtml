@@ -200,8 +200,10 @@
                     {
                         var currentReason = noReasons.TryGetValue(field, out var r) ? r : null;
                         <tr id="row-@field">
-                            <td>
-                                @label
+                            <td>@label</td>
+                            <td class="text-center"><input type="radio" name="check-@field" value="YES" class="form-check-input checklist-radio" data-field="@field" data-label="@label" @(value == "YES" ? "checked" : "") @(Model.IsLocked ? "disabled" : "") /></td>
+                            <td class="text-center">
+                                <input type="radio" name="check-@field" value="NO"  class="form-check-input checklist-radio" data-field="@field" data-label="@label" @(value == "NO"  ? "checked" : "") @(Model.IsLocked ? "disabled" : "") />
                                 @if (value == "NO")
                                 {
                                     <div class="small text-danger" id="reason-@field">
@@ -209,8 +211,6 @@
                                     </div>
                                 }
                             </td>
-                            <td class="text-center"><input type="radio" name="check-@field" value="YES" class="form-check-input checklist-radio" data-field="@field" data-label="@label" @(value == "YES" ? "checked" : "") @(Model.IsLocked ? "disabled" : "") /></td>
-                            <td class="text-center"><input type="radio" name="check-@field" value="NO"  class="form-check-input checklist-radio" data-field="@field" data-label="@label" @(value == "NO"  ? "checked" : "") @(Model.IsLocked ? "disabled" : "") /></td>
                             <td class="text-center"><input type="radio" name="check-@field" value="N/A" class="form-check-input checklist-radio" data-field="@field" data-label="@label" @(value == "N/A" ? "checked" : "") @(Model.IsLocked ? "disabled" : "") /></td>
                         </tr>
                     }
@@ -309,13 +309,12 @@ async function autosaveChecklist(field, value, reason) {
             const text = '<i class="bi bi-exclamation-circle me-1"></i>' + (reason || 'sem razão registada');
             if (reasonEl) { reasonEl.innerHTML = text; }
             else {
-                const row = document.getElementById('row-' + field);
-                const cell = row.querySelector('td');
+                const noCell = document.querySelector(`#row-${field} input[value="NO"]`).closest('td');
                 const div = document.createElement('div');
                 div.className = 'small text-danger';
                 div.id = 'reason-' + field;
                 div.innerHTML = text;
-                cell.appendChild(div);
+                noCell.appendChild(div);
             }
         } else if (reasonEl) {
             reasonEl.remove();
