@@ -382,9 +382,12 @@ function openReasonModal(field, label, radio) {
     currentNoField = field;
     currentNoLabel = label;
     currentNoRadio = radio;
-    radio.dataset.confirmed = "true"; // já estava confirmado antes (é uma edição, não uma seleção nova)
     document.getElementById('noReasonItemLabel').textContent = label;
-    const existingReason = document.getElementById('reason-' + field)?.dataset.reasonValue || '';
+    const reasonEl = document.getElementById('reason-' + field);
+    const existingReason = reasonEl?.dataset.reasonValue || '';
+    // Se já havia uma razão gravada, isto é uma edição — cancelar não deve desmarcar o NO.
+    // Se é uma seleção nova (ainda sem div de razão), cancelar deve desmarcar, como seria de esperar.
+    if (reasonEl) radio.dataset.confirmed = "true";
     document.getElementById('noReasonSelect').value = existingReason;
     document.getElementById('noReasonConfirm').disabled = !existingReason;
     new bootstrap.Modal(document.getElementById('noReasonModal')).show();
