@@ -133,6 +133,9 @@ app.MapPost("/api/autosave", async (HttpContext ctx, AuditDbContext db) =>
             var person = db.Persons.Find(user.PersonId);
             if (person != null) audit.Agent = person.Name;
         }
+        // Rede de segurança: nunca deixar Agent em branco silenciosamente (ex.: conta sem
+        // pessoa associada, ou associada a um registo entretanto removido).
+        if (string.IsNullOrWhiteSpace(audit.Agent)) audit.Agent = username ?? "";
 
         db.Auditorias.Add(audit);
         db.SaveChanges();
