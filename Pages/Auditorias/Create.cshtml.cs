@@ -115,6 +115,8 @@ namespace AHM.Audit.Pages.Auditorias
                 var person = _context.Persons.Find(user.PersonId);
                 CurrentAgentName = person?.Name ?? "";
             }
+            // Rede de segurança: nunca deixar Agent em branco silenciosamente.
+            if (string.IsNullOrWhiteSpace(CurrentAgentName)) CurrentAgentName = username ?? "";
 
             LoadDropdowns();
             LoadRecentRegistrations();
