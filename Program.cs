@@ -256,18 +256,21 @@ using (var scope = app.Services.CreateScope())
         db.SaveChanges();
     }
 
-    // Seed Agents
-    var defaultAgents = new[] { "Alejandro Alvarado", "Joao Viriato", "Luis Cavaco", "Pedro Jesus", "Pedro Nunes", "Renato Silva", "Tiago Malheiro", "Valter Augusto" };
-    foreach (var name in defaultAgents)
-        if (!db.Persons.Any(p => p.Name == name && p.Role == "Agent"))
+    // Seed Agents/Officers — só corre numa base de dados completamente vazia (primeira vez).
+    // Antes disto corria em TODOS os arranques, o que fazia reaparecer agents/officers que
+    // tinham sido apagados em Admin > Pessoas a cada deploy (reinício da aplicação).
+    if (!db.Persons.Any())
+    {
+        var defaultAgents = new[] { "Alejandro Alvarado", "João Viriato", "Luis Cavaco", "Pedro Jesus", "Pedro Nunes", "Renato Silva", "Tiago Malheiro", "Valter Augusto" };
+        foreach (var name in defaultAgents)
             db.Persons.Add(new Person { Name = name, Role = "Agent", Active = true });
 
-    // Seed Officers
-    var defaultOfficers = new[] { "Alejandro Alvarado", "Ihor Holovchak", "Joao Viriato", "Luis Cavaco", "Pedro Jesus", "Renato Silva", "Tiago Malheiro", "Valter Augusto" };
-    foreach (var name in defaultOfficers)
-        if (!db.Persons.Any(p => p.Name == name && p.Role == "Officer"))
+        var defaultOfficers = new[] { "Alejandro Alvarado", "Ihor Holovchak", "João Viriato", "Luis Cavaco", "Pedro Jesus", "Renato Silva", "Tiago Malheiro", "Valter Augusto" };
+        foreach (var name in defaultOfficers)
             db.Persons.Add(new Person { Name = name, Role = "Officer", Active = true });
-    db.SaveChanges();
+
+        db.SaveChanges();
+    }
 
     // Seed Non-Conformity Reasons
     if (!db.NonConformityReasons.Any())
