@@ -192,11 +192,28 @@ else
                             ("Database Printout",                   "DatabasePrintout"),
                         };
                     }
+                    @{
+                        var noReasonsCreate = string.IsNullOrEmpty(Model.Auditoria.NoReasons)
+                            ? new Dictionary<string, string>()
+                            : Model.Auditoria.NoReasons.Split(';', StringSplitOptions.RemoveEmptyEntries)
+                                .Select(p => p.Split('=', 2))
+                                .Where(p => p.Length == 2)
+                                .ToDictionary(p => p[0], p => p[1]);
+                    }
                     @foreach (var (label, field) in items)
                     {
                         var currentVal = typeof(AHM.Audit.Models.Auditoria).GetProperty(field)?.GetValue(Model.Auditoria)?.ToString() ?? "";
+                        var currentReasonCreate = noReasonsCreate.TryGetValue(field, out var rc) ? rc : null;
                         <tr id="row-@field" class="@(string.IsNullOrEmpty(currentVal) ? "table-warning" : "")">
-                            <td style="width:50%">@label</td>
+                            <td style="width:50%">
+                                @label
+                                @if (currentVal == "NO")
+                                {
+                                    <div class="small text-danger" id="reason-@field">
+                                        <i class="bi bi-exclamation-circle me-1"></i>@(currentReasonCreate ?? "sem razão registada")
+                                    </div>
+                                }
+                            </td>
                             <td class="text-center" style="width:17%">
                                 <input type="radio" name="check-@field" value="YES" class="form-check-input checklist-radio" data-field="@field" data-label="@label" @(currentVal == "YES" ? "checked" : "") />
                             </td>
@@ -321,6 +338,24 @@ async function autosaveChecklist(field, value, reason) {
         if (data.id) setAuditId(data.id);
         showAutosaveStatus();
         document.getElementById('row-' + field).classList.remove('table-warning');
+
+        // Mostra/atualiza a razão do NO diretamente na página, sem precisar de recarregar.
+        const reasonEl = document.getElementById('reason-' + field);
+        if (value === 'NO') {
+            const text = '<i class="bi bi-exclamation-circle me-1"></i>' + (reason || 'sem razão registada');
+            if (reasonEl) {
+                reasonEl.innerHTML = text;
+            } else {
+                const labelCell = document.getElementById('row-' + field).querySelector('td');
+                const div = document.createElement('div');
+                div.className = 'small text-danger';
+                div.id = 'reason-' + field;
+                div.innerHTML = text;
+                labelCell.appendChild(div);
+            }
+        } else if (reasonEl) {
+            reasonEl.remove();
+        }
     } catch (e) { showAutosaveError(); }
 }
 
