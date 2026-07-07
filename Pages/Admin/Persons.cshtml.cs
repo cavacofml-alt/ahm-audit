@@ -88,6 +88,18 @@ namespace AHM.Audit.Pages.Admin
             var p = _context.Persons.Find(personId);
             if (p != null)
             {
+                // Uma pessoa ligada a uma conta de login (User.PersonId) é usada para preencher
+                // automaticamente o "Agent" quando essa conta cria uma auditoria. Apagar sem
+                // desligar primeiro deixava isso em branco silenciosamente, sem qualquer aviso.
+                var linkedUsers = _context.Users.Where(u => u.PersonId == personId).Select(u => u.Username).ToList();
+                if (linkedUsers.Any())
+                {
+                    Message = $"Não é possível apagar '{p.Name}' — está ligado à conta de login de {string.Join(", ", linkedUsers)}. "
+                        + "Vai a Admin > Utilizadores e muda o agent associado a essa conta antes de apagar.";
+                    LoadLists();
+                    return Page();
+                }
+
                 var name = p.Name;
                 var role = p.Role;
                 _context.Persons.Remove(p);
