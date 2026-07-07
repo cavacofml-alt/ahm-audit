@@ -59,6 +59,7 @@ namespace AHM.Audit.Pages.Admin
             }
 
             var nameErrors = new List<string>();
+            var skippedDetails = new List<string>();
             var rowsToImport = new List<(string[] cols, string ticket, string agent, string officer)>();
             int rowNum = 1; // linha 1 = cabeçalho, por isso as linhas de dados começam em 2
             const int checklistStartCol = 8; // primeira coluna da checklist (B1) no CSV
@@ -67,10 +68,11 @@ namespace AHM.Audit.Pages.Admin
             {
                 rowNum++;
                 var cols = ParseCsvLine(line);
-                if (cols.Length < 10) continue;
+                if (cols.Length < 10) { skippedDetails.Add($"Linha {rowNum}: menos colunas do que o esperado."); continue; }
                 var ticket = cols[0].Trim();
-                if (string.IsNullOrEmpty(ticket)) continue;
-                if (existingTickets.Contains(ticket) || !seenInThisFile.Add(ticket)) continue;
+                if (string.IsNullOrEmpty(ticket)) { skippedDetails.Add($"Linha {rowNum}: sem número de ticket."); continue; }
+                if (existingTickets.Contains(ticket)) { skippedDetails.Add($"Linha {rowNum}: ticket {ticket} já existe na base de dados."); continue; }
+                if (!seenInThisFile.Add(ticket)) { skippedDetails.Add($"Linha {rowNum}: ticket {ticket} repetido dentro do próprio ficheiro."); continue; }
 
                 var agentRaw   = SafeGet(cols, 1).Trim();
                 var officerRaw = SafeGet(cols, 2).Trim();
@@ -112,7 +114,7 @@ namespace AHM.Audit.Pages.Admin
                 return Page();
             }
 
-            int imported = 0, skipped = lines.Count - rowsToImport.Count;
+            int imported = 0;
 
             foreach (var (cols, ticket, agent, officer) in rowsToImport)
             {
@@ -170,11 +172,14 @@ namespace AHM.Audit.Pages.Admin
                     _context.Auditorias.Add(a);
                     imported++;
                 }
-                catch { skipped++; }
+                catch (Exception ex) { skippedDetails.Add($"Ticket {ticket}: erro ao processar a linha ({ex.Message})."); }
             }
 
             _context.SaveChanges();
-            Message = $"Importação concluída: {imported} auditoria(s) importada(s), {skipped} ignorada(s) (ticket em falta/duplicado).";
+            Message = $"Importação concluída: {imported} auditoria(s) importada(s), {skippedDetails.Count} ignorada(s).";
+            if (skippedDetails.Count > 0)
+                Message += "\n" + string.Join("\n", skippedDetails.Take(30))
+                    + (skippedDetails.Count > 30 ? $"\n... e mais {skippedDetails.Count - 30}." : "");
             return Page();
         }
 
