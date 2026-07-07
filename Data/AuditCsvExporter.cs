@@ -10,7 +10,7 @@ namespace AHM.Audit.Data
     /// </summary>
     public static class AuditCsvExporter
     {
-        private static readonly string[] ChecklistFields = new[]
+        public static readonly string[] ChecklistFields = new[]
         {
             "B1","B2","B3","C1","C2","C2_3","C3","C4_TakeOff","C4_ZeroFuel",
             "C4_Landing","C4_Inflight","C4_IdealTrim","C5","C7_1","D1","D2",
@@ -66,18 +66,34 @@ namespace AHM.Audit.Data
 
             foreach (var a in audits)
             {
+                // Extrai o dicionário campo->razão de NoReasons ("campo=razão;campo2=razão2")
+                var reasons = string.IsNullOrEmpty(a.NoReasons)
+                    ? new Dictionary<string, string>()
+                    : a.NoReasons.Split(';', StringSplitOptions.RemoveEmptyEntries)
+                        .Select(p => p.Split('=', 2))
+                        .Where(p => p.Length == 2)
+                        .ToDictionary(p => p[0], p => p[1]);
+
                 var values = ChecklistFields.Select(f =>
-                    typeof(Auditoria).GetProperty(f)?.GetValue(a)?.ToString() ?? "N/A").ToList();
+                {
+                    var val = typeof(Auditoria).GetProperty(f)?.GetValue(a)?.ToString() ?? "N/A";
+                    // A razão fica dentro da própria célula (ex.: "NO (Information incomplete
+                    // in AHM)"), em vez de precisar de 33 colunas extra só para as razões —
+                    // fica editável no Excel e a importação sabe ler este formato de volta.
+                    if (val == "NO" && reasons.TryGetValue(f, out var reason) && !string.IsNullOrEmpty(reason))
+                        return $"NO ({reason})";
+                    return val;
+                }).ToList();
 
                 int yes = values.Count(v => v == "YES");
-                int no  = values.Count(v => v == "NO");
+                int no  = values.Count(v => v == "NO" || v.StartsWith("NO ("));
                 int na  = values.Count(v => v == "N/A");
                 int pct = (yes + no) > 0 ? yes * 100 / (yes + no) : 0;
 
                 var row = new[] { Escape(a.Ticket), Escape(a.Agent), Escape(a.AhmOfficer),
                     Escape(a.Airline), Escape(a.Aircraft), Escape(a.Registration),
                     a.Date.ToString("dd/MM/yyyy"), Escape(a.RevisionUpdates) }
-                    .Concat(values)
+                    .Concat(values.Select(Escape))
                     .Concat(new[] { Escape(a.CorrectionTicket), Escape(a.ReasonForRecertification),
                         a.CorrectionsMade, a.AircraftRecertified, Escape(a.Notes),
                         yes.ToString(), no.ToString(), na.ToString(), pct + "%" });

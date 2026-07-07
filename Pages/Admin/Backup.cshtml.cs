@@ -37,14 +37,16 @@ namespace AHM.Audit.Pages.Admin
 
             var validAgents   = _context.Persons.Where(p => p.Role == "Agent").Select(p => p.Name).ToList();
             var validOfficers = _context.Persons.Where(p => p.Role == "Officer").Select(p => p.Name).ToList();
+            var validReasons  = _context.NonConformityReasons.Where(r => r.Active).Select(r => r.Reason).ToList();
             // Tickets já existentes na BD + tickets já vistos neste próprio ficheiro (para não
             // deixar passar duplicados dentro do mesmo CSV, já que só há um SaveChanges no fim).
             var existingTickets = _context.Auditorias.Select(a => a.Ticket).ToHashSet();
             var seenInThisFile  = new HashSet<string>();
 
             // Lê o ficheiro todo para memória primeiro, para se poder validar tudo antes de
-            // gravar qualquer coisa — se houver um nome de Agent/Officer não reconhecido em
-            // qualquer linha, a importação inteira falha e nada é gravado.
+            // gravar qualquer coisa — se houver um nome de Agent/Officer não reconhecido, ou
+            // uma razão de NO não reconhecida/em falta, em qualquer linha, a importação inteira
+            // falha e nada é gravado.
             var lines = new List<string>();
             using (var reader = new System.IO.StreamReader(csvFile.OpenReadStream()))
             {
@@ -59,6 +61,7 @@ namespace AHM.Audit.Pages.Admin
             var nameErrors = new List<string>();
             var rowsToImport = new List<(string[] cols, string ticket, string agent, string officer)>();
             int rowNum = 1; // linha 1 = cabeçalho, por isso as linhas de dados começam em 2
+            const int checklistStartCol = 8; // primeira coluna da checklist (B1) no CSV
 
             foreach (var line in lines)
             {
@@ -81,12 +84,30 @@ namespace AHM.Audit.Pages.Admin
                 if (!string.IsNullOrEmpty(officerRaw) && officerMatch == null)
                     nameErrors.Add($"Linha {rowNum} (ticket {ticket}): AHM Officer '{officerRaw}' não existe em Admin > Pessoas.");
 
+                // Valida a razão de cada item marcado NO (formato "NO (razão)" dentro da célula,
+                // tal como o "Exportar CSV" agora produz).
+                for (int i = 0; i < AuditCsvExporter.ChecklistFields.Length; i++)
+                {
+                    var field = AuditCsvExporter.ChecklistFields[i];
+                    var (val, reason) = ParseChecklistCell(SafeGet(cols, checklistStartCol + i));
+                    if (val != "NO") continue;
+
+                    if (string.IsNullOrEmpty(reason))
+                    {
+                        nameErrors.Add($"Linha {rowNum} (ticket {ticket}): item '{field}' está NO mas sem razão — formato esperado na célula: \"NO (razão)\".");
+                    }
+                    else if (!validReasons.Any(r => NormalizeName(r) == NormalizeName(reason)))
+                    {
+                        nameErrors.Add($"Linha {rowNum} (ticket {ticket}): razão '{reason}' do item '{field}' não existe em Admin > Definições.");
+                    }
+                }
+
                 rowsToImport.Add((cols, ticket, agentMatch ?? agentRaw, officerMatch ?? officerRaw));
             }
 
             if (nameErrors.Any())
             {
-                Message = "Importação cancelada — nenhuma auditoria foi gravada. Corrige os nomes no CSV (têm de ser exatamente iguais aos que existem em Admin > Pessoas) ou adiciona-os lá primeiro:\n"
+                Message = "Importação cancelada — nenhuma auditoria foi gravada. Corrige o CSV (nomes e razões têm de ser exatamente iguais aos que existem em Admin > Pessoas / Admin > Definições) ou adiciona-os lá primeiro:\n"
                     + string.Join("\n", nameErrors.Take(20))
                     + (nameErrors.Count > 20 ? $"\n... e mais {nameErrors.Count - 20} problema(s)." : "");
                 IsError = true;
@@ -105,6 +126,22 @@ namespace AHM.Audit.Pages.Admin
                         new[] { "dd/MM/yyyy", "d/M/yyyy", "MM/dd/yyyy", "yyyy-MM-dd", "dd-MM-yyyy" },
                         CultureInfo.InvariantCulture, DateTimeStyles.None, out parsedDate);
 
+                    // Extrai só o valor (YES/NO/N-A) de cada célula da checklist, e reconstrói o
+                    // campo NoReasons ("campo=razão;campo2=razão2") a partir das razões já validadas.
+                    var checklistValues = new Dictionary<string, string>();
+                    var noReasonsParts = new List<string>();
+                    for (int i = 0; i < AuditCsvExporter.ChecklistFields.Length; i++)
+                    {
+                        var field = AuditCsvExporter.ChecklistFields[i];
+                        var (val, reason) = ParseChecklistCell(SafeGet(cols, checklistStartCol + i));
+                        checklistValues[field] = val;
+                        if (val == "NO" && !string.IsNullOrEmpty(reason))
+                        {
+                            var matchedReason = validReasons.FirstOrDefault(r => NormalizeName(r) == NormalizeName(reason)) ?? reason;
+                            noReasonsParts.Add($"{field}={matchedReason}");
+                        }
+                    }
+
                     var a = new Auditoria
                     {
                         Ticket = ticket, Agent = agent, AhmOfficer = officer,
@@ -112,18 +149,19 @@ namespace AHM.Audit.Pages.Admin
                         Registration = SafeGet(cols, 5),
                         Date = parsedDate == default ? DateTime.Today : parsedDate,
                         RevisionUpdates = SafeGet(cols, 7),
-                        B1=SafeGet(cols,8), B2=SafeGet(cols,9), B3=SafeGet(cols,10),
-                        C1=SafeGet(cols,11), C2=SafeGet(cols,12), C2_3=SafeGet(cols,13),
-                        C3=SafeGet(cols,14), C4_TakeOff=SafeGet(cols,15), C4_ZeroFuel=SafeGet(cols,16),
-                        C4_Landing=SafeGet(cols,17), C4_Inflight=SafeGet(cols,18), C4_IdealTrim=SafeGet(cols,19),
-                        C5=SafeGet(cols,20), C7_1=SafeGet(cols,21),
-                        D1=SafeGet(cols,22), D2=SafeGet(cols,23), D3=SafeGet(cols,24),
-                        D5_1=SafeGet(cols,25), D5_2=SafeGet(cols,26), D6_2=SafeGet(cols,27),
-                        E1_DOW=SafeGet(cols,28), E1_MRW=SafeGet(cols,29), E1_MTOW=SafeGet(cols,30),
-                        E1_MZFW=SafeGet(cols,31), E1_MLAW=SafeGet(cols,32),
-                        E2_1=SafeGet(cols,33), E2_2=SafeGet(cols,34), E3_1=SafeGet(cols,35),
-                        G1=SafeGet(cols,36), RevisionUpdate=SafeGet(cols,37),
-                        LIR=SafeGet(cols,38), LS=SafeGet(cols,39), DatabasePrintout=SafeGet(cols,40),
+                        B1=checklistValues["B1"], B2=checklistValues["B2"], B3=checklistValues["B3"],
+                        C1=checklistValues["C1"], C2=checklistValues["C2"], C2_3=checklistValues["C2_3"],
+                        C3=checklistValues["C3"], C4_TakeOff=checklistValues["C4_TakeOff"], C4_ZeroFuel=checklistValues["C4_ZeroFuel"],
+                        C4_Landing=checklistValues["C4_Landing"], C4_Inflight=checklistValues["C4_Inflight"], C4_IdealTrim=checklistValues["C4_IdealTrim"],
+                        C5=checklistValues["C5"], C7_1=checklistValues["C7_1"],
+                        D1=checklistValues["D1"], D2=checklistValues["D2"], D3=checklistValues["D3"],
+                        D5_1=checklistValues["D5_1"], D5_2=checklistValues["D5_2"], D6_2=checklistValues["D6_2"],
+                        E1_DOW=checklistValues["E1_DOW"], E1_MRW=checklistValues["E1_MRW"], E1_MTOW=checklistValues["E1_MTOW"],
+                        E1_MZFW=checklistValues["E1_MZFW"], E1_MLAW=checklistValues["E1_MLAW"],
+                        E2_1=checklistValues["E2_1"], E2_2=checklistValues["E2_2"], E3_1=checklistValues["E3_1"],
+                        G1=checklistValues["G1"], RevisionUpdate=checklistValues["RevisionUpdate"],
+                        LIR=checklistValues["LIR"], LS=checklistValues["LS"], DatabasePrintout=checklistValues["DatabasePrintout"],
+                        NoReasons = string.Join(";", noReasonsParts),
                         CorrectionTicket=SafeGet(cols,41),
                         ReasonForRecertification=SafeGet(cols,42),
                         CorrectionsMade=SafeGet(cols,43),
@@ -155,6 +193,19 @@ namespace AHM.Audit.Pages.Admin
                     sb.Append(c);
             }
             return sb.ToString();
+        }
+
+        // Extrai o valor (YES/NO/N-A) e a razão opcional de uma célula da checklist no formato
+        // que o "Exportar CSV" produz, ex.: "NO (Information incomplete in AHM)".
+        private static (string value, string? reason) ParseChecklistCell(string raw)
+        {
+            raw = (raw ?? "").Trim();
+            var m = System.Text.RegularExpressions.Regex.Match(
+                raw, @"^(YES|NO|N/A)\s*(?:\((.*)\))?$", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+            if (!m.Success) return (raw, null);
+            var value = m.Groups[1].Value.ToUpperInvariant();
+            var reason = m.Groups[2].Success ? m.Groups[2].Value.Trim() : null;
+            return (value, reason);
         }
 
         public IActionResult OnPostDeleteAll()
