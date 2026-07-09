@@ -30,7 +30,7 @@ namespace AHM.Audit.Pages.Auditorias
             if (Auditoria == null) return RedirectToPage("Index");
 
             // Bloqueado se finalizado (não admin) ou passou mais de 1 mês (não admin)
-            IsLocked = !IsAdmin && (Auditoria.IsFinalized || Auditoria.CreatedAt < DateTime.Now.AddMonths(-1));
+            IsLocked = !IsAdmin && (Auditoria.IsFinalized || Auditoria.CreatedAt < DateTime.UtcNow.AddMonths(-1));
 
             NonConformityReasons = _context.NonConformityReasons.Where(r => r.Active).Select(r => r.Reason).ToList();
             LoadDropdowns();
@@ -50,7 +50,7 @@ namespace AHM.Audit.Pages.Auditorias
             if (original == null) return RedirectToPage("Index");
 
             // Verificar bloqueio
-            if (!isAdmin && (original.IsFinalized || original.CreatedAt < DateTime.Now.AddMonths(-1)))
+            if (!isAdmin && (original.IsFinalized || original.CreatedAt < DateTime.UtcNow.AddMonths(-1)))
             {
                 IsLocked = true;
                 Auditoria = original;

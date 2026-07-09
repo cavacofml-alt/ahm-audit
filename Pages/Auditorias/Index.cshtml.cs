@@ -134,6 +134,6 @@ namespace AHM.Audit.Pages.Auditorias
 
         // Dias que faltam até ao prazo (negativo = já passou o prazo). Só faz sentido
         // para auditorias ainda não finalizadas.
-        public int DaysUntilDeadline(Auditoria a) => (GetDeadline(a).Date - DateTime.Now.Date).Days;
+        public int DaysUntilDeadline(Auditoria a) => (GetDeadline(a).Date - DateTime.UtcNow.Date).Days;
     }
 }

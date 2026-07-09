@@ -129,7 +129,7 @@ namespace AHM.Audit.Pages.Auditorias
                 // na base de dados. Em vez de falhar com "não encontrada", cria-se agora
                 // a auditoria (a validação da checklist mais abaixo vai avisar de forma
                 // clara que faltam itens por preencher).
-                existing = new Auditoria { CreatedAt = DateTime.Now, IsDraft = true, Date = DateTime.Today, Agent = CurrentAgentName };
+                existing = new Auditoria { CreatedAt = DateTime.UtcNow, IsDraft = true, Date = DateTime.Today, Agent = CurrentAgentName };
                 _context.Auditorias.Add(existing);
                 _context.SaveChanges();
             }
