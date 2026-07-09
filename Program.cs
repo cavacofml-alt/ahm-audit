@@ -116,6 +116,9 @@ app.MapPost("/api/autosave", async (HttpContext ctx, AuditDbContext db) =>
 {
     var username = ctx.Session.GetString("User");
     if (username == null) return Results.Unauthorized();
+    // Alinha com o AuthMiddleware, que exige conta ativa em todas as outras páginas — sem
+    // isto, desativar alguém a meio de uma sessão não bloqueava estes dois endpoints.
+    if (!db.Users.Any(u => u.Username == username && u.Active)) return Results.Unauthorized();
 
     if (!ctx.Request.HasFormContentType) return Results.BadRequest("Content-Type inválido, esperado form-urlencoded ou multipart/form-data");
     var form = await ctx.Request.ReadFormAsync();
@@ -182,7 +185,7 @@ app.MapPost("/api/autosave", async (HttpContext ctx, AuditDbContext db) =>
             : audit.NoReasons.Split(';', StringSplitOptions.RemoveEmptyEntries)
                 .Select(p => p.Split('='))
                 .Where(p => p.Length == 2)
-                .ToDictionary(p => p[0], p => p[1]);
+                .GroupBy(p => p[0]).ToDictionary(g => g.Key, g => g.Last()[1]);
         reasons[field] = reason;
         audit.NoReasons = string.Join(";", reasons.Select(kv => $"{kv.Key}={kv.Value}"));
     }
@@ -194,7 +197,7 @@ app.MapPost("/api/autosave", async (HttpContext ctx, AuditDbContext db) =>
             var reasons = audit.NoReasons.Split(';', StringSplitOptions.RemoveEmptyEntries)
                 .Select(p => p.Split('='))
                 .Where(p => p.Length == 2 && p[0] != field)
-                .ToDictionary(p => p[0], p => p[1]);
+                .GroupBy(p => p[0]).ToDictionary(g => g.Key, g => g.Last()[1]);
             audit.NoReasons = string.Join(";", reasons.Select(kv => $"{kv.Key}={kv.Value}"));
         }
     }
@@ -208,6 +211,9 @@ app.MapPost("/api/autosave-field", async (HttpContext ctx, AuditDbContext db) =>
 {
     var username = ctx.Session.GetString("User");
     if (username == null) return Results.Unauthorized();
+    // Alinha com o AuthMiddleware, que exige conta ativa em todas as outras páginas — sem
+    // isto, desativar alguém a meio de uma sessão não bloqueava estes dois endpoints.
+    if (!db.Users.Any(u => u.Username == username && u.Active)) return Results.Unauthorized();
 
     if (!ctx.Request.HasFormContentType) return Results.BadRequest("Content-Type inválido, esperado form-urlencoded ou multipart/form-data");
     var form = await ctx.Request.ReadFormAsync();
