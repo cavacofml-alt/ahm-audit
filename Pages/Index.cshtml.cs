@@ -85,7 +85,7 @@ namespace AHM.Audit.Pages
             return noReasons.Split(';', StringSplitOptions.RemoveEmptyEntries)
                 .Select(p => p.Split('=', 2))
                 .Where(p => p.Length == 2)
-                .ToDictionary(p => p[0], p => p[1]);
+                .GroupBy(p => p[0]).ToDictionary(g => g.Key, g => g.Last()[1]);
         }
 
         private static List<ReasonStat> CountReasons(IEnumerable<Auditoria> audits, int take = 10)
