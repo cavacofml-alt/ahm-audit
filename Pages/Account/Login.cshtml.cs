@@ -49,9 +49,9 @@ namespace AHM.Audit.Pages.Account
             }
 
             // Conta bloqueada temporariamente por tentativas falhadas recentes
-            if (user.LockoutUntil.HasValue && user.LockoutUntil.Value > DateTime.Now)
+            if (user.LockoutUntil.HasValue && user.LockoutUntil.Value > DateTime.UtcNow)
             {
-                var minutesLeft = Math.Ceiling((user.LockoutUntil.Value - DateTime.Now).TotalMinutes);
+                var minutesLeft = Math.Ceiling((user.LockoutUntil.Value - DateTime.UtcNow).TotalMinutes);
                 ErrorMessage = $"Conta temporariamente bloqueada por demasiadas tentativas falhadas. Tenta novamente daqui a {minutesLeft} minuto(s).";
                 return Page();
             }
@@ -79,7 +79,7 @@ namespace AHM.Audit.Pages.Account
                 user.FailedLoginAttempts++;
                 if (user.FailedLoginAttempts >= MaxFailedAttempts)
                 {
-                    user.LockoutUntil = DateTime.Now.AddMinutes(LockoutMinutes);
+                    user.LockoutUntil = DateTime.UtcNow.AddMinutes(LockoutMinutes);
                     user.FailedLoginAttempts = 0;
                     ErrorMessage = $"Conta bloqueada temporariamente por demasiadas tentativas falhadas. Tenta novamente daqui a {LockoutMinutes} minutos.";
                 }
