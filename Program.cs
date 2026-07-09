@@ -32,14 +32,19 @@ if (!string.IsNullOrEmpty(databaseUrl))
     }
 
     var port = uri.Port > 0 ? uri.Port : 5432; // Uri.Port devolve -1 se a porta não estiver explícita no URI
-    var userInfo = uri.UserInfo.Split(':');
+    // Split(':', 2) em vez de Split(':') — se a password tiver ':' lá dentro, um split sem
+    // limite cortava-a a meio (só ficava com a parte antes do 2º ':'). Uri.UnescapeDataString
+    // descodifica caracteres percent-encoded (%40, %2F, etc.) que possam vir no user/password.
+    var userInfo = uri.UserInfo.Split(':', 2);
     if (userInfo.Length < 2)
         throw new InvalidOperationException(
             $"DATABASE_URL não contém utilizador/password. Valor lido: \"{databaseUrl}\".");
+    var dbUser = Uri.UnescapeDataString(userInfo[0]);
+    var dbPassword = Uri.UnescapeDataString(userInfo[1]);
 
     var isLocal = uri.Host == "localhost" || uri.Host == "127.0.0.1";
     var sslMode = isLocal ? "Disable" : "Require";
-    var npgsqlConn = $"Host={uri.Host};Port={port};Database={uri.AbsolutePath.TrimStart('/')};Username={userInfo[0]};Password={userInfo[1]};SSL Mode={sslMode};Trust Server Certificate=true";
+    var npgsqlConn = $"Host={uri.Host};Port={port};Database={uri.AbsolutePath.TrimStart('/')};Username={dbUser};Password={dbPassword};SSL Mode={sslMode};Trust Server Certificate=true";
 
     builder.Services.AddDbContext<AuditDbContext>(options =>
         options.UseNpgsql(npgsqlConn));
@@ -112,6 +117,7 @@ app.MapPost("/api/autosave", async (HttpContext ctx, AuditDbContext db) =>
     var username = ctx.Session.GetString("User");
     if (username == null) return Results.Unauthorized();
 
+    if (!ctx.Request.HasFormContentType) return Results.BadRequest("Content-Type inválido, esperado form-urlencoded ou multipart/form-data");
     var form = await ctx.Request.ReadFormAsync();
     var idStr = form["id"].ToString();
     var field = form["field"].ToString();
@@ -124,7 +130,7 @@ app.MapPost("/api/autosave", async (HttpContext ctx, AuditDbContext db) =>
     if (string.IsNullOrEmpty(idStr) || idStr == "0")
     {
         // Nova auditoria em rascunho
-        audit = new Auditoria { CreatedAt = DateTime.Now, IsDraft = true, Date = DateTime.Today };
+        audit = new Auditoria { CreatedAt = DateTime.UtcNow, IsDraft = true, Date = DateTime.Today };
 
         // Preencher Agent automaticamente
         var user = db.Users.FirstOrDefault(u => u.Username == username);
@@ -142,7 +148,7 @@ app.MapPost("/api/autosave", async (HttpContext ctx, AuditDbContext db) =>
     }
     else
     {
-        var id = int.Parse(idStr);
+        if (!int.TryParse(idStr, out var id)) return Results.BadRequest("Id inválido");
         audit = db.Auditorias.Find(id);
         if (audit == null) return Results.NotFound();
         if (audit.IsFinalized)
@@ -203,6 +209,7 @@ app.MapPost("/api/autosave-field", async (HttpContext ctx, AuditDbContext db) =>
     var username = ctx.Session.GetString("User");
     if (username == null) return Results.Unauthorized();
 
+    if (!ctx.Request.HasFormContentType) return Results.BadRequest("Content-Type inválido, esperado form-urlencoded ou multipart/form-data");
     var form = await ctx.Request.ReadFormAsync();
     var idStr = form["id"].ToString();
     var field = form["field"].ToString();
@@ -211,7 +218,7 @@ app.MapPost("/api/autosave-field", async (HttpContext ctx, AuditDbContext db) =>
     if (string.IsNullOrEmpty(idStr) || idStr == "0" || string.IsNullOrEmpty(field))
         return Results.BadRequest();
 
-    var id = int.Parse(idStr);
+    if (!int.TryParse(idStr, out var id)) return Results.BadRequest("Id inválido");
     var audit = db.Auditorias.Find(id);
     if (audit == null) return Results.NotFound();
     if (audit.IsFinalized)
@@ -245,11 +252,19 @@ using (var scope = app.Services.CreateScope())
     if (!db.Users.Any())
     {
         // Permite definir a password inicial via variável de ambiente (ex.: no Railway,
-        // em Variables) em vez de ficar fixa no código-fonte. Se não for definida, usa
-        // a antiga por omissão só para não partir instalações já existentes — mas o
-        // recomendado é definir AHM_ADMIN_INITIAL_PASSWORD e trocar a password no primeiro login.
+        // em Variables). Se não for definida, gera-se uma password aleatória e forte,
+        // impressa uma única vez na consola — nunca mais fica hardcoded no código-fonte.
         var initialAdminPassword = Environment.GetEnvironmentVariable("AHM_ADMIN_INITIAL_PASSWORD");
-        if (string.IsNullOrWhiteSpace(initialAdminPassword)) initialAdminPassword = "AHM123%%";
+        var generated = string.IsNullOrWhiteSpace(initialAdminPassword);
+        if (generated)
+        {
+            initialAdminPassword = GenerateRandomPassword();
+            Console.WriteLine("============================================================");
+            Console.WriteLine("  Nenhuma AHM_ADMIN_INITIAL_PASSWORD definida.");
+            Console.WriteLine($"  Password inicial gerada para o utilizador 'admin': {initialAdminPassword}");
+            Console.WriteLine("  Muda-a assim que fizeres login pela primeira vez.");
+            Console.WriteLine("============================================================");
+        }
 
         db.Users.Add(new User { Username = "admin", PasswordHash = BCrypt.Net.BCrypt.HashPassword(initialAdminPassword), IsAdmin = true, Active = true,
             CanViewDashboard = true, CanViewNonConformities = true, CanViewGlobalConformity = true });
@@ -300,9 +315,16 @@ using (var scope = app.Services.CreateScope())
 
     if (toArchive.Any())
     {
+        // Carrega as chaves já arquivadas de uma só vez, em vez de uma query por auditoria
+        // dentro do loop (o mesmo problema de N+1 queries que já corrigimos no seed de Airlines).
+        var archivedKeys = db.AuditoriaArchives
+            .Select(x => x.Ticket + "|" + x.ArchiveYear)
+            .ToHashSet();
+
         foreach (var a in toArchive)
         {
-            if (!db.AuditoriaArchives.Any(x => x.Ticket == a.Ticket && x.ArchiveYear == a.Date.Year))
+            var key = a.Ticket + "|" + a.Date.Year;
+            if (!archivedKeys.Contains(key))
             {
                 var archive = new AuditoriaArchive { ArchiveYear = a.Date.Year };
                 foreach (var prop in typeof(Auditoria).GetProperties())
@@ -320,3 +342,15 @@ using (var scope = app.Services.CreateScope())
 }
 
 app.Run("http://0.0.0.0:5000");
+
+// Password aleatória e forte para o seed inicial do admin, usada só quando
+// AHM_ADMIN_INITIAL_PASSWORD não está definida.
+static string GenerateRandomPassword()
+{
+    const string chars = "abcdefghijkmnopqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789!@#$%";
+    var bytes = System.Security.Cryptography.RandomNumberGenerator.GetBytes(16);
+    var sb = new System.Text.StringBuilder();
+    foreach (var b in bytes)
+        sb.Append(chars[b % chars.Length]);
+    return sb.ToString();
+}
