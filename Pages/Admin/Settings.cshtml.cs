@@ -66,6 +66,15 @@ namespace AHM.Audit.Pages.Admin
                 Message = "O motivo não pode estar vazio."; IsError = true;
                 LoadLists(); return Page();
             }
+            if (reason.Contains(';') || reason.Contains('='))
+            {
+                // ';' e '=' são os separadores usados para guardar as razões de cada auditoria
+                // (formato "campo=razão;campo2=razão2"). Um motivo com esses caracteres
+                // corromperia esse formato.
+                Message = "O motivo não pode conter ';' nem '='.";
+                IsError = true;
+                LoadLists(); return Page();
+            }
             if (_context.NonConformityReasons.Any(r => r.Reason.ToLower() == reason.ToLower()))
             {
                 Message = "Este motivo já existe."; IsError = true;

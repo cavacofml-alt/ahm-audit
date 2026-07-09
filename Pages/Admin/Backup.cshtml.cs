@@ -171,7 +171,7 @@ namespace AHM.Audit.Pages.Admin
                         CorrectionsMade=SafeGet(cols,43),
                         AircraftRecertified=SafeGet(cols,44),
                         Notes=SafeGet(cols,45),
-                        CreatedAt=DateTime.Now
+                        CreatedAt=DateTime.UtcNow
                     };
                     _context.Auditorias.Add(a);
                     imported++;
