@@ -72,7 +72,7 @@ namespace AHM.Audit.Data
                     : a.NoReasons.Split(';', StringSplitOptions.RemoveEmptyEntries)
                         .Select(p => p.Split('=', 2))
                         .Where(p => p.Length == 2)
-                        .GroupBy(p => p[0]).ToDictionary(g => g.Key, g => g.Last()[1]);
+                        .ToDictionary(p => p[0], p => p[1]);
 
                 var values = ChecklistFields.Select(f =>
                 {
@@ -95,7 +95,7 @@ namespace AHM.Audit.Data
                     a.Date.ToString("dd/MM/yyyy"), Escape(a.RevisionUpdates) }
                     .Concat(values.Select(Escape))
                     .Concat(new[] { Escape(a.CorrectionTicket), Escape(a.ReasonForRecertification),
-                        a.CorrectionsMade, a.AircraftRecertified, Escape(a.Notes),
+                        a.CorrectionsMade, a.AircraftRecertified, Escape(CollapseBlankLines(a.Notes)),
                         yes.ToString(), no.ToString(), na.ToString(), pct + "%" });
 
                 sb.AppendLine(string.Join(",", row));
@@ -110,6 +110,14 @@ namespace AHM.Audit.Data
             if (val.Contains(',') || val.Contains('"') || val.Contains('\n'))
                 return "\"" + val.Replace("\"", "\"\"") + "\"";
             return val;
+        }
+
+        // Reduz sequências de várias linhas em branco (ex.: "texto\r\n\r\n\r\n\r\noutro texto")
+        // a uma só quebra de linha — deixa a célula "Notes" mais compacta e legível no Excel.
+        private static string? CollapseBlankLines(string? val)
+        {
+            if (string.IsNullOrEmpty(val)) return val;
+            return System.Text.RegularExpressions.Regex.Replace(val, @"(\r\n|\r|\n){2,}", "\n");
         }
     }
 }
