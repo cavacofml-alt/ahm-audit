@@ -181,7 +181,7 @@ namespace AHM.Audit.Pages.Auditorias
             var existingReasons = string.IsNullOrEmpty(existing.NoReasons)
                 ? new Dictionary<string, string>()
                 : existing.NoReasons.Split(';', StringSplitOptions.RemoveEmptyEntries)
-                    .Select(p => p.Split('=')).Where(p => p.Length == 2).ToDictionary(p => p[0], p => p[1]);
+                    .Select(p => p.Split('=')).Where(p => p.Length == 2).GroupBy(p => p[0]).ToDictionary(g => g.Key, g => g.Last()[1]);
 
             var missingReasons = noFields.Where(f => !existingReasons.ContainsKey(f) || string.IsNullOrEmpty(existingReasons[f])).ToList();
             if (missingReasons.Any())
