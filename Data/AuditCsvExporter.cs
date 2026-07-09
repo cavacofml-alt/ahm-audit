@@ -72,7 +72,7 @@ namespace AHM.Audit.Data
                     : a.NoReasons.Split(';', StringSplitOptions.RemoveEmptyEntries)
                         .Select(p => p.Split('=', 2))
                         .Where(p => p.Length == 2)
-                        .ToDictionary(p => p[0], p => p[1]);
+                        .GroupBy(p => p[0]).ToDictionary(g => g.Key, g => g.Last()[1]);
 
                 var values = ChecklistFields.Select(f =>
                 {
