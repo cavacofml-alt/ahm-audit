@@ -251,7 +251,7 @@ namespace AHM.Audit.Pages
             var lastAudit = _context.Auditorias.OrderByDescending(a => a.CreatedAt).FirstOrDefault();
             if (lastAudit != null)
             {
-                var diff = DateTime.Now - lastAudit.CreatedAt;
+                var diff = DateTime.UtcNow - lastAudit.CreatedAt;
                 if (diff.TotalMinutes < 60) LastAuditTime = $"há {(int)diff.TotalMinutes} min";
                 else if (diff.TotalHours < 24) LastAuditTime = $"há {(int)diff.TotalHours}h";
                 else LastAuditTime = $"há {(int)diff.TotalDays}d";
