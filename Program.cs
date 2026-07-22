@@ -51,8 +51,15 @@ if (!string.IsNullOrEmpty(databaseUrl))
 }
 else
 {
-    builder.Services.AddDbContext<AuditDbContext>(options =>
-        options.UseSqlServer(builder.Configuration.GetConnectionString("Default")));
+    // Este projeto usa sempre PostgreSQL (nunca SQL Server) — isto só acontece se a variável
+    // de ambiente DATABASE_URL não estiver definida na sessão do terminal atual. Antes disto
+    // caía silenciosamente para uma connection string de SQL Server (resto de um template
+    // inicial do projeto), o que dava um erro confuso e completamente enganador.
+    throw new InvalidOperationException(
+        "Variável de ambiente DATABASE_URL não está definida. Define-a antes de correr a app, por exemplo:\n" +
+        "  set DATABASE_URL=postgresql://ahm:ahm123@localhost:5432/ahmaudit   (cmd.exe)\n" +
+        "  $env:DATABASE_URL=\"postgresql://ahm:ahm123@localhost:5432/ahmaudit\"   (PowerShell)\n" +
+        "Nota: 'set'/'$env:' só valem para a janela de terminal onde forem corridos — numa janela nova, é preciso repetir.");
 }
 
 // Rate limiting
