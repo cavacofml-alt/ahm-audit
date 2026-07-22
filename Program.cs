@@ -13,7 +13,8 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddRazorPages();
 
 builder.Services.AddDataProtection()
-    .PersistKeysToFileSystem(new System.IO.DirectoryInfo("/tmp/dataprotection-keys"));
+    .PersistKeysToFileSystem(new System.IO.DirectoryInfo(
+        System.IO.Path.Combine(builder.Environment.ContentRootPath, "dataprotection-keys")));
 
 var databaseUrl = Environment.GetEnvironmentVariable("DATABASE_URL");
 
