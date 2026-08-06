@@ -77,6 +77,17 @@ namespace AHM.Audit.Pages.Auditorias
             return Page();
         }
 
+        // Verificação ao vivo do ticket (chamada por AJAX, sem recarregar a página), para
+        // avisar logo que o utilizador escreve o número, em vez de só ao gravar no fim.
+        public IActionResult OnGetCheckTicket(string ticket, int currentId)
+        {
+            if (HttpContext.Session.GetString("User") == null) return new JsonResult(new { error = "unauthorized" }) { StatusCode = 401 };
+            if (string.IsNullOrWhiteSpace(ticket)) return new JsonResult(new { exists = false });
+            if (!ticket.StartsWith("#")) ticket = "#" + ticket;
+            var exists = _context.Auditorias.Any(a => a.Ticket == ticket && a.Id != currentId);
+            return new JsonResult(new { exists });
+        }
+
         // Permite ao utilizador descartar o rascunho autosave atual e começar
         // uma auditoria completamente nova, em vez de ficar preso a reabrir
         // sempre o mesmo rascunho por acabar.

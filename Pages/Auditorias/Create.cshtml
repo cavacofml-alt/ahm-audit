@@ -104,8 +104,8 @@ else
                 </div>
                 <div class="col-md-4">
                     <label class="form-label">Ticket Number <span class="text-danger">*</span></label>
-                    <input class="form-control autosave-field" data-field="Ticket" asp-for="Auditoria.Ticket" placeholder="#" required />
-                    <div class="form-text">Deve começar com # e ser único</div>
+                    <input class="form-control autosave-field" data-field="Ticket" id="ticketInput" asp-for="Auditoria.Ticket" placeholder="#" required />
+                    <div id="ticketValidation" class="form-text">Deve começar com # e ser único</div>
                 </div>
                 <div class="col-md-4">
                     <label class="form-label">Date <span class="text-danger">*</span></label>
@@ -118,11 +118,12 @@ else
                 </div>
                 <div class="col-md-4">
                     <label class="form-label">Aircraft Type <span class="text-danger">*</span></label>
-                    <input class="form-control autosave-field" data-field="Aircraft" asp-for="Auditoria.Aircraft" placeholder="Ex: A320, B737" required />
+                    <input class="form-control autosave-field" data-field="Aircraft" id="aircraftInput" asp-for="Auditoria.Aircraft" placeholder="Ex: A320, B737" required />
                 </div>
                 <div class="col-md-4">
                     <label class="form-label">Registration <span class="text-danger">*</span></label>
                     <input class="form-control autosave-field" data-field="Registration" id="registrationInput" asp-for="Auditoria.Registration" placeholder="Ex: CS-TNV" required />
+                    <div id="registrationValidation" class="form-text"></div>
                 </div>
                 <div class="col-md-4">
                     <label class="form-label">Revision Updates</label>
@@ -465,6 +466,54 @@ document.getElementById('airlineInput').addEventListener('blur', function() {
         feedback.innerHTML = '<i class="bi bi-exclamation-triangle-fill text-warning me-1"></i>Airline não está na lista. Pede a um admin para a adicionar em Configurações.';
         feedback.className = 'form-text text-warning';
     }
+});
+
+// Verificação ao vivo do ticket — avisa logo ao sair do campo, sem esperar por Guardar.
+let ticketCheckTimeout;
+async function checkTicketLive() {
+    const el = document.getElementById('ticketInput');
+    const feedback = document.getElementById('ticketValidation');
+    let val = el.value.trim();
+    if (!val) { feedback.textContent = 'Deve começar com # e ser único'; feedback.className = 'form-text'; return; }
+    try {
+        const resp = await fetch(`/Auditorias/Create?handler=CheckTicket&ticket=${encodeURIComponent(val)}&currentId=${getAuditId() || 0}`);
+        if (!resp.ok) return;
+        const data = await resp.json();
+        if (data.exists) {
+            feedback.innerHTML = '<i class="bi bi-x-circle-fill text-danger me-1"></i>Este ticket já existe.';
+            feedback.className = 'form-text text-danger';
+        } else {
+            feedback.innerHTML = '<i class="bi bi-check-circle-fill text-success me-1"></i>Ticket disponível';
+            feedback.className = 'form-text text-success';
+        }
+    } catch (e) { /* falha silenciosa — a validação final ao gravar continua a apanhar duplicados */ }
+}
+document.getElementById('ticketInput').addEventListener('input', function() {
+    clearTimeout(ticketCheckTimeout);
+    ticketCheckTimeout = setTimeout(checkTicketLive, 600);
+});
+document.getElementById('ticketInput').addEventListener('blur', checkTicketLive);
+
+// Aviso ao vivo de matrícula já auditada nos últimos 6 meses (mesma Airline+Aircraft+Registration),
+// assim que os 3 campos ficam preenchidos — sem esperar por Guardar.
+function checkDuplicateRegistrationLive() {
+    const feedback = document.getElementById('registrationValidation');
+    const airline  = document.getElementById('airlineInput').value.trim().toUpperCase();
+    const aircraft = document.getElementById('aircraftInput').value.trim().toUpperCase();
+    const reg      = document.getElementById('registrationInput').value.trim().toUpperCase();
+    if (!airline || !aircraft || !reg) { feedback.textContent = ''; feedback.className = 'form-text'; return; }
+    const combo = airline + "|" + aircraft + "|" + reg;
+    const isDuplicate = duplicateCombos.some(c => c.toUpperCase() === combo);
+    if (isDuplicate) {
+        feedback.innerHTML = '<i class="bi bi-exclamation-triangle-fill text-warning me-1"></i>Esta matrícula já foi auditada nos últimos 6 meses com a mesma airline/aircraft.';
+        feedback.className = 'form-text text-warning';
+    } else {
+        feedback.textContent = '';
+        feedback.className = 'form-text';
+    }
+}
+['airlineInput', 'aircraftInput', 'registrationInput'].forEach(id => {
+    document.getElementById(id).addEventListener('blur', checkDuplicateRegistrationLive);
 });
 
 document.querySelector('input[name="Auditoria.Ticket"]').addEventListener('blur', function() {
