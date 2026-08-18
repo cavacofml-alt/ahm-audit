@@ -1,6 +1,0 @@
-bin/
-obj/
-dataprotection-keys/
-*.user
-.vs/
-appsettings.Development.json
