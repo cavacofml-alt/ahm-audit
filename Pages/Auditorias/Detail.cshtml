@@ -51,7 +51,7 @@
     <div class="card-body p-0">
         <table class="table table-hover mb-0">
             <thead class="table-dark">
-                <tr><th style="width:60%">Item</th><th class="text-center">Resultado</th></tr>
+                <tr><th style="width:40%">Item</th><th class="text-center" style="width:20%">Resultado</th><th>Observations</th></tr>
             </thead>
             <tbody>
                 @foreach (var item in Model.ChecklistItems)
@@ -68,6 +68,7 @@
                                 </div>
                             }
                         </td>
+                        <td>@item.Observation</td>
                     </tr>
                 }
             </tbody>

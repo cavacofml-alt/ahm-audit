@@ -143,10 +143,11 @@
             <table class="table table-hover align-middle">
                 <thead class="table-dark">
                     <tr>
-                        <th style="width:50%">Item</th>
+                        <th style="width:33%">Item</th>
                         <th class="text-center">YES</th>
                         <th class="text-center">NO</th>
                         <th class="text-center">N/A</th>
+                        <th style="width:35%">Observations</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -195,10 +196,14 @@
                                 .Select(p => p.Split('=', 2))
                                 .Where(p => p.Length == 2)
                                 .GroupBy(p => p[0]).ToDictionary(g => g.Key, g => g.Last()[1]);
+                        var observations = string.IsNullOrEmpty(Model.Auditoria.ItemObservations)
+                            ? new Dictionary<string, string>()
+                            : System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, string>>(Model.Auditoria.ItemObservations) ?? new();
                     }
                     @foreach (var (label, field, value) in items)
                     {
                         var currentReason = noReasons.TryGetValue(field, out var r) ? r : null;
+                        var currentObs = observations.TryGetValue(field, out var o) ? o : "";
                         <tr id="row-@field">
                             <td>@label</td>
                             <td class="text-center"><input type="radio" name="check-@field" value="YES" class="form-check-input checklist-radio" data-field="@field" data-label="@label" @(value == "YES" ? "checked" : "") @(Model.IsLocked ? "disabled" : "") /></td>
@@ -213,6 +218,9 @@
                                 }
                             </td>
                             <td class="text-center"><input type="radio" name="check-@field" value="N/A" class="form-check-input checklist-radio" data-field="@field" data-label="@label" @(value == "N/A" ? "checked" : "") @(Model.IsLocked ? "disabled" : "") /></td>
+                            <td>
+                                <input type="text" class="form-control form-control-sm obs-field" data-field="@field" value="@currentObs" placeholder="Observações..." @(Model.IsLocked ? "disabled" : "") />
+                            </td>
                         </tr>
                     }
                 </tbody>
@@ -383,5 +391,23 @@ document.getElementById('noReasonModal').addEventListener('hidden.bs.modal', fun
     if (currentNoRadio && currentNoRadio.checked && currentNoRadio.dataset.confirmed !== "true") {
         currentNoRadio.checked = false;
     }
+});
+
+async function autosaveObservation(field, value) {
+    const fd = new FormData();
+    fd.append('id', AUDIT_ID);
+    fd.append('field', field);
+    fd.append('value', value);
+    try {
+        const resp = await fetch('/api/autosave-observation', { method: 'POST', body: fd });
+        if (resp.ok) showAutosaveStatus(); else showAutosaveError();
+    } catch (e) { showAutosaveError(); }
+}
+
+document.querySelectorAll('.obs-field').forEach(el => {
+    let timeout;
+    const trigger = () => autosaveObservation(el.dataset.field, el.value);
+    el.addEventListener('input', () => { clearTimeout(timeout); timeout = setTimeout(trigger, 800); });
+    el.addEventListener('blur', trigger);
 });
 </script>

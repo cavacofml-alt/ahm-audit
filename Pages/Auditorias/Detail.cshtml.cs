@@ -6,7 +6,7 @@ using System.Reflection;
 
 namespace AHM.Audit.Pages.Auditorias
 {
-    public class ChecklistItem { public string Label { get; set; } = ""; public string Value { get; set; } = "N/A"; public string? Reason { get; set; } }
+    public class ChecklistItem { public string Label { get; set; } = ""; public string Value { get; set; } = "N/A"; public string? Reason { get; set; } public string? Observation { get; set; } }
 
     public class DetailModel : PageModel
     {
@@ -75,11 +75,17 @@ namespace AHM.Audit.Pages.Auditorias
                     .Where(p => p.Length == 2)
                     .GroupBy(p => p[0]).ToDictionary(g => g.Key, g => g.Last()[1]);
 
+            // Extrai o dicionário campo->observação de Auditoria.ItemObservations (JSON)
+            var observations = string.IsNullOrEmpty(Auditoria.ItemObservations)
+                ? new Dictionary<string, string>()
+                : System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, string>>(Auditoria.ItemObservations) ?? new();
+
             foreach (var (label, field) in Items)
             {
                 var val = typeof(Auditoria).GetProperty(field)?.GetValue(Auditoria)?.ToString() ?? "N/A";
                 var reason = val == "NO" ? noReasons.GetValueOrDefault(field) : null;
-                ChecklistItems.Add(new ChecklistItem { Label = label, Value = val, Reason = reason });
+                var observation = observations.GetValueOrDefault(field);
+                ChecklistItems.Add(new ChecklistItem { Label = label, Value = val, Reason = reason, Observation = observation });
                 if (val == "YES") CountYes++;
                 else if (val == "NO") CountNo++;
                 else CountNA++;
