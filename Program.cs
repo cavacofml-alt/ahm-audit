@@ -169,14 +169,8 @@ app.MapPost("/api/autosave", async (HttpContext ctx, AuditDbContext db) =>
         }
     }
 
-    // Whitelist de campos permitidos na checklist
-    var allowedChecklistFields = new HashSet<string> {
-        "B1","B2","B3","C1","C2","C2_3","C3","C4_TakeOff","C4_ZeroFuel",
-        "C4_Landing","C4_Inflight","C4_IdealTrim","C5","C7_1","D1","D2",
-        "D3","D5_1","D5_2","D6_2","E1_DOW","E1_MRW","E1_MTOW","E1_MZFW",
-        "E1_MLAW","E2_1","E2_2","E3_1","G1","RevisionUpdate","LIR","LS","DatabasePrintout"
-    };
-    if (!allowedChecklistFields.Contains(field)) return Results.BadRequest("Campo não permitido");
+    // Whitelist de campos permitidos na checklist (fonte única em AuditCsvExporter.ChecklistFields)
+    if (!AuditCsvExporter.ChecklistFields.Contains(field)) return Results.BadRequest("Campo não permitido");
 
     var allowedValues = new HashSet<string> { "YES", "NO", "N/A" };
     if (!allowedValues.Contains(value)) return Results.BadRequest("Valor inválido");
@@ -252,6 +246,48 @@ app.MapPost("/api/autosave-field", async (HttpContext ctx, AuditDbContext db) =>
         prop.SetValue(audit, dt);
     else if (prop.PropertyType == typeof(string))
         prop.SetValue(audit, value);
+
+    db.SaveChanges();
+    return Results.Ok();
+});
+
+// ── Endpoint de auto-save para observações de texto livre por item da checklist ──
+app.MapPost("/api/autosave-observation", async (HttpContext ctx, AuditDbContext db) =>
+{
+    var username = ctx.Session.GetString("User");
+    if (username == null) return Results.Unauthorized();
+    // Alinha com o AuthMiddleware, que exige conta ativa em todas as outras páginas — sem
+    // isto, desativar alguém a meio de uma sessão não bloqueava estes dois endpoints.
+    if (!db.Users.Any(u => u.Username == username && u.Active)) return Results.Unauthorized();
+
+    if (!ctx.Request.HasFormContentType) return Results.BadRequest("Content-Type inválido, esperado form-urlencoded ou multipart/form-data");
+    var form = await ctx.Request.ReadFormAsync();
+    var idStr = form["id"].ToString();
+    var field = form["field"].ToString();
+    var value = form["value"].ToString();
+
+    if (string.IsNullOrEmpty(idStr) || idStr == "0" || string.IsNullOrEmpty(field))
+        return Results.BadRequest();
+
+    if (!int.TryParse(idStr, out var id)) return Results.BadRequest("Id inválido");
+    var audit = db.Auditorias.Find(id);
+    if (audit == null) return Results.NotFound();
+    if (audit.IsFinalized)
+    {
+        var isAdmin = db.Users.Any(u => u.Username == username && u.IsAdmin);
+        if (!isAdmin) return Results.Forbid();
+    }
+
+    if (!AuditCsvExporter.ChecklistFields.Contains(field)) return Results.BadRequest("Campo não permitido");
+
+    var observations = string.IsNullOrEmpty(audit.ItemObservations)
+        ? new Dictionary<string, string>()
+        : System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, string>>(audit.ItemObservations) ?? new();
+
+    if (string.IsNullOrWhiteSpace(value)) observations.Remove(field);
+    else observations[field] = value;
+
+    audit.ItemObservations = observations.Count == 0 ? "" : System.Text.Json.JsonSerializer.Serialize(observations);
 
     db.SaveChanges();
     return Results.Ok();

@@ -66,5 +66,10 @@ namespace AHM.Audit.Models
 
         // Razões para os NO (uma por item, separadas por ; no formato campo=razão)
         public string NoReasons { get; set; } = "";
+
+        // Observações de texto livre por item da checklist, em JSON ({"C3":"texto",...}).
+        // Ao contrário de NoReasons, o texto aqui é livre (pode conter ";" ou "="), por isso
+        // usa JSON em vez do formato campo=valor separado por ";".
+        public string ItemObservations { get; set; } = "";
     }
 }

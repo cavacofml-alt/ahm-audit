@@ -214,6 +214,10 @@ namespace AHM.Audit.Migrations
                     b.Property<bool>("IsFinalized")
                         .HasColumnType("boolean");
 
+                    b.Property<string>("ItemObservations")
+                        .IsRequired()
+                        .HasColumnType("text");
+
                     b.Property<string>("LIR")
                         .IsRequired()
                         .HasColumnType("text");
