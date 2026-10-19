@@ -19,6 +19,13 @@
          GHSA-8g4q-xg66-9fp4, GHSA-447r-wph3-92pm) — ver CHANGELOG.md. -->
     <PackageReference Include="System.Text.Json" Version="8.0.6" />
     <PackageReference Include="System.Formats.Asn1" Version="8.0.2" />
+    <PackageReference Include="Microsoft.Extensions.Caching.Memory" Version="8.0.1" />
+    <!-- Pkcs 8.0.2 e Xml 8.0.5 (publicadas 2026-10-13) são as únicas versões 8.0.x que
+         corrigem GHSA-846f-f764-76mx / GHSA-2fmv-rv2c-59x7 e as 4 advisories High de Xml;
+         usadas apesar de terem menos de 14 dias à data desta alteração (2026-10-19),
+         decisão explícita do utilizador para fechar as falhas conhecidas já. -->
+    <PackageReference Include="System.Security.Cryptography.Pkcs" Version="8.0.2" />
+    <PackageReference Include="System.Security.Cryptography.Xml" Version="8.0.5" />
   </ItemGroup>
 
 </Project>
