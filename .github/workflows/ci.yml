@@ -1,0 +1,32 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [master]
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Instalar SDK .NET 8
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.0.x"
+
+      - name: dotnet restore
+        run: dotnet restore
+
+      - name: dotnet build
+        run: dotnet build --no-restore --configuration Release
+
+      - name: Falhar se houver dependências com falhas de segurança conhecidas
+        run: |
+          dotnet list package --vulnerable --include-transitive 2>&1 | tee vulnerable-packages.txt
+          if grep -q "following vulnerable packages" vulnerable-packages.txt; then
+            echo "::error::Encontradas dependências com falhas de segurança conhecidas — ver output acima."
+            exit 1
+          fi

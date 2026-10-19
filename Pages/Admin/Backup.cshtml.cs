@@ -73,7 +73,7 @@ namespace AHM.Audit.Pages.Admin
                 rowNum++;
                 var cols = row.ToArray();
                 if (cols.Length < 10) { skippedDetails.Add($"Linha {rowNum}: menos colunas do que o esperado."); continue; }
-                var ticket = cols[0].Trim();
+                var ticket = StripFormulaGuard(cols[0].Trim());
                 if (string.IsNullOrEmpty(ticket)) { skippedDetails.Add($"Linha {rowNum}: sem número de ticket."); continue; }
                 if (existingTickets.Contains(ticket)) { skippedDetails.Add($"Linha {rowNum}: ticket {ticket} já existe na base de dados."); continue; }
                 if (!seenInThisFile.Add(ticket)) { skippedDetails.Add($"Linha {rowNum}: ticket {ticket} repetido dentro do próprio ficheiro."); continue; }
@@ -240,7 +240,14 @@ namespace AHM.Audit.Pages.Admin
         }
 
         private string SafeGet(string[] arr, int i) =>
-            i < arr.Length ? arr[i].Trim('"', ' ') : "";
+            i < arr.Length ? StripFormulaGuard(arr[i].Trim('"', ' ')) : "";
+
+        // Tira o apóstrofo de guarda contra fórmulas que AuditCsvExporter.Escape acrescenta a
+        // valores que comecem por =, +, -, @, tab ou carriage return (proteção contra fórmulas
+        // no Excel) — para a importação reconstruir o valor original, sem guardar o apóstrofo
+        // como texto.
+        private static string StripFormulaGuard(string value) =>
+            value.Length > 0 && value[0] == '\'' ? value[1..] : value;
 
         // Parser de CSV a sério: lê o conteúdo inteiro do ficheiro (não linha a linha), respeitando
         // aspas — incluindo quando uma célula tem texto com quebras de linha lá dentro (ex.: notas
