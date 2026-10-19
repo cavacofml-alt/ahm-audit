@@ -55,9 +55,14 @@ dotnet ef migrations list                  # ver o que já foi aplicado
   `.GroupBy(p => p[0]).ToDictionary(g => g.Key, g => g.Last()[1])` em vez de
   `.ToDictionary(p => p[0], p => p[1])` direto — um campo duplicado no texto faz o
   `ToDictionary` simples rebentar com exceção.
-- **DataProtection keys**: guardadas em `./dataprotection-keys` (relativo à pasta do
-  projeto, não `/tmp` — `/tmp` é limpo a cada reinício e invalida sessões/tokens). Esta
-  pasta está no `.gitignore` — nunca commitar chaves de encriptação.
+- **DataProtection keys**: guardadas em `./dataprotection-keys` (relativo à
+  `ContentRootPath` da app, não `/tmp` — `/tmp` é limpo a cada reinício e invalida
+  sessões/tokens). No PC Linux isto é `/home/pedro-nunes/ahm-audit/dataprotection-keys`.
+  Esta pasta está no `.gitignore` — nunca commitar chaves de encriptação. Garantir que só
+  a conta que corre a app consegue ler esta pasta:
+  ```bash
+  chmod 700 /home/pedro-nunes/ahm-audit/dataprotection-keys
+  ```
 - **Autenticação**: sessão simples (`HttpContext.Session`), sem ASP.NET Identity. Toda a
   gente autenticada pode ver/editar auditorias de outros agentes — é intencional
   (equipa pequena, colaboração entre agentes), não é bug.
