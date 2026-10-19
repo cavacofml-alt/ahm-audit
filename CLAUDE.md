@@ -63,6 +63,13 @@ dotnet ef migrations list                  # ver o que já foi aplicado
   `dotnet ef migrations add` gerar a partir do estado atual real do projeto.
 
 ## Áreas sensíveis (não mexer sem pensar duas vezes)
+- **`AllowedHosts`** (`appsettings.json`): tem de incluir **todos** os endereços pelos
+  quais a aplicação é aberta na rede, separados por `;` — não só `localhost`. Hoje é
+  `"localhost;192.168.2.15"`, porque os outros computadores da equipa abrem a app em
+  `http://192.168.2.15:5000`. Sem o endereço certo aqui, o ASP.NET Core recusa esses
+  pedidos com `400 Bad Request` ("Invalid Hostname") — já aconteceu uma vez. Se o IP do
+  PC Linux mudar, ou se passar a ser aberto por outro nome/endereço também, acrescentar
+  aqui (nunca voltar a `"*"`, que desativa esta proteção por completo).
 - **Seeds no arranque** (`Program.cs`): o seed de Agents/Officers e de Airlines só corre
   numa base de dados **completamente vazia** (`if (!db.Persons.Any())` / `if (!db.Airlines.Any())`).
   Já houve um bug em que o seed corria em todos os arranques e ressuscitava agents/officers
