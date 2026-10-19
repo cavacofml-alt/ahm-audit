@@ -333,6 +333,19 @@ function showAutosaveError() {
     el.innerHTML = '<i class="bi bi-exclamation-triangle me-1"></i>Erro ao guardar';
 }
 
+function renderReasonContent(el, reason) {
+    el.textContent = '';
+    const icon1 = document.createElement('i');
+    icon1.className = 'bi bi-exclamation-circle me-1';
+    el.appendChild(icon1);
+    el.appendChild(document.createTextNode(reason || 'sem razão registada'));
+    el.appendChild(document.createTextNode(' '));
+    const icon2 = document.createElement('i');
+    icon2.className = 'bi bi-pencil-fill ms-1';
+    icon2.style.fontSize = '10px';
+    el.appendChild(icon2);
+}
+
 async function autosaveChecklist(field, value, reason) {
     const fd = new FormData();
     fd.append('id', getAuditId());
@@ -351,9 +364,8 @@ async function autosaveChecklist(field, value, reason) {
         // Mostra/atualiza a razão do NO diretamente na página, sem precisar de recarregar.
         const reasonEl = document.getElementById('reason-' + field);
         if (value === 'NO') {
-            const text = '<i class="bi bi-exclamation-circle me-1"></i>' + (reason || 'sem razão registada') + ' <i class="bi bi-pencil-fill ms-1" style="font-size:10px"></i>';
             if (reasonEl) {
-                reasonEl.innerHTML = text;
+                renderReasonContent(reasonEl, reason);
                 reasonEl.dataset.reasonValue = reason || '';
             } else {
                 const noRadio = document.querySelector(`#row-${field} input[value="NO"]`);
@@ -364,7 +376,7 @@ async function autosaveChecklist(field, value, reason) {
                 div.style.cursor = 'pointer';
                 div.title = 'Clica para alterar a razão';
                 div.dataset.reasonValue = reason || '';
-                div.innerHTML = text;
+                renderReasonContent(div, reason);
                 div.onclick = () => openReasonModal(field, noRadio.dataset.label, noRadio);
                 noCell.appendChild(div);
             }
