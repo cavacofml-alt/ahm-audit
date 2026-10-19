@@ -2,6 +2,20 @@
 
 ## 2026-10-19
 
+### Dependabot e CI (PR "dependabot-ci")
+- `.github/dependabot.yml`, novo: atualiza os pacotes NuGet (semanal) e as GitHub
+  Actions usadas nos workflows (mensal) sozinho, sem precisar de acesso ao PC Linux —
+  14 dias de cooldown antes de abrir a PR, exceto para correções de segurança (o
+  Dependabot ignora sempre o cooldown para essas, por desenho próprio do GitHub).
+- `.github/workflows/ci.yml`, novo: corre em cada PR e em cada push a `master`, em
+  `ubuntu-24.04` com o SDK do .NET 8 — `dotnet restore`, `dotnet build`, e
+  `dotnet list package --vulnerable --include-transitive`, a falhar (`exit 1`) se o
+  output tiver "following vulnerable packages" (só aparece quando há mesmo falhas
+  conhecidas; a mensagem de "sem falhas" é diferente, não dá falso positivo).
+- `CLAUDE.md`: documenta que uma PR do Dependabot só entra com o CI verde, uma de cada
+  vez, e que um conflito se resolve com `@dependabot rebase` comentado na PR — nunca
+  editando o `.csproj` à mão.
+
 ### Restos e âmbito (PR "restos-ambientes")
 - Removidos `algarve_monitor.py` (outro projeto — continha 4 endereços de email,
   nenhum relacionado com o AHM Audit, reportados ao utilizador antes de apagar),

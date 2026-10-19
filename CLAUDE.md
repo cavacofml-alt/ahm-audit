@@ -108,6 +108,17 @@ dotnet ef migrations list                  # ver o que já foi aplicado
   servidor de CRL — acontece em ambientes com rede restrita). Nestes casos, usar a versão
   mais recente mesmo com menos de 14 dias, documentando a decisão e o resultado da
   verificação de assinatura no commit/PR.
+- **Dependabot** (`.github/dependabot.yml`) mantém os pacotes NuGet (semanal) e as
+  GitHub Actions dos workflows (mensal) atualizados sozinho, sem precisar de acesso ao
+  PC Linux — com 14 dias de cooldown antes de abrir a PR (a mesma regra em cima), exceto
+  para correções de segurança, que o Dependabot abre logo (o cooldown não se aplica a
+  essas, por desenho). O CI (`.github/workflows/ci.yml`) corre em cada PR e em cada push
+  a `master`: `dotnet build` e `dotnet list package --vulnerable --include-transitive`,
+  a falhar se houver alguma falha conhecida.
+- Uma PR do Dependabot só entra com o **CI verde**, **uma de cada vez** (nunca mesclar
+  várias em paralelo — cada merge pode mudar o que as outras resolvem). Se tiver
+  conflitos, comentar `@dependabot rebase` na própria PR — **nunca editar à mão** o
+  `.csproj` dessa PR para resolver o conflito; o Dependabot sabe recalcular.
 
 ## Regras de trabalho
 - Sempre correr `dotnet build` antes de dar como terminado.
