@@ -1,5 +1,22 @@
 # Changelog
 
+## 2026-10-19 (2)
+
+### Correção de segurança — XSS nas razões de NOT OK (PR "fix-xss-nonconformity-reason")
+- `Pages/Auditorias/Create.cshtml` e `Edit.cshtml`: o texto da razão de NOT OK (escolhida
+  de Admin > Definições) era inserido no ecrã via `innerHTML` sem nenhum escape — uma
+  razão configurada com HTML/JavaScript corria no browser de qualquer pessoa que depois
+  visse essa auditoria. Corrigido construindo o elemento com `textContent`/`createElement`
+  em vez de concatenar HTML.
+- `Pages/Index.cshtml`: o mesmo problema no painel "drill-down" por Officer do dashboard
+  (razões já guardadas na base de dados, mostradas sem escape). Mesma correção.
+- Como a razão só pode ser escolhida de uma lista configurada por um administrador (nunca
+  texto livre de um utilizador normal), não era explorável por qualquer pessoa — mas um
+  admin com a conta comprometida, ou um erro ao configurar uma razão, afetaria todos os
+  utilizadores que vissem essa razão. Testado com um payload real (`<img src=x
+  onerror=...>`) numa razão: já não corre, aparece como texto inofensivo, em ambos os
+  pontos corrigidos.
+
 ## 2026-10-19
 
 ### Bibliotecas do browser vendorizadas localmente (PR "vendor-local-libs")

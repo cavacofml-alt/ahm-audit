@@ -477,19 +477,44 @@ function showOfficerDrill(officerName) {
     document.getElementById('drillOfficerAllLink').href = `/Auditorias?officer=${encodeURIComponent(officerName)}`;
     const data = officerReasonDrill[officerName] || [];
     const tbody = document.getElementById('drillOfficerBody');
+    tbody.textContent = '';
     if (data.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="3" class="text-center text-muted py-3">Sem não conformidades registadas</td></tr>';
+        const tr = document.createElement('tr');
+        const td = document.createElement('td');
+        td.colSpan = 3;
+        td.className = 'text-center text-muted py-3';
+        td.textContent = 'Sem não conformidades registadas';
+        tr.appendChild(td);
+        tbody.appendChild(tr);
     } else {
-        tbody.innerHTML = data.map(d => `
-            <tr>
-                <td><small>${d.Reason}</small></td>
-                <td class="text-center text-danger fw-bold">${d.Count}</td>
-                <td class="text-end">
-                    <a href="/Auditorias?officer=${encodeURIComponent(officerName)}&ncReason=${encodeURIComponent(d.Reason)}" class="btn btn-sm btn-outline-danger">
-                        <i class="bi bi-eye"></i> Ver
-                    </a>
-                </td>
-            </tr>`).join('');
+        data.forEach(d => {
+            const tr = document.createElement('tr');
+
+            const tdReason = document.createElement('td');
+            const small = document.createElement('small');
+            small.textContent = d.Reason;
+            tdReason.appendChild(small);
+            tr.appendChild(tdReason);
+
+            const tdCount = document.createElement('td');
+            tdCount.className = 'text-center text-danger fw-bold';
+            tdCount.textContent = d.Count;
+            tr.appendChild(tdCount);
+
+            const tdLink = document.createElement('td');
+            tdLink.className = 'text-end';
+            const a = document.createElement('a');
+            a.href = `/Auditorias?officer=${encodeURIComponent(officerName)}&ncReason=${encodeURIComponent(d.Reason)}`;
+            a.className = 'btn btn-sm btn-outline-danger';
+            const icon = document.createElement('i');
+            icon.className = 'bi bi-eye';
+            a.appendChild(icon);
+            a.appendChild(document.createTextNode(' Ver'));
+            tdLink.appendChild(a);
+            tr.appendChild(tdLink);
+
+            tbody.appendChild(tr);
+        });
     }
     new bootstrap.Modal(document.getElementById('officerDrillModal')).show();
 }
