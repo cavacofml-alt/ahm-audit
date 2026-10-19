@@ -1,0 +1,21 @@
+version: 2
+updates:
+  # Pacotes NuGet do projeto (.csproj) — semanal, com 14 dias de "cooldown" antes de
+  # abrir a PR (mesma margem já documentada em CLAUDE.md > Dependências para versões
+  # novas). O cooldown só se aplica a atualizações de versão normais — correções de
+  # segurança (dependabot a reagir a uma advisory) ignoram sempre o cooldown, por
+  # desenho do Dependabot, e entram logo.
+  - package-ecosystem: "nuget"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    cooldown:
+      default-days: 14
+
+  # Actions usadas nos workflows (.github/workflows/*.yml) — mensal, cooldown igual.
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "monthly"
+    cooldown:
+      default-days: 14
