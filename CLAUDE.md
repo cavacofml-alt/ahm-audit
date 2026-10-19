@@ -73,12 +73,35 @@ dotnet ef migrations list                  # ver o que já foi aplicado
   `.GroupBy(p => p[0]).ToDictionary(g => g.Key, g => g.Last()[1])` em vez de
   `.ToDictionary(p => p[0], p => p[1])` direto — um campo duplicado no texto faz o
   `ToDictionary` simples rebentar com exceção.
-- **DataProtection keys**: guardadas em `./dataprotection-keys` (relativo à pasta do
-  projeto, não `/tmp` — `/tmp` é limpo a cada reinício e invalida sessões/tokens). Esta
-  pasta está no `.gitignore` — nunca commitar chaves de encriptação.
+- **DataProtection keys**: guardadas em `./dataprotection-keys` (relativo à
+  `ContentRootPath` da app, não `/tmp` — `/tmp` é limpo a cada reinício e invalida
+  sessões/tokens). No PC Linux isto é `/home/pedro-nunes/ahm-audit/dataprotection-keys`.
+  Esta pasta está no `.gitignore` — nunca commitar chaves de encriptação. Garantir que só
+  a conta que corre a app consegue ler esta pasta:
+  ```bash
+  chmod 700 /home/pedro-nunes/ahm-audit/dataprotection-keys
+  ```
 - **Autenticação**: sessão simples (`HttpContext.Session`), sem ASP.NET Identity. Toda a
   gente autenticada pode ver/editar auditorias de outros agentes — é intencional
   (equipa pequena, colaboração entre agentes), não é bug.
+
+## Dependências
+- Ao corrigir uma vulnerabilidade de uma dependência transitiva (`dotnet list package
+  --vulnerable --include-transitive`), fixar a versão mais recente da série (ex.: `8.0.x`)
+  que a resolve, mas só se tiver **mais de 14 dias** desde a publicação — margem contra
+  bugs recém-lançados que ainda não tiveram tempo de aparecer.
+- **Exceção à regra dos 14 dias:** não se aplica quando a correção é um patch de
+  segurança oficial do próprio fornecedor (ex.: Microsoft, para pacotes `System.*`/
+  `Microsoft.*`) para uma falha de gravidade **High** ou **Critical**, desde que a
+  assinatura do pacote seja confirmada antes de o usar:
+  ```bash
+  dotnet nuget verify --all ~/.nuget/packages/<pacote>/<versão>/*.nupkg
+  ```
+  Tem de mostrar assinatura `Author` válida com `O=Microsoft Corporation` (ignorar avisos
+  `NU3018`/`NU3028` de revogação de certificado se forem só por não conseguir contactar o
+  servidor de CRL — acontece em ambientes com rede restrita). Nestes casos, usar a versão
+  mais recente mesmo com menos de 14 dias, documentando a decisão e o resultado da
+  verificação de assinatura no commit/PR.
 
 ## Regras de trabalho
 - Sempre correr `dotnet build` antes de dar como terminado.
