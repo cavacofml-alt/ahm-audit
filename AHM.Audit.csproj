@@ -13,8 +13,12 @@
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
       <PrivateAssets>all</PrivateAssets>
     </PackageReference>
-    <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="8.0.4" />
     <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="8.0.4" />
+    <!-- Pins diretos para corrigir advisories de segurança em dependências transitivas
+         trazidas pelo EF Core / ASP.NET Core DataProtection (GHSA-hh2w-p6rv-4g7w,
+         GHSA-8g4q-xg66-9fp4, GHSA-447r-wph3-92pm) — ver CHANGELOG.md. -->
+    <PackageReference Include="System.Text.Json" Version="8.0.6" />
+    <PackageReference Include="System.Formats.Asn1" Version="8.0.2" />
   </ItemGroup>
 
 </Project>
