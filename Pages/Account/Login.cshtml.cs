@@ -22,6 +22,14 @@ namespace AHM.Audit.Pages.Account
         private const int MaxFailedAttempts = 5;
         private const int LockoutMinutes = 15;
 
+        // Hash fixo, nunca usado por nenhum utilizador real — verificado sempre que o
+        // username não existe, para o tempo de resposta ser igual ao de uma tentativa
+        // com username válido mas password errada. Sem isto, medir o tempo de resposta
+        // revelaria que usernames existem (BCrypt.Verify é deliberadamente lento; sem
+        // utilizador, o código voltava logo, muito mais rápido).
+        private const string DummyHashForTimingSafety =
+            "$2a$11$udhPnkAHdE3yW8xDhctRjucrCxG729tIXfg5cIlvXwEVOoiaFyCW6";
+
         public IActionResult OnGet()
         {
             if (HttpContext.Session.GetString("User") != null)
@@ -44,6 +52,7 @@ namespace AHM.Audit.Pages.Account
             var user = _context.Users.FirstOrDefault(u => u.Username == Username && u.Active);
             if (user == null)
             {
+                BCrypt.Net.BCrypt.Verify(Password, DummyHashForTimingSafety);
                 ErrorMessage = "Credenciais inválidas.";
                 return Page();
             }
@@ -56,23 +65,11 @@ namespace AHM.Audit.Pages.Account
                 return Page();
             }
 
-            // Verificar password com BCrypt ou fallback para texto simples (migração gradual)
-            bool passwordValid = false;
-            if (user.PasswordHash.StartsWith("$2"))
-            {
-                // Password já tem hash BCrypt
-                passwordValid = BCrypt.Net.BCrypt.Verify(Password, user.PasswordHash);
-            }
-            else
-            {
-                // Password ainda em texto simples — verificar e migrar automaticamente
-                if (user.PasswordHash == Password)
-                {
-                    passwordValid = true;
-                    // Migrar para BCrypt automaticamente
-                    user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(Password);
-                }
-            }
+            // Todas as passwords são sempre criadas com BCrypt (seed do admin, criação de
+            // utilizador, reset de password) — nunca houve, nem deve haver, um fallback
+            // para texto simples aqui (já houve um bug destes num sítio diferente do
+            // projeto, nunca mais).
+            bool passwordValid = BCrypt.Net.BCrypt.Verify(Password, user.PasswordHash);
 
             if (!passwordValid)
             {

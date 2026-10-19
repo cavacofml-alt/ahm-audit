@@ -1,5 +1,21 @@
 # Changelog
 
+## 2026-10-19 (3)
+
+### Correções de segurança — login e dependência desatualizada (PR "fix-login-timing-and-dataprotection")
+- `Pages/Account/Login.cshtml.cs`: o login respondia mais rápido quando o username não
+  existia do que quando existia (porque só corria a verificação lenta da password,
+  BCrypt, quando havia utilizador) — permitia descobrir que usernames existem só por
+  medir o tempo de resposta. Corrigido correndo sempre essa verificação, com um hash
+  fixo quando o utilizador não existe.
+- Removido um ramo de código morto que comparava passwords em texto simples (fallback de
+  uma migração antiga) — confirmado que nenhum caminho atual (seed do admin, criação de
+  utilizador, reset de password) cria passwords assim, mas era uma armadilha para o
+  futuro se alguém inserisse uma password manualmente na base de dados.
+- `Microsoft.AspNetCore.DataProtection`: `8.0.0` (a primeira versão do .NET 8, de 2023)
+  → `8.0.31` (mais de 14 dias, sem CVE conhecida — só a atualizar para a série de patches
+  mais recente, como o resto das dependências já estava).
+
 ## 2026-10-19 (2)
 
 ### Correção de segurança — XSS nas razões de NOT OK (PR "fix-xss-nonconformity-reason")
