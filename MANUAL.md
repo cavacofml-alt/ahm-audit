@@ -6,19 +6,20 @@ Linux (`/home/pedro-nunes/ahm-audit`):
 ```bash
 cd /home/pedro-nunes/ahm-audit
 git pull
+dotnet --list-sdks
 dotnet build
 dotnet run
 ```
 
-Se o Claude Code tiver feito `push` de alterações ao modelo de dados (migrations
-novas), é preciso mais um passo depois do `git pull` e antes do `dotnet build`:
+Não é preciso correr `dotnet ef database update` manualmente mesmo quando há
+migrations novas — `Program.cs` corre `db.Database.Migrate()` sempre no arranque,
+que aplica sozinho qualquer migration pendente antes da app ficar disponível.
 
-```bash
-dotnet ef database update
-```
-
-(só corram este se souberem que houve uma migration nova — o Claude Code deve
-avisar-vos nesse caso)
+**`dotnet --list-sdks`**: envia o resultado deste comando ao responsável depois de
+cada `git pull` — é como se sabe, à distância, quando o .NET 10 já está instalado
+nesta máquina (ver `PENDENTES-PC-LINUX.md`, ponto 2). Antes de ter o .NET 10
+instalado, só deve aparecer uma linha com `8.0.x`; depois de instalado, aparecem as
+duas (`8.0.x` e `10.0.x`) — as duas podem coexistir sem problema.
 
 Para parar a app: `Ctrl+C` na mesma janela.
 
