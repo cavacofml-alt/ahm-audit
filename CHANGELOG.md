@@ -2,6 +2,16 @@
 
 ## 2026-10-19
 
+### Correção urgente — AllowedHosts (PR "fix-allowedhosts-lan")
+- `appsettings.json`: `AllowedHosts` de `"localhost"` para `"localhost;192.168.2.15"` —
+  os outros computadores da equipa abrem o AHM Audit em
+  `http://192.168.2.15:5000/Account/Login`, e com só `"localhost"` o ASP.NET Core
+  recusava esses pedidos com `400 Bad Request` ("Invalid Hostname"). Introduzido na PR
+  "correcoes-seguranca" (que trocou o `"*"` original por `"localhost"` sem saber o
+  endereço real de rede) — corrigido agora que se sabe qual é.
+- `CLAUDE.md`: nova nota em "Áreas sensíveis" — `AllowedHosts` tem de ter **todos** os
+  endereços pelos quais a app é aberta na rede, nunca voltar a `"*"`.
+
 ### Manual e pendentes do PC Linux (PR "manual-pendentes-pc-linux")
 - Confirmado em `Program.cs` (`db.Database.Migrate()`, linha ~299) que as migrations
   são sempre aplicadas automaticamente no arranque — o passo manual
