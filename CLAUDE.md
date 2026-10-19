@@ -9,25 +9,30 @@ Aplicação interna de auditorias de weight & balance (AHM) para uma companhia a
 
 ## Repositório e deploy
 - GitHub: https://github.com/cavacofml-alt/ahm-audit (branch `master`)
-- Produção: Render (`ahm-audit`, região Frankfurt, plano free), deploy automático a
-  cada push em `master` — build via o `Dockerfile` existente na raiz do projeto.
-  Dashboard: https://dashboard.render.com/web/srv-db8dgcjncjis73fggptg · URL pública:
-  https://ahm-audit.onrender.com
-- Anteriormente em Railway — migrado para Render + Supabase porque o trial do Railway
-  acabou. Não há nada do Railway a manter; pode ser ignorado/removido se ainda existir
-  alguma referência.
+- **Produção é só o PC Linux** (`/home/pedro-nunes/ahm-audit`, com PostgreSQL local) —
+  é aí que correm auditorias reais, com nomes reais de agentes/officers. Ver `MANUAL.md`
+  para a instalação/atualização manual.
+- **Render + Supabase são uma verificação pessoal do utilizador, fora do âmbito do
+  ISO 27001** (serviço `ahm-audit` no Render, Frankfurt, plano free; projeto `ahm-audit`
+  no Supabase, eu-west-1). Servem só para confirmar que o código builda e arranca numa
+  plataforma diferente antes de fazer `git pull` no PC Linux — **nunca usar dados reais
+  aí**: nunca auditorias reais, nunca nomes reais de agentes/officers, e a password da
+  base de dados do Supabase **nunca** pode ser igual à do PostgreSQL do PC Linux. Se um
+  dia passar a ter dados reais, passa a entrar no âmbito do ISO 27001 e este documento
+  tem de ser atualizado.
 - Local (Linux): `/home/pedro-nunes/ahm-audit`
 
 ## Base de dados
 - PostgreSQL, ligação via variável de ambiente `DATABASE_URL`
-- Local: `postgresql://ahm:<password>@localhost:5432/ahmaudit` — a password real
-  fica só em `~/.bashrc` na máquina Linux, nunca neste repositório (ver `MANUAL.md`
+- Local (produção): `postgresql://ahm:<password>@localhost:5432/ahmaudit` — a password
+  real fica só em `~/.bashrc` na máquina Linux, nunca neste repositório (ver `MANUAL.md`
   para a trocar).
-- Produção: Supabase (projeto `ahm-audit`, região eu-west-1). A `DATABASE_URL` está
-  definida como env var no serviço do Render, **não** no código — aponta para o
-  connection pooler Supavisor em modo sessão (`aws-0-eu-west-1.pooler.supabase.com:5432`),
-  nunca para a ligação direta (`db.<ref>.supabase.co`), porque o Render só suporta
-  saída IPv4 e a ligação direta do Supabase é IPv6-only no plano free.
+- Render/Supabase (verificação pessoal, fora do âmbito ISO 27001): `DATABASE_URL` é
+  uma env var no serviço do Render, **não** no código — aponta para o connection pooler
+  Supavisor em modo sessão (`aws-0-eu-west-1.pooler.supabase.com:5432`), nunca para a
+  ligação direta (`db.<ref>.supabase.co`), porque o Render só suporta saída IPv4 e a
+  ligação direta do Supabase é IPv6-only no plano free. Password diferente da do PC
+  Linux (ver acima).
 - **Row Level Security (RLS) está ativo em todas as tabelas no Supabase, sem políticas**
   — isto bloqueia por completo a API REST pública do Supabase (PostgREST/anon key),
   que de outra forma exporia todos os dados sem precisar de login nenhum na app. A app

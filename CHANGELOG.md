@@ -2,6 +2,26 @@
 
 ## 2026-10-19
 
+### Restos e âmbito (PR "restos-ambientes")
+- Removidos `algarve_monitor.py` (outro projeto — continha 4 endereços de email,
+  nenhum relacionado com o AHM Audit, reportados ao utilizador antes de apagar),
+  `create-audit-module.ps1` e `iniciar_ahm.bat` (restos do Windows — o `.bat` tinha a
+  password real do PostgreSQL local em texto simples).
+- `Program.cs`: `ForwardedHeadersOptions.KnownNetworks`/`KnownProxies` só são limpas
+  (confiar em qualquer proxy, necessário no Render) quando a env var
+  `AHM_BEHIND_PROXY=true` está definida. No PC Linux, sem proxy à frente, isto não se
+  define, e o ASP.NET Core fica na regra por omissão (só confia em cabeçalhos vindos do
+  próprio PC) — comportamento seguro quando não há proxy nenhum. **A variável
+  `AHM_BEHIND_PROXY=true` tem de ser acrescentada às env vars do serviço no Render**
+  para a app continuar a reconhecer HTTPS lá (sem isto, o cookie de sessão "Secure"
+  deixa de ser enviado em produção no Render).
+- `CLAUDE.md`: clarifica que a produção é só o PC Linux; Render + Supabase passam a
+  estar documentados como verificação pessoal do utilizador, fora do âmbito do
+  ISO 27001, nunca com dados reais (auditorias, nomes de agentes/officers) nem com a
+  mesma password do PostgreSQL do PC Linux; removidas as referências ao Railway
+  (já não existe) em `CLAUDE.md` e em dois comentários do `Program.cs`.
+- `Dockerfile` não foi tocado (continua a ser o usado pelo Render).
+
 ### Correções de segurança (PR "correcoes-seguranca")
 - Password real (`ahm123`) retirada do `CLAUDE.md` e dos exemplos nas mensagens de erro
   do `Program.cs` — ficam só exemplos genéricos (`<password>`/`utilizador:password@...`).

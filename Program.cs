@@ -94,7 +94,7 @@ builder.Services.AddSession(options =>
     options.Cookie.IsEssential = true;
     // Protege o cookie de sessão contra CSRF (não é enviado em pedidos cross-site).
     options.Cookie.SameSite = SameSiteMode.Strict;
-    // "Always" só em produção (Railway corre em HTTPS). Em desenvolvimento local
+    // "Always" só em produção (corre em HTTPS). Em desenvolvimento local
     // (http://localhost) isto teria de ficar "SameAsRequest", senão o browser
     // recusa-se a enviar o cookie e o login deixa de funcionar.
     options.Cookie.SecurePolicy = builder.Environment.IsProduction()
@@ -113,12 +113,18 @@ var forwardedHeadersOptions = new ForwardedHeadersOptions
 {
     ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto
 };
-// O Railway coloca a app atrás do seu próprio proxy/edge, cuja rede não conhecemos
-// à partida — sem limpar estas listas (que por omissão só confiam em loopback), o
-// ASP.NET Core ignora o cabeçalho X-Forwarded-Proto e nunca reconhece o pedido como
-// HTTPS, o que impediria o cookie de sessão "Secure" de ser sequer enviado.
-forwardedHeadersOptions.KnownNetworks.Clear();
-forwardedHeadersOptions.KnownProxies.Clear();
+// Plataformas como o Render colocam a app atrás do seu próprio proxy/edge, cuja rede
+// não conhecemos à partida — sem limpar estas listas (que por omissão só confiam em
+// loopback), o ASP.NET Core ignora o cabeçalho X-Forwarded-Proto e nunca reconhece o
+// pedido como HTTPS, o que impediria o cookie de sessão "Secure" de ser sequer enviado.
+// Só se limpa com AHM_BEHIND_PROXY=true — no PC Linux (sem proxy à frente) isto não
+// está definido, e o ASP.NET Core fica na regra por omissão (só confia em cabeçalhos
+// vindos do próprio PC), que é o comportamento seguro quando não há proxy nenhum.
+if (Environment.GetEnvironmentVariable("AHM_BEHIND_PROXY") == "true")
+{
+    forwardedHeadersOptions.KnownNetworks.Clear();
+    forwardedHeadersOptions.KnownProxies.Clear();
+}
 app.UseForwardedHeaders(forwardedHeadersOptions);
 app.UseMiddleware<AHM.Audit.Middleware.SecurityHeadersMiddleware>();
 app.UseMiddleware<AHM.Audit.Middleware.ExceptionMiddleware>();
@@ -312,8 +318,8 @@ using (var scope = app.Services.CreateScope())
     // Seed admin
     if (!db.Users.Any())
     {
-        // Permite definir a password inicial via variável de ambiente (ex.: no Railway,
-        // em Variables). Se não for definida, gera-se uma password aleatória e forte,
+        // Permite definir a password inicial via variável de ambiente (ex.: no Render,
+        // em Environment). Se não for definida, gera-se uma password aleatória e forte,
         // impressa uma única vez na consola — nunca mais fica hardcoded no código-fonte.
         var initialAdminPassword = Environment.GetEnvironmentVariable("AHM_ADMIN_INITIAL_PASSWORD");
         var generated = string.IsNullOrWhiteSpace(initialAdminPassword);
