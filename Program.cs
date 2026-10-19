@@ -16,6 +16,16 @@ builder.Services.AddDataProtection()
     .PersistKeysToFileSystem(new System.IO.DirectoryInfo(
         System.IO.Path.Combine(builder.Environment.ContentRootPath, "dataprotection-keys")));
 
+// Mascara a password num DATABASE_URL (postgresql://utilizador:password@host...) para
+// nunca a mostrar em mensagens de erro, mesmo quando o URL está malformado — usa regex
+// de texto em vez de Uri, porque um URL inválido pode nem chegar a ser parseável.
+static string MaskDatabaseUrl(string? url)
+{
+    if (string.IsNullOrEmpty(url)) return url ?? "";
+    return System.Text.RegularExpressions.Regex.Replace(
+        url, @"(://[^:/@\s]+:)[^@\s]*(@)", "$1***$2");
+}
+
 var databaseUrl = Environment.GetEnvironmentVariable("DATABASE_URL");
 
 if (!string.IsNullOrEmpty(databaseUrl))
@@ -28,7 +38,7 @@ if (!string.IsNullOrEmpty(databaseUrl))
     catch (UriFormatException ex)
     {
         throw new InvalidOperationException(
-            $"DATABASE_URL não é um URI válido. Valor lido: \"{databaseUrl}\". " +
+            $"DATABASE_URL não é um URI válido. Valor lido: \"{MaskDatabaseUrl(databaseUrl)}\". " +
             "Formato esperado: postgresql://utilizador:password@host:porta/basededados", ex);
     }
 
@@ -39,7 +49,7 @@ if (!string.IsNullOrEmpty(databaseUrl))
     var userInfo = uri.UserInfo.Split(':', 2);
     if (userInfo.Length < 2)
         throw new InvalidOperationException(
-            $"DATABASE_URL não contém utilizador/password. Valor lido: \"{databaseUrl}\".");
+            $"DATABASE_URL não contém utilizador/password. Valor lido: \"{MaskDatabaseUrl(databaseUrl)}\".");
     var dbUser = Uri.UnescapeDataString(userInfo[0]);
     var dbPassword = Uri.UnescapeDataString(userInfo[1]);
 
@@ -58,8 +68,8 @@ else
     // inicial do projeto), o que dava um erro confuso e completamente enganador.
     throw new InvalidOperationException(
         "Variável de ambiente DATABASE_URL não está definida. Define-a antes de correr a app, por exemplo:\n" +
-        "  set DATABASE_URL=postgresql://ahm:ahm123@localhost:5432/ahmaudit   (cmd.exe)\n" +
-        "  $env:DATABASE_URL=\"postgresql://ahm:ahm123@localhost:5432/ahmaudit\"   (PowerShell)\n" +
+        "  set DATABASE_URL=postgresql://utilizador:password@localhost:5432/basededados   (cmd.exe)\n" +
+        "  $env:DATABASE_URL=\"postgresql://utilizador:password@localhost:5432/basededados\"   (PowerShell)\n" +
         "Nota: 'set'/'$env:' só valem para a janela de terminal onde forem corridos — numa janela nova, é preciso repetir.");
 }
 
@@ -84,7 +94,7 @@ builder.Services.AddSession(options =>
     options.Cookie.IsEssential = true;
     // Protege o cookie de sessão contra CSRF (não é enviado em pedidos cross-site).
     options.Cookie.SameSite = SameSiteMode.Strict;
-    // "Always" só em produção (Railway corre em HTTPS). Em desenvolvimento local
+    // "Always" só em produção (corre em HTTPS). Em desenvolvimento local
     // (http://localhost) isto teria de ficar "SameAsRequest", senão o browser
     // recusa-se a enviar o cookie e o login deixa de funcionar.
     options.Cookie.SecurePolicy = builder.Environment.IsProduction()
@@ -103,13 +113,20 @@ var forwardedHeadersOptions = new ForwardedHeadersOptions
 {
     ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto
 };
-// O Railway coloca a app atrás do seu próprio proxy/edge, cuja rede não conhecemos
-// à partida — sem limpar estas listas (que por omissão só confiam em loopback), o
-// ASP.NET Core ignora o cabeçalho X-Forwarded-Proto e nunca reconhece o pedido como
-// HTTPS, o que impediria o cookie de sessão "Secure" de ser sequer enviado.
-forwardedHeadersOptions.KnownNetworks.Clear();
-forwardedHeadersOptions.KnownProxies.Clear();
+// Plataformas como o Render colocam a app atrás do seu próprio proxy/edge, cuja rede
+// não conhecemos à partida — sem limpar estas listas (que por omissão só confiam em
+// loopback), o ASP.NET Core ignora o cabeçalho X-Forwarded-Proto e nunca reconhece o
+// pedido como HTTPS, o que impediria o cookie de sessão "Secure" de ser sequer enviado.
+// Só se limpa com AHM_BEHIND_PROXY=true — no PC Linux (sem proxy à frente) isto não
+// está definido, e o ASP.NET Core fica na regra por omissão (só confia em cabeçalhos
+// vindos do próprio PC), que é o comportamento seguro quando não há proxy nenhum.
+if (Environment.GetEnvironmentVariable("AHM_BEHIND_PROXY") == "true")
+{
+    forwardedHeadersOptions.KnownNetworks.Clear();
+    forwardedHeadersOptions.KnownProxies.Clear();
+}
 app.UseForwardedHeaders(forwardedHeadersOptions);
+app.UseMiddleware<AHM.Audit.Middleware.SecurityHeadersMiddleware>();
 app.UseMiddleware<AHM.Audit.Middleware.ExceptionMiddleware>();
 app.UseStaticFiles();
 app.UseRouting();
@@ -301,8 +318,8 @@ using (var scope = app.Services.CreateScope())
     // Seed admin
     if (!db.Users.Any())
     {
-        // Permite definir a password inicial via variável de ambiente (ex.: no Railway,
-        // em Variables). Se não for definida, gera-se uma password aleatória e forte,
+        // Permite definir a password inicial via variável de ambiente (ex.: no Render,
+        // em Environment). Se não for definida, gera-se uma password aleatória e forte,
         // impressa uma única vez na consola — nunca mais fica hardcoded no código-fonte.
         var initialAdminPassword = Environment.GetEnvironmentVariable("AHM_ADMIN_INITIAL_PASSWORD");
         var generated = string.IsNullOrWhiteSpace(initialAdminPassword);

@@ -107,6 +107,12 @@ namespace AHM.Audit.Data
         private static string Escape(string? val)
         {
             if (string.IsNullOrEmpty(val)) return "";
+            // Proteção contra injeção de fórmulas: um valor que comece por =, +, -, @, tab ou
+            // carriage return é interpretado como fórmula ao abrir o CSV no Excel — um apóstrofo
+            // à frente força o Excel a tratá-lo como texto. A importação (Backup.cshtml.cs,
+            // SafeGet) tira este apóstrofo de volta ao ler um CSV exportado por aqui.
+            if (val[0] is '=' or '+' or '-' or '@' or '\t' or '\r')
+                val = "'" + val;
             if (val.Contains(',') || val.Contains('"') || val.Contains('\n'))
                 return "\"" + val.Replace("\"", "\"\"") + "\"";
             return val;
