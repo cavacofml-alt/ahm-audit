@@ -2,6 +2,23 @@
 
 ## 2026-10-19
 
+### Manual e pendentes do PC Linux (PR "manual-pendentes-pc-linux")
+- Confirmado em `Program.cs` (`db.Database.Migrate()`, linha ~299) que as migrations
+  são sempre aplicadas automaticamente no arranque — o passo manual
+  `dotnet ef database update` saiu do `MANUAL.md` por ser redundante.
+- `MANUAL.md`: acrescentado `dotnet --list-sdks` à sequência, logo a seguir ao
+  `git pull` — o resultado deve ser enviado ao responsável, para se saber à
+  distância quando o .NET 10 fica instalado no PC Linux (sem precisar de acesso
+  direto à máquina).
+- `PENDENTES-PC-LINUX.md`, novo: os 6 passos que só alguém com acesso ao PC Linux
+  consegue fazer, por ordem, cada um com o comando e a razão — trocar a password
+  do `ahm`/`DATABASE_URL` (a antiga esteve no repositório), instalar o .NET 10
+  antes de 10NOV26, restringir a porta 5000 por firewall, HTTPS (Caddy + app só
+  em loopback — a par da instalação do servidor de acessos do Operations Center,
+  que vai partilhar o mesmo proxy/certificado), arranque como serviço systemd, e
+  confirmar o `chmod 700` da pasta de chaves depois de mudar para a conta de
+  serviço.
+
 ### Dependabot e CI (PR "dependabot-ci")
 - `.github/dependabot.yml`, novo: atualiza os pacotes NuGet (semanal) e as GitHub
   Actions usadas nos workflows (mensal) sozinho, sem precisar de acesso ao PC Linux —
