@@ -20,8 +20,9 @@ Aplicação interna de auditorias de weight & balance (AHM) para uma companhia a
 
 ## Base de dados
 - PostgreSQL, ligação via variável de ambiente `DATABASE_URL`
-- Local: `postgresql://ahm:ahm123@localhost:5432/ahmaudit`
-  (já definida em `~/.bashrc` na máquina Linux — não precisa de export manual)
+- Local: `postgresql://ahm:<password>@localhost:5432/ahmaudit` — a password real
+  fica só em `~/.bashrc` na máquina Linux, nunca neste repositório (ver `MANUAL.md`
+  para a trocar).
 - Produção: Supabase (projeto `ahm-audit`, região eu-west-1). A `DATABASE_URL` está
   definida como env var no serviço do Render, **não** no código — aponta para o
   connection pooler Supavisor em modo sessão (`aws-0-eu-west-1.pooler.supabase.com:5432`),
