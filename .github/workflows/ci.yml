@@ -25,6 +25,7 @@ jobs:
 
       - name: Falhar se houver dependências com falhas de segurança conhecidas
         run: |
+          set -o pipefail
           dotnet list package --vulnerable --include-transitive 2>&1 | tee vulnerable-packages.txt
           if grep -q "following vulnerable packages" vulnerable-packages.txt; then
             echo "::error::Encontradas dependências com falhas de segurança conhecidas — ver output acima."

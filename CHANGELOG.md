@@ -2,6 +2,35 @@
 
 ## 2026-10-19
 
+### Bibliotecas do browser vendorizadas localmente (PR "vendor-local-libs")
+- A app deixa de depender do `cdn.jsdelivr.net`: Bootstrap 5.3.3 (CSS + bundle JS),
+  Bootstrap Icons 1.11.3 (CSS + fontes) e Chart.js 4.4.0 (`chart.umd.min.js`) passam a
+  estar em `wwwroot/lib/` (mesmas versões que já estavam a ser usadas). `chart.umd.min.js`
+  foi gerado com `terser` a partir do `chart.umd.js` do pacote npm (que não inclui uma
+  versão minificada), mantendo o cabeçalho de licença.
+- `_Layout.cshtml`, `Login.cshtml` e `Index.cshtml`: ligações trocadas de
+  `https://cdn.jsdelivr.net/...` para `~/lib/...`.
+- Apagados o `wwwroot/lib/bootstrap` antigo (5.1.0), `jquery`, `jquery-validation`,
+  `jquery-validation-unobtrusive` e `_ValidationScriptsPartial.cshtml` — confirmado por
+  grep no repositório que nada os usava.
+- Novo `wwwroot/lib/README.md`: origem, versão e licença (MIT) de cada biblioteca, e
+  nota de que o Dependabot não as vigia (não há ecossistema npm neste repo) — são
+  revistas à mão, como as bibliotecas embutidas do Operations Center.
+- `Middleware/SecurityHeadersMiddleware.cs`: `https://cdn.jsdelivr.net` removido da CSP
+  (`script-src`, `style-src`, `font-src`) — fica só `'self'` (e `'unsafe-inline'` onde já
+  estava).
+- `.github/workflows/ci.yml`: `set -o pipefail` no passo de `dotnet list package
+  --vulnerable`, para o CI falhar também se o comando em si der erro (ex.: NuGet sem
+  resposta), não só quando encontra vulnerabilidades conhecidas.
+- `MANUAL.md` e `PENDENTES-PC-LINUX.md`: troca da password do utilizador `ahm` passa a
+  usar o comando interativo do `psql` (`sudo -u postgres psql`, depois `\password ahm`)
+  em vez de `ALTER USER ... WITH PASSWORD '...'` numa só linha, para a password nunca
+  aparecer no histórico do terminal.
+- Verificado num browser real (Chromium headless, sem passar pelo proxy de rede do
+  ambiente de build — `cdn.jsdelivr.net` confirmado inacessível nessas condições) que
+  login, lista de auditorias, edição de uma auditoria e o dashboard (com os gráficos do
+  Chart.js) funcionam sem nenhum pedido falhado nem erro de consola.
+
 ### Correção urgente — AllowedHosts (PR "fix-allowedhosts-lan")
 - `appsettings.json`: `AllowedHosts` de `"localhost"` para `"localhost;192.168.2.15"` —
   os outros computadores da equipa abrem o AHM Audit em
