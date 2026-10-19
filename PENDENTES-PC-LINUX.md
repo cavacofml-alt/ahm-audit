@@ -13,7 +13,14 @@ fecha isto.
 
 ```bash
 openssl rand -base64 24
-sudo -u postgres psql -c "ALTER USER ahm WITH PASSWORD 'NOVA_PASSWORD';"
+sudo -u postgres psql
+```
+Dentro do `psql`, de forma interativa (evita que a password fique no
+histórico do terminal):
+```
+\password ahm
+```
+```bash
 nano ~/.bashrc   # trocar só a password na linha export DATABASE_URL=...
 source ~/.bashrc
 ```
