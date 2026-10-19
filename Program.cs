@@ -16,6 +16,16 @@ builder.Services.AddDataProtection()
     .PersistKeysToFileSystem(new System.IO.DirectoryInfo(
         System.IO.Path.Combine(builder.Environment.ContentRootPath, "dataprotection-keys")));
 
+// Mascara a password num DATABASE_URL (postgresql://utilizador:password@host...) para
+// nunca a mostrar em mensagens de erro, mesmo quando o URL está malformado — usa regex
+// de texto em vez de Uri, porque um URL inválido pode nem chegar a ser parseável.
+static string MaskDatabaseUrl(string? url)
+{
+    if (string.IsNullOrEmpty(url)) return url ?? "";
+    return System.Text.RegularExpressions.Regex.Replace(
+        url, @"(://[^:/@\s]+:)[^@\s]*(@)", "$1***$2");
+}
+
 var databaseUrl = Environment.GetEnvironmentVariable("DATABASE_URL");
 
 if (!string.IsNullOrEmpty(databaseUrl))
@@ -28,7 +38,7 @@ if (!string.IsNullOrEmpty(databaseUrl))
     catch (UriFormatException ex)
     {
         throw new InvalidOperationException(
-            $"DATABASE_URL não é um URI válido. Valor lido: \"{databaseUrl}\". " +
+            $"DATABASE_URL não é um URI válido. Valor lido: \"{MaskDatabaseUrl(databaseUrl)}\". " +
             "Formato esperado: postgresql://utilizador:password@host:porta/basededados", ex);
     }
 
@@ -39,7 +49,7 @@ if (!string.IsNullOrEmpty(databaseUrl))
     var userInfo = uri.UserInfo.Split(':', 2);
     if (userInfo.Length < 2)
         throw new InvalidOperationException(
-            $"DATABASE_URL não contém utilizador/password. Valor lido: \"{databaseUrl}\".");
+            $"DATABASE_URL não contém utilizador/password. Valor lido: \"{MaskDatabaseUrl(databaseUrl)}\".");
     var dbUser = Uri.UnescapeDataString(userInfo[0]);
     var dbPassword = Uri.UnescapeDataString(userInfo[1]);
 
@@ -58,8 +68,8 @@ else
     // inicial do projeto), o que dava um erro confuso e completamente enganador.
     throw new InvalidOperationException(
         "Variável de ambiente DATABASE_URL não está definida. Define-a antes de correr a app, por exemplo:\n" +
-        "  set DATABASE_URL=postgresql://ahm:ahm123@localhost:5432/ahmaudit   (cmd.exe)\n" +
-        "  $env:DATABASE_URL=\"postgresql://ahm:ahm123@localhost:5432/ahmaudit\"   (PowerShell)\n" +
+        "  set DATABASE_URL=postgresql://utilizador:password@localhost:5432/basededados   (cmd.exe)\n" +
+        "  $env:DATABASE_URL=\"postgresql://utilizador:password@localhost:5432/basededados\"   (PowerShell)\n" +
         "Nota: 'set'/'$env:' só valem para a janela de terminal onde forem corridos — numa janela nova, é preciso repetir.");
 }
 
@@ -116,6 +126,7 @@ if (Environment.GetEnvironmentVariable("AHM_BEHIND_PROXY") == "true")
     forwardedHeadersOptions.KnownProxies.Clear();
 }
 app.UseForwardedHeaders(forwardedHeadersOptions);
+app.UseMiddleware<AHM.Audit.Middleware.SecurityHeadersMiddleware>();
 app.UseMiddleware<AHM.Audit.Middleware.ExceptionMiddleware>();
 app.UseStaticFiles();
 app.UseRouting();

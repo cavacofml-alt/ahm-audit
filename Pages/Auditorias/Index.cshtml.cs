@@ -112,16 +112,8 @@ namespace AHM.Audit.Pages.Auditorias
             return RedirectToPage();
         }
 
-        private static readonly string[] ChecklistFields = new[]
-        {
-            "B1","B2","B3","C1","C2","C2_3","C3","C4_TakeOff","C4_ZeroFuel",
-            "C4_Landing","C4_Inflight","C4_IdealTrim","C5","C7_1","D1","D2",
-            "D3","D5_1","D5_2","D6_2","E1_DOW","E1_MRW","E1_MTOW","E1_MZFW",
-            "E1_MLAW","E2_1","E2_2","E3_1","G1","RevisionUpdate","LIR","LS","DatabasePrintout"
-        };
-
         private IEnumerable<string> GetValues(Auditoria a) =>
-            ChecklistFields.Select(f => typeof(Auditoria).GetProperty(f)?.GetValue(a)?.ToString() ?? "N/A");
+            AuditCsvExporter.ChecklistFields.Select(f => typeof(Auditoria).GetProperty(f)?.GetValue(a)?.ToString() ?? "N/A");
 
         public int CountYes(Auditoria a) => GetValues(a).Count(v => v == "YES");
         public int CountNo(Auditoria a)  => GetValues(a).Count(v => v == "NO");

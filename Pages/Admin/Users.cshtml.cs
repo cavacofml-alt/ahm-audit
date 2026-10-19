@@ -15,6 +15,9 @@ namespace AHM.Audit.Pages.Admin
         public string Message { get; set; } = "";
         public bool IsError { get; set; }
 
+        private const int MinPasswordLength = 10;
+        private const string PasswordTooShortMessage = "A password tem de ter pelo menos 10 caracteres.";
+
         public IActionResult OnGet()
         {
             if (!IsAdmin()) return RedirectToPage("/Account/Login");
@@ -31,6 +34,12 @@ namespace AHM.Audit.Pages.Admin
             if (string.IsNullOrWhiteSpace(newUsername) || string.IsNullOrWhiteSpace(newPassword))
             {
                 Message = "Username e password são obrigatórios."; IsError = true;
+                LoadLists(); return Page();
+            }
+
+            if (newPassword.Trim().Length < MinPasswordLength)
+            {
+                Message = PasswordTooShortMessage; IsError = true;
                 LoadLists(); return Page();
             }
 
@@ -57,9 +66,9 @@ namespace AHM.Audit.Pages.Admin
         {
             if (!IsAdmin()) return RedirectToPage("/Account/Login");
             ViewData["IsAdmin"] = true;
-            if (string.IsNullOrWhiteSpace(newPass) || newPass.Trim().Length < 6)
+            if (string.IsNullOrWhiteSpace(newPass) || newPass.Trim().Length < MinPasswordLength)
             {
-                Message = "A password tem de ter pelo menos 6 caracteres.";
+                Message = PasswordTooShortMessage; IsError = true;
                 LoadLists();
                 return Page();
             }
