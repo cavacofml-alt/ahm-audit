@@ -9,14 +9,32 @@ Aplicação interna de auditorias de weight & balance (AHM) para uma companhia a
 
 ## Repositório e deploy
 - GitHub: https://github.com/cavacofml-alt/ahm-audit (branch `master`)
-- Produção: Railway, deploy automático a cada push em `master`
+- Produção: Render (`ahm-audit`, região Frankfurt, plano free), deploy automático a
+  cada push em `master` — build via o `Dockerfile` existente na raiz do projeto.
+  Dashboard: https://dashboard.render.com/web/srv-db8dgcjncjis73fggptg · URL pública:
+  https://ahm-audit.onrender.com
+- Anteriormente em Railway — migrado para Render + Supabase porque o trial do Railway
+  acabou. Não há nada do Railway a manter; pode ser ignorado/removido se ainda existir
+  alguma referência.
 - Local (Linux): `/home/pedro-nunes/ahm-audit`
 
 ## Base de dados
 - PostgreSQL, ligação via variável de ambiente `DATABASE_URL`
 - Local: `postgresql://ahm:ahm123@localhost:5432/ahmaudit`
   (já definida em `~/.bashrc` na máquina Linux — não precisa de export manual)
-- Produção: injetada automaticamente pelo Railway
+- Produção: Supabase (projeto `ahm-audit`, região eu-west-1). A `DATABASE_URL` está
+  definida como env var no serviço do Render, **não** no código — aponta para o
+  connection pooler Supavisor em modo sessão (`aws-0-eu-west-1.pooler.supabase.com:5432`),
+  nunca para a ligação direta (`db.<ref>.supabase.co`), porque o Render só suporta
+  saída IPv4 e a ligação direta do Supabase é IPv6-only no plano free.
+- **Row Level Security (RLS) está ativo em todas as tabelas no Supabase, sem políticas**
+  — isto bloqueia por completo a API REST pública do Supabase (PostgREST/anon key),
+  que de outra forma exporia todos os dados sem precisar de login nenhum na app. A app
+  liga-se sempre via Npgsql com o utilizador `postgres` (ligação direta à base de dados,
+  não à API), que ignora RLS por ser o dono das tabelas — por isso RLS sem políticas não
+  afeta o funcionamento normal da app, só bloqueia esse acesso externo que nunca é usado.
+  Se um dia se quiser usar a API/SDK do Supabase diretamente (não é o caso hoje), é
+  preciso criar políticas explícitas primeiro.
 - **Nunca existiu, nem deve existir, um fallback para SQL Server.** Já houve um
   bug destes (resto de um template inicial) que causava um erro confuso —
   se `DATABASE_URL` não estiver definida, a app deve falhar logo no arranque
