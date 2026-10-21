@@ -62,7 +62,14 @@ namespace AHM.Audit.Data
         public static byte[] BuildCsv(IEnumerable<Auditoria> audits)
         {
             var sb = new StringBuilder();
-            sb.AppendLine(Header);
+            // CRLF explícito, não AppendLine (que usa Environment.NewLine — "\n" no Linux,
+            // onde esta app corre): tem de ser sempre diferente de uma quebra de linha
+            // dentro de um campo (ex. "Notes" com várias linhas, ver CollapseBlankLines),
+            // senão o Excel não consegue distinguir "nota com 2 linhas" de "próxima
+            // auditoria" e parte a linha de dados em várias, desalinhando tudo a seguir —
+            // bug real, reproduzido a exportar uma auditoria com notas em várias linhas.
+            const string NewLine = "\r\n";
+            sb.Append(Header).Append(NewLine);
 
             foreach (var a in audits)
             {
@@ -98,7 +105,7 @@ namespace AHM.Audit.Data
                         a.CorrectionsMade, a.AircraftRecertified, Escape(CollapseBlankLines(a.Notes)),
                         yes.ToString(), no.ToString(), na.ToString(), pct + "%" });
 
-                sb.AppendLine(string.Join(",", row));
+                sb.Append(string.Join(",", row)).Append(NewLine);
             }
 
             return Encoding.UTF8.GetPreamble().Concat(Encoding.UTF8.GetBytes(sb.ToString())).ToArray();
