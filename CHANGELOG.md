@@ -1,5 +1,21 @@
 # Changelog
 
+## 2026-10-21 (2)
+
+### Export de auditorias volta ao formato Excel antigo (PR "feature-xlsx-export-transposed")
+- `Data/AuditXlsxExporter.cs` (novo, usa a biblioteca ClosedXML): o export passa a gerar
+  um `.xlsx` real, no formato que a equipa já usava antes de haver aplicação — cada
+  auditoria é uma coluna, os campos ficam fixos na coluna A (com destaque azul, igual ao
+  ficheiro antigo), coluna A fixa ao deslocar para a direita. Datas como datas reais do
+  Excel. Só inclui os campos que o AHM Audit guarda hoje — "Pedro's review" e "Employee
+  ID" do ficheiro antigo ficam de fora, por não haver dados reais para lá pôr.
+- `Pages/Admin/BackupExport.cshtml.cs` e `Pages/Auditorias/Export.cshtml.cs` (os dois
+  pontos de download) passam a produzir este `.xlsx` em vez do `.csv` anterior. Testado
+  nos dois, com auditorias com notas em várias linhas, razões de NOT OK e datas —
+  confirmado o conteúdo com um leitor de Excel real.
+- O **import** de CSV (Admin > Backup > Importar) não muda — continua a aceitar o
+  formato antigo (uma auditoria por linha), não o novo formato de export transposto.
+
 ## 2026-10-19 (2)
 
 ### Correção de segurança — XSS nas razões de NOT OK (PR "fix-xss-nonconformity-reason")

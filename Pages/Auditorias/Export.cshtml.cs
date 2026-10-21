@@ -20,8 +20,9 @@ namespace AHM.Audit.Pages.Auditorias
                 .OrderByDescending(a => a.CreatedAt)
                 .ToList();
 
-            var bytes = AuditCsvExporter.BuildCsv(audits);
-            return File(bytes, "text/csv", $"AHM_Auditorias_{DateTime.Now:yyyyMMdd_HHmm}.csv");
+            var bytes = AuditXlsxExporter.BuildXlsx(audits);
+            return File(bytes, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                $"AHM_Auditorias_{DateTime.Now:yyyyMMdd_HHmm}.xlsx");
         }
     }
 }

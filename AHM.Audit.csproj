@@ -14,6 +14,9 @@
       <PrivateAssets>all</PrivateAssets>
     </PackageReference>
     <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="8.0.4" />
+    <!-- Gera o .xlsx do export de auditorias (Data/AuditXlsxExporter.cs) — MIT, sem
+         dependência nenhuma do Excel/Office instalado. -->
+    <PackageReference Include="ClosedXML" Version="0.105.1" />
     <!-- Pins diretos para corrigir advisories de segurança em dependências transitivas
          trazidas pelo EF Core / ASP.NET Core DataProtection (GHSA-hh2w-p6rv-4g7w,
          GHSA-8g4q-xg66-9fp4, GHSA-447r-wph3-92pm) — ver CHANGELOG.md. -->
