@@ -16,6 +16,23 @@
 - O **import** de CSV (Admin > Backup > Importar) não muda — continua a aceitar o
   formato antigo (uma auditoria por linha), não o novo formato de export transposto.
 
+## 2026-10-21
+
+### Correção — export de CSV desformatado com notas em várias linhas (PR "fix-csv-export-line-endings")
+- `Data/AuditCsvExporter.cs`: o CSV era gerado com `AppendLine` (fim de linha `\n`, por a
+  app correr em Linux) — igual à quebra de linha que uma nota em várias linhas já tinha
+  dentro da própria célula. O Excel não conseguia distinguir "nota com 2 linhas" de
+  "próxima auditoria", e a linha de dados ficava partida em várias linhas do ficheiro,
+  desalinhando tudo a seguir. Corrigido para usar sempre `\r\n` como fim de linha do CSV,
+  independente do sistema operativo — agora inequívoco em relação a uma quebra de linha
+  dentro de um campo. O export de auditorias já não usa este código (passou a `.xlsx`,
+  ver entrada acima) — mantido correto para o dia em que o CSV voltar a ser usado (ex.
+  import/export de rotina, scripts externos).
+- Reproduzido o bug e confirmada a correção com uma exportação real (auditoria com notas
+  em várias linhas, vírgulas e aspas): antes, 1 linha de dados aparecia fisicamente
+  espalhada por 4 linhas do ficheiro; depois, fica numa só, lida corretamente por um
+  parser de CSV (50 colunas, nota intacta).
+
 ## 2026-10-19 (2)
 
 ### Correção de segurança — XSS nas razões de NOT OK (PR "fix-xss-nonconformity-reason")
