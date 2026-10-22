@@ -32,7 +32,7 @@ namespace AHM.Audit.Pages.Admin
 
             if (csvFile == null || csvFile.Length == 0)
             {
-                Message = "Seleciona um ficheiro CSV."; IsError = true; return Page();
+                Message = "Seleciona um ficheiro CSV ou Excel (.xlsx)."; IsError = true; return Page();
             }
 
             var validAgents   = _context.Persons.Where(p => p.Role == "Agent").Select(p => p.Name).ToList();
@@ -52,12 +52,25 @@ namespace AHM.Audit.Pages.Admin
             // (ParseCsv), não linha a linha — células com texto em várias linhas (ex.: notas de
             // correção longas) partiam uma única linha de dados em várias com StreamReader.ReadLine(),
             // desalinhando todas as colunas a partir daí.
-            string csvContent;
-            using (var reader = new System.IO.StreamReader(csvFile.OpenReadStream()))
+            //
+            // Aceita também .xlsx (o formato do "Exportar Backup"/"Exportar") — AuditXlsxExporter.
+            // ReadToCsvRows devolve as linhas já no mesmo formato que ParseCsv, para o resto desta
+            // validação (nomes, razões, tudo-ou-nada) não ter de saber qual dos dois foi enviado.
+            var isXlsx = System.IO.Path.GetExtension(csvFile.FileName).Equals(".xlsx", StringComparison.OrdinalIgnoreCase);
+            List<List<string>> allRows;
+            if (isXlsx)
             {
-                csvContent = reader.ReadToEnd();
+                allRows = AuditXlsxExporter.ReadToCsvRows(csvFile.OpenReadStream());
             }
-            var allRows = ParseCsv(csvContent);
+            else
+            {
+                string csvContent;
+                using (var reader = new System.IO.StreamReader(csvFile.OpenReadStream()))
+                {
+                    csvContent = reader.ReadToEnd();
+                }
+                allRows = ParseCsv(csvContent);
+            }
             var dataRows = allRows.Skip(1) // salta o cabeçalho
                 .Where(r => r.Count > 1 || (r.Count == 1 && !string.IsNullOrWhiteSpace(r[0])))
                 .ToList();
