@@ -1,5 +1,24 @@
 # Changelog
 
+## 2026-10-22
+
+### Import volta a aceitar o .xlsx do export, além do CSV (PR "feature-xlsx-import")
+- `Data/AuditXlsxExporter.cs`: novo `ReadToCsvRows`, que lê um `.xlsx` no formato do
+  export (coluna A com os rótulos, uma coluna por auditoria) e devolve as linhas no
+  mesmo formato que o resto do import (`Backup.cshtml.cs`) já sabia processar a partir
+  do CSV — por isso toda a validação existente (nomes/razões exatos, tudo-ou-nada)
+  continua a aplicar-se sem duplicar código.
+- "Restaurar Backup" (Admin > Backup & Restauro) passa a aceitar `.csv` **e** `.xlsx` —
+  detetado pela extensão do ficheiro enviado.
+- Antes desta alteração, descarregar auditorias em Excel (PR "feature-xlsx-export-
+  transposed", 2026-10-21) deixava de ser possível voltar a importar esse mesmo
+  ficheiro — o backup/restauro deixava de ser um ciclo fechado.
+- Testado o ciclo completo com dados reais: exportar `.xlsx` → apagar todas as
+  auditorias → importar o mesmo ficheiro `.xlsx` → dados confirmados idênticos aos
+  originais (datas, razões de NOT OK múltiplas, notas com várias linhas/vírgulas/
+  aspas). Confirmado também que o import de `.csv` simples continua a funcionar sem
+  alterações.
+
 ## 2026-10-21 (2)
 
 ### Export de auditorias volta ao formato Excel antigo (PR "feature-xlsx-export-transposed")
