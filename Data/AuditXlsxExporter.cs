@@ -14,6 +14,22 @@ namespace AHM.Audit.Data
     /// </summary>
     public static class AuditXlsxExporter
     {
+        // Mesmos campos e rótulos do checklist já usados no CSV (AuditCsvExporter), na mesma
+        // ordem de AuditCsvExporter.ChecklistFields — tem de vir antes de "Rows" abaixo, que a
+        // usa já na sua própria inicialização (ordem de inicialização de campos estáticos).
+        private static readonly string[] ChecklistLabels =
+        {
+            "B1 - Standard units and codes","B2 - Crew and crew baggage weights",
+            "B3 - Passenger and baggage weights","C1 - Aircraft Type or fleet",
+            "C2 - Balance/Special info","C2.3 - Sup info","C3 - Basic index/MAR RC Formula",
+            "C4.1 - Take-off","C4.1 - Zero-Fuel","C4.1 - Landing","C4.1 - Inflight",
+            "C4.1 - Ideal Trim","C5 - Fuel","C7.1 - Stab trim","D1 - Dimensions and limits",
+            "D2 - Holds","D3 - ULD","D5.1 - Cabin","D5.2 - Cabin Crew Seats","D6.2 - Seatmap",
+            "E1 - DOW/DOI (BW/BI)","E1 - MRW","E1 - MTOW","E1 - MZFW","E1 - MLAW",
+            "E2.1 - Crew Codes","E2.2 - Crew Distribution","E3.1 - Pantry Distribution",
+            "G1 - ULD Compatibility","Revision update was correct?","LIR","LS","Database Printout"
+        };
+
         // (rótulo na coluna A, como ir buscar o valor a cada auditoria)
         private static readonly (string Label, Func<Auditoria, Dictionary<string, string>, object?> Value)[] Rows = BuildRows();
 
@@ -83,26 +99,11 @@ namespace AHM.Audit.Data
                 ("AHM Officer", (a, _) => a.AhmOfficer),
             };
 
-            // Mesmos campos e rótulos do checklist já usados no CSV (AuditCsvExporter),
-            // só que aqui cada um vira uma linha em vez de uma coluna.
-            var checklistLabels = new[]
-            {
-                "B1 - Standard units and codes","B2 - Crew and crew baggage weights",
-                "B3 - Passenger and baggage weights","C1 - Aircraft Type or fleet",
-                "C2 - Balance/Special info","C2.3 - Sup info","C3 - Basic index/MAR RC Formula",
-                "C4.1 - Take-off","C4.1 - Zero-Fuel","C4.1 - Landing","C4.1 - Inflight",
-                "C4.1 - Ideal Trim","C5 - Fuel","C7.1 - Stab trim","D1 - Dimensions and limits",
-                "D2 - Holds","D3 - ULD","D5.1 - Cabin","D5.2 - Cabin Crew Seats","D6.2 - Seatmap",
-                "E1 - DOW/DOI (BW/BI)","E1 - MRW","E1 - MTOW","E1 - MZFW","E1 - MLAW",
-                "E2.1 - Crew Codes","E2.2 - Crew Distribution","E3.1 - Pantry Distribution",
-                "G1 - ULD Compatibility","Revision update was correct?","LIR","LS","Database Printout"
-            };
-
-            var checklistRows = new (string, Func<Auditoria, Dictionary<string, string>, object?>)[checklistLabels.Length];
-            for (int i = 0; i < checklistLabels.Length; i++)
+            var checklistRows = new (string, Func<Auditoria, Dictionary<string, string>, object?>)[ChecklistLabels.Length];
+            for (int i = 0; i < ChecklistLabels.Length; i++)
             {
                 var field = AuditCsvExporter.ChecklistFields[i];
-                checklistRows[i] = (checklistLabels[i], (a, reasons) =>
+                checklistRows[i] = (ChecklistLabels[i], (a, reasons) =>
                 {
                     var val = typeof(Auditoria).GetProperty(field)?.GetValue(a)?.ToString() ?? "N/A";
                     if (val == "NO" && reasons.TryGetValue(field, out var reason) && !string.IsNullOrEmpty(reason))
@@ -128,5 +129,74 @@ namespace AHM.Audit.Data
         private static int CountChecklist(Auditoria a, string match) =>
             AuditCsvExporter.ChecklistFields.Count(f =>
                 (typeof(Auditoria).GetProperty(f)?.GetValue(a)?.ToString() ?? "N/A") == match);
+
+        /// <summary>
+        /// Lê um .xlsx gerado por BuildXlsx (ou com a mesma estrutura — coluna A com os
+        /// rótulos, uma coluna por auditoria) e devolve linhas no mesmo formato que
+        /// Backup.cshtml.cs já sabe processar a partir do ParseCsv de AuditCsvExporter:
+        /// uma linha de cabeçalho (ignorada, só para o .Skip(1) continuar a funcionar
+        /// sem alterações) seguida de uma linha por auditoria, com os campos nos mesmos
+        /// índices 0-45 do CSV antigo (Ticket, Agent, Officer, Airline, Aircraft,
+        /// Registration, Date, RevisionUpdates, 33 campos da checklist, CorrectionTicket,
+        /// ReasonForRecertification, CorrectionsMade, AircraftRecertified, Notes) — para
+        /// o resto da importação (validação de nomes/razões, tudo-ou-nada) não precisar
+        /// de saber se o ficheiro era CSV ou Excel.
+        /// </summary>
+        public static List<List<string>> ReadToCsvRows(Stream xlsxStream)
+        {
+            using var wb = new XLWorkbook(xlsxStream);
+            var ws = wb.Worksheets.First();
+
+            // Linha (1-based) de cada rótulo da coluna A — os mesmos rótulos que BuildXlsx escreve.
+            var rowByLabel = new Dictionary<string, int>();
+            var lastRow = ws.LastRowUsed()?.RowNumber() ?? 0;
+            for (int r = 1; r <= lastRow; r++)
+            {
+                var label = ws.Cell(r, 1).GetString();
+                if (!string.IsNullOrEmpty(label)) rowByLabel[label] = r;
+            }
+
+            string GetField(string label, int col) =>
+                rowByLabel.TryGetValue(label, out var r) ? GetCellAsCsvString(ws.Cell(r, col)) : "";
+
+            var result = new List<List<string>> { new() }; // linha 0 = cabeçalho (ignorado)
+
+            var lastCol = ws.LastColumnUsed()?.ColumnNumber() ?? 1;
+            for (int col = 2; col <= lastCol; col++)
+            {
+                if (!rowByLabel.TryGetValue("Ticket", out var ticketRow) ||
+                    string.IsNullOrWhiteSpace(ws.Cell(ticketRow, col).GetString()))
+                    continue; // coluna vazia (ex. a seguir à última auditoria)
+
+                var cols = new List<string>
+                {
+                    GetField("Ticket", col),
+                    GetField("Audit Agent", col),
+                    GetField("AHM Officer", col),
+                    GetField("Airline", col),
+                    GetField("Aircraft Type", col),
+                    GetField("Registration", col),
+                    GetField("Audit Date", col),
+                    GetField("Rev. Updates", col),
+                };
+                for (int i = 0; i < 33; i++)
+                    cols.Add(GetField(ChecklistLabels[i], col));
+                cols.Add(GetField("Worked on/ correction Ticket", col));
+                cols.Add(GetField("Reason for Re-Certification", col));
+                cols.Add(GetField("Corrections Made", col));
+                cols.Add(GetField("Aircraft Re-Certified", col));
+                cols.Add(GetField("Notes / impact / and reason for possible mismatch", col));
+
+                result.Add(cols);
+            }
+            return result;
+        }
+
+        // Datas ficam como texto dd/MM/yyyy (um dos formatos que Backup.cshtml.cs já aceita);
+        // tudo o resto sai como texto normal da célula.
+        private static string GetCellAsCsvString(IXLCell cell) =>
+            cell.DataType == XLDataType.DateTime
+                ? cell.GetDateTime().ToString("dd/MM/yyyy")
+                : cell.GetString();
     }
 }

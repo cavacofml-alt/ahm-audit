@@ -33,14 +33,14 @@
         <div class="card h-100">
             <div class="card-header fw-bold"><i class="bi bi-upload me-2"></i>Restaurar Backup</div>
             <div class="card-body">
-                <p class="text-muted small">Faz upload de um CSV para restaurar auditorias. Tickets duplicados e nomes inválidos são tratados automaticamente.</p>
+                <p class="text-muted small">Faz upload de um CSV ou Excel (.xlsx, do botão "Exportar Backup Excel") para restaurar auditorias. Tickets duplicados e nomes inválidos são tratados automaticamente.</p>
                 <form action="/Admin/Backup?handler=Import" method="post" enctype="multipart/form-data">
                     @Html.AntiForgeryToken()
                     <div class="mb-3">
-                        <input type="file" class="form-control" name="csvFile" accept=".csv" />
+                        <input type="file" class="form-control" name="csvFile" accept=".csv,.xlsx" />
                     </div>
                     <button type="submit" class="btn btn-warning w-100">
-                        <i class="bi bi-file-earmark-arrow-up me-2"></i>Importar CSV
+                        <i class="bi bi-file-earmark-arrow-up me-2"></i>Importar CSV/Excel
                     </button>
                 </form>
             </div>
