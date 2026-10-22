@@ -1,5 +1,21 @@
 # Changelog
 
+## 2026-10-22 (3)
+
+### Export/Import Excel passam a incluir as Observações por item da checklist
+- `Data/AuditXlsxExporter.cs`: as observações de texto livre por item da checklist
+  (`Auditoria.ItemObservations`, visíveis no separador "Observations" de cada auditoria)
+  não iam nem no CSV antigo nem no novo export `.xlsx` — ficavam de fora de qualquer
+  backup/restore. Agora o export escreve cada observação como **comentário na célula**
+  do item correspondente (ex.: a célula "B1" da coluna da auditoria), em vez de lhe dar
+  uma linha própria no layout — não altera o formato que a equipa já conhece.
+- A leitura do `.xlsx` na importação (`ReadToCsvRows`) passa a ler esses comentários de
+  volta e a reconstruir o `ItemObservations` de cada auditoria importada
+  (`Pages/Admin/Backup.cshtml.cs`). O CSV continua sem conseguir guardar observações
+  (não há onde as pôr num ficheiro de texto simples) — como já acontecia antes.
+- Testado isoladamente (export → import no mesmo ficheiro), incluindo texto com acentos:
+  as observações voltam exatamente iguais.
+
 ## 2026-10-22 (2)
 
 ### Correção de segurança — rascunho só pode ser continuado pelo próprio Agent (PR "fix-draft-owner-access")
