@@ -62,6 +62,20 @@ namespace AHM.Audit.Pages.Auditorias
                 draft = _context.Auditorias.Find(draftId.Value);
             }
 
+            // Um rascunho só pode ser continuado pelo próprio Agent que o criou, ou por um
+            // admin — ao contrário de auditorias finalizadas (que, por design, qualquer
+            // utilizador autenticado pode ver/editar). Sem isto, o link "Continuar rascunho"
+            // na lista abria o rascunho de outro agent para qualquer pessoa.
+            if (draft != null && draft.IsDraft && !IsAdmin && draft.Agent != CurrentAgentName)
+            {
+                ErrorMessage = "Esse rascunho pertence a outro Agent — só o próprio ou um admin o pode continuar.";
+                Auditoria.Agent = CurrentAgentName;
+                Auditoria.Date = DateTime.Today;
+                LoadDropdowns();
+                LoadRecentRegistrations();
+                return Page();
+            }
+
             if (draft != null)
             {
                 Auditoria = draft;
@@ -150,6 +164,14 @@ namespace AHM.Audit.Pages.Auditorias
                 if (found == null)
                 {
                     ErrorMessage = "Auditoria não encontrada. Tenta novamente.";
+                    return Page();
+                }
+                // Mesma regra do OnGet: um rascunho só se grava/finaliza pelo próprio Agent
+                // ou por um admin — não é só não deixar abrir, também não deixar gravar por
+                // cima se alguém submeter o formulário diretamente.
+                if (found.IsDraft && !IsAdmin && found.Agent != CurrentAgentName)
+                {
+                    ErrorMessage = "Esse rascunho pertence a outro Agent — só o próprio ou um admin o pode continuar.";
                     return Page();
                 }
                 existing = found;

@@ -13,7 +13,10 @@ namespace AHM.Audit.Pages.Admin
         {
             var username = HttpContext.Session.GetString("User");
             if (username == null) return RedirectToPage("/Account/Login");
-            if (!_context.Users.Any(u => u.Username == username && u.IsAdmin)) return Forbid();
+            // StatusCode(403), não Forbid() — Forbid() precisa de um esquema de autenticação
+            // registado (app.AddAuthentication), que esta app não tem (sessão simples); sem
+            // isto rebenta com uma exceção em vez de dar um 403 limpo.
+            if (!_context.Users.Any(u => u.Username == username && u.IsAdmin)) return StatusCode(403);
 
             // Este é o backup completo do admin (ao contrário de Auditorias/Export, que é para
             // consulta geral): inclui de propósito também os rascunhos, para ser uma cópia

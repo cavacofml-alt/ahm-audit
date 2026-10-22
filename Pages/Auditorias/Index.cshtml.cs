@@ -99,7 +99,9 @@ namespace AHM.Audit.Pages.Auditorias
         {
             var username = HttpContext.Session.GetString("User");
             var isAdmin = _context.Users.Any(u => u.Username == username && u.IsAdmin);
-            if (!isAdmin) return Forbid();
+            // StatusCode(403), não Forbid() — sem um esquema de autenticação registado (esta
+            // app usa sessão simples), Forbid() rebenta com uma exceção em vez de dar um 403.
+            if (!isAdmin) return StatusCode(403);
 
             if (!string.IsNullOrEmpty(ids))
             {

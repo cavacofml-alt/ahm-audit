@@ -23,11 +23,22 @@ namespace AHM.Audit.Pages.Auditorias
             var username = HttpContext.Session.GetString("User");
             if (username == null) return RedirectToPage("/Account/Login");
 
-            IsAdmin = _context.Users.Any(u => u.Username == username && u.IsAdmin);
+            var user = _context.Users.FirstOrDefault(u => u.Username == username);
+            IsAdmin = user?.IsAdmin ?? false;
             ViewData["IsAdmin"] = IsAdmin;
 
             Auditoria = _context.Auditorias.Find(id);
             if (Auditoria == null) return RedirectToPage("Index");
+
+            // Um rascunho só pode ser aberto pelo próprio Agent que o criou, ou por um admin
+            // — mesma regra de Auditorias/Create.cshtml.cs, aqui também, porque um rascunho
+            // acedido por este endereço (em vez do link "Continuar rascunho") passava ao lado
+            // dessa proteção.
+            if (Auditoria.IsDraft && !IsAdmin)
+            {
+                var agentName = user?.PersonId != null ? _context.Persons.Find(user.PersonId)?.Name : null;
+                if (Auditoria.Agent != agentName) return RedirectToPage("Index");
+            }
 
             // Bloqueado se finalizado (não admin) ou passou mais de 1 mês (não admin)
             IsLocked = !IsAdmin && (Auditoria.IsFinalized || Auditoria.CreatedAt < DateTime.UtcNow.AddMonths(-1));
@@ -42,12 +53,20 @@ namespace AHM.Audit.Pages.Auditorias
             var username = HttpContext.Session.GetString("User");
             if (username == null) return RedirectToPage("/Account/Login");
 
-            var isAdmin = _context.Users.Any(u => u.Username == username && u.IsAdmin);
+            var postUser = _context.Users.FirstOrDefault(u => u.Username == username);
+            var isAdmin = postUser?.IsAdmin ?? false;
             ViewData["IsAdmin"] = isAdmin;
             IsAdmin = isAdmin;
 
             var original = _context.Auditorias.Find(Auditoria.Id);
             if (original == null) return RedirectToPage("Index");
+
+            // Mesma regra do OnGet: um rascunho só se grava pelo próprio Agent ou por um admin.
+            if (original.IsDraft && !isAdmin)
+            {
+                var agentName = postUser?.PersonId != null ? _context.Persons.Find(postUser.PersonId)?.Name : null;
+                if (original.Agent != agentName) return RedirectToPage("Index");
+            }
 
             // Verificar bloqueio
             if (!isAdmin && (original.IsFinalized || original.CreatedAt < DateTime.UtcNow.AddMonths(-1)))
@@ -94,7 +113,9 @@ namespace AHM.Audit.Pages.Auditorias
         {
             var username = HttpContext.Session.GetString("User");
             if (username == null) return RedirectToPage("/Account/Login");
-            if (!_context.Users.Any(u => u.Username == username && u.IsAdmin)) return Forbid();
+            // StatusCode(403), não Forbid() — sem um esquema de autenticação registado (esta
+            // app usa sessão simples), Forbid() rebenta com uma exceção em vez de dar um 403.
+            if (!_context.Users.Any(u => u.Username == username && u.IsAdmin)) return StatusCode(403);
 
             var audit = _context.Auditorias.Find(id);
             if (audit != null)
