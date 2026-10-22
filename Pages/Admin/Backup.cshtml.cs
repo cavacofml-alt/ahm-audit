@@ -61,7 +61,20 @@ namespace AHM.Audit.Pages.Admin
             List<Dictionary<string, string>> allObservations;
             if (isXlsx)
             {
-                allRows = AuditXlsxExporter.ReadToCsvRows(csvFile.OpenReadStream(), out allObservations);
+                try
+                {
+                    allRows = AuditXlsxExporter.ReadToCsvRows(csvFile.OpenReadStream(), out allObservations);
+                }
+                catch (Exception)
+                {
+                    // ClosedXML não consegue ler alguns .xlsx gravados por outro programa (ex.:
+                    // abrir o backup no LibreOffice, mexer e gravar de novo — o LibreOffice escreve
+                    // os comentários num formato antigo, VML, que o ClosedXML não suporta). Em vez
+                    // de rebentar com um erro genérico, pede para reexportar do zero.
+                    Message = "Não foi possível ler este ficheiro .xlsx — se foi aberto e gravado por outro programa (ex.: LibreOffice) depois de exportado daqui, tenta exportar de novo (Exportar Backup) sem o abrir noutro programa antes de importar.";
+                    IsError = true;
+                    return Page();
+                }
             }
             else
             {

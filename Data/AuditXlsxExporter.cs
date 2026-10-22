@@ -138,8 +138,8 @@ namespace AHM.Audit.Data
                 ("Aircraft Re-Certified", (a, _) => a.AircraftRecertified),
                 ("Worked on/ correction Ticket", (a, _) => a.CorrectionTicket),
                 ("Reason for Re-Certification", (a, _) => a.ReasonForRecertification),
-                ("Total NOT OK (N)", (a, reasons) => CountChecklist(a, "NO")),
-                ("Total OK (Y)", (a, reasons) => CountChecklist(a, "YES")),
+                ("Total NOT OK (N)", (a, _) => FormatCountWithPct(a, "NO")),
+                ("Total OK (Y)", (a, _) => FormatCountWithPct(a, "YES")),
             };
 
             return fixedRows.Concat(checklistRows).Concat(trailingRows).ToArray();
@@ -148,6 +148,16 @@ namespace AHM.Audit.Data
         private static int CountChecklist(Auditoria a, string match) =>
             AuditCsvExporter.ChecklistFields.Count(f =>
                 (typeof(Auditoria).GetProperty(f)?.GetValue(a)?.ToString() ?? "N/A") == match);
+
+        // "12 (34%)" — a contagem seguida da percentagem sobre Y+N entre parêntesis, mesma
+        // fórmula do dashboard (Pages/Index.cshtml.cs): ignora N/A. Sem nenhum item Y/N
+        // marcado, fica só a contagem (sem percentagem, para não dividir por 0).
+        private static string FormatCountWithPct(Auditoria a, string match)
+        {
+            var count = CountChecklist(a, match);
+            var total = CountChecklist(a, "YES") + CountChecklist(a, "NO");
+            return total == 0 ? count.ToString() : $"{count} ({count * 100 / total}%)";
+        }
 
         /// <summary>
         /// Lê um .xlsx gerado por BuildXlsx (ou com a mesma estrutura — coluna A com os

@@ -1,5 +1,28 @@
 # Changelog
 
+## 2026-10-22 (5)
+
+### Import de .xlsx: mensagem clara em vez de rebentar com ficheiros editados noutro programa
+- Testes exaustivos ao export/import Excel (múltiplas auditorias, N/A em tudo, NO em tudo,
+  tentativa de injeção de fórmula, rascunhos incluídos/excluídos, percentagens, e o ficheiro
+  aberto/gravado de novo no LibreOffice como motor Office independente) confirmaram que tudo
+  funciona — exceto um caso: o `.xlsx` exportado, se for **aberto e gravado de novo no
+  LibreOffice** (ex.: um utilizador abre o backup, mexe em algo e grava) e depois reimportado
+  aqui, fazia a importação rebentar com um erro genérico. O LibreOffice grava os comentários
+  (as observações por item, adicionadas na PR anterior) num formato antigo (VML) que o
+  ClosedXML não sabe ler.
+- `Pages/Admin/Backup.cshtml.cs` (`OnPostImport`): a leitura do `.xlsx` passa a estar num
+  `try/catch` — em vez de rebentar, mostra uma mensagem a pedir para reexportar do zero sem
+  abrir o ficheiro noutro programa primeiro.
+
+## 2026-10-22 (4)
+
+### Export Excel: percentagem ao lado dos totais de Y/N da checklist
+- `Data/AuditXlsxExporter.cs`: as linhas "Total NOT OK (N)" e "Total OK (Y)" passam a
+  mostrar também a percentagem, entre parêntesis na mesma célula (ex.: `2 (6%)`), sobre
+  Y+N (ignora N/A — mesma fórmula do dashboard em `Pages/Index.cshtml.cs`). Sem nenhum
+  item Y/N marcado, fica só a contagem, sem percentagem.
+
 ## 2026-10-22 (3)
 
 ### Export/Import Excel passam a incluir as Observações por item da checklist
