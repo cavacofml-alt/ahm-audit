@@ -20,8 +20,9 @@ namespace AHM.Audit.Pages.Admin
             // fiel de tudo o que está na base de dados.
             var audits = _context.Auditorias.OrderByDescending(a => a.CreatedAt).ToList();
 
-            var bytes = AuditCsvExporter.BuildCsv(audits);
-            return File(bytes, "text/csv", $"AHM_Backup_{DateTime.Now:yyyyMMdd_HHmm}.csv");
+            var bytes = AuditXlsxExporter.BuildXlsx(audits);
+            return File(bytes, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                $"AHM_Backup_{DateTime.Now:yyyyMMdd_HHmm}.xlsx");
         }
     }
 }

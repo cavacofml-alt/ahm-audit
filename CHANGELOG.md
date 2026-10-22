@@ -1,5 +1,21 @@
 # Changelog
 
+## 2026-10-21 (2)
+
+### Export de auditorias volta ao formato Excel antigo (PR "feature-xlsx-export-transposed")
+- `Data/AuditXlsxExporter.cs` (novo, usa a biblioteca ClosedXML): o export passa a gerar
+  um `.xlsx` real, no formato que a equipa já usava antes de haver aplicação — cada
+  auditoria é uma coluna, os campos ficam fixos na coluna A (com destaque azul, igual ao
+  ficheiro antigo), coluna A fixa ao deslocar para a direita. Datas como datas reais do
+  Excel. Só inclui os campos que o AHM Audit guarda hoje — "Pedro's review" e "Employee
+  ID" do ficheiro antigo ficam de fora, por não haver dados reais para lá pôr.
+- `Pages/Admin/BackupExport.cshtml.cs` e `Pages/Auditorias/Export.cshtml.cs` (os dois
+  pontos de download) passam a produzir este `.xlsx` em vez do `.csv` anterior. Testado
+  nos dois, com auditorias com notas em várias linhas, razões de NOT OK e datas —
+  confirmado o conteúdo com um leitor de Excel real.
+- O **import** de CSV (Admin > Backup > Importar) não muda — continua a aceitar o
+  formato antigo (uma auditoria por linha), não o novo formato de export transposto.
+
 ## 2026-10-21
 
 ### Correção — export de CSV desformatado com notas em várias linhas (PR "fix-csv-export-line-endings")
@@ -9,7 +25,9 @@
   "próxima auditoria", e a linha de dados ficava partida em várias linhas do ficheiro,
   desalinhando tudo a seguir. Corrigido para usar sempre `\r\n` como fim de linha do CSV,
   independente do sistema operativo — agora inequívoco em relação a uma quebra de linha
-  dentro de um campo.
+  dentro de um campo. O export de auditorias já não usa este código (passou a `.xlsx`,
+  ver entrada acima) — mantido correto para o dia em que o CSV voltar a ser usado (ex.
+  import/export de rotina, scripts externos).
 - Reproduzido o bug e confirmada a correção com uma exportação real (auditoria com notas
   em várias linhas, vírgulas e aspas): antes, 1 linha de dados aparecia fisicamente
   espalhada por 4 linhas do ficheiro; depois, fica numa só, lida corretamente por um
