@@ -1,5 +1,13 @@
 # Changelog
 
+## 2026-10-22 (4)
+
+### Export Excel: percentagem ao lado dos totais de Y/N da checklist
+- `Data/AuditXlsxExporter.cs`: as linhas "Total NOT OK (N)" e "Total OK (Y)" passam a
+  mostrar também a percentagem, entre parêntesis na mesma célula (ex.: `2 (6%)`), sobre
+  Y+N (ignora N/A — mesma fórmula do dashboard em `Pages/Index.cshtml.cs`). Sem nenhum
+  item Y/N marcado, fica só a contagem, sem percentagem.
+
 ## 2026-10-22 (3)
 
 ### Export/Import Excel passam a incluir as Observações por item da checklist
