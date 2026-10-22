@@ -30,6 +30,10 @@ namespace AHM.Audit.Data
             "G1 - ULD Compatibility","Revision update was correct?","LIR","LS","Database Printout"
         };
 
+        // Quantas linhas fixas (Agent, Ticket, ...) vêm antes do checklist em BuildRows() —
+        // usado para saber a que item da checklist corresponde cada linha de Rows.
+        private const int FixedRowsCount = 8;
+
         // (rótulo na coluna A, como ir buscar o valor a cada auditoria)
         private static readonly (string Label, Func<Auditoria, Dictionary<string, string>, object?> Value)[] Rows = BuildRows();
 
@@ -59,6 +63,13 @@ namespace AHM.Audit.Data
                         .Where(p => p.Length == 2)
                         .ToDictionary(p => p[0], p => p[1]);
 
+                // Observações de texto livre por item da checklist (Auditoria.ItemObservations,
+                // JSON {"C3":"texto",...}) — não têm linha própria no layout; vão como comentário
+                // na célula do item a que pertencem (fixedRows.Length = 8 linhas antes do checklist).
+                var itemObservations = string.IsNullOrEmpty(a.ItemObservations)
+                    ? new Dictionary<string, string>()
+                    : System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, string>>(a.ItemObservations) ?? new();
+
                 for (int r = 0; r < Rows.Length; r++)
                 {
                     var cell = ws.Cell(r + 1, col);
@@ -73,6 +84,14 @@ namespace AHM.Audit.Data
                         cell.Value = value?.ToString() ?? "";
                     }
                     cell.Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
+
+                    var checklistIndex = r - FixedRowsCount;
+                    if (checklistIndex >= 0 && checklistIndex < ChecklistLabels.Length)
+                    {
+                        var field = AuditCsvExporter.ChecklistFields[checklistIndex];
+                        if (itemObservations.TryGetValue(field, out var obsText) && !string.IsNullOrWhiteSpace(obsText))
+                            cell.CreateComment().AddText(obsText);
+                    }
                 }
                 ws.Column(col).Width = 20;
                 col++;
@@ -142,8 +161,20 @@ namespace AHM.Audit.Data
         /// o resto da importação (validação de nomes/razões, tudo-ou-nada) não precisar
         /// de saber se o ficheiro era CSV ou Excel.
         /// </summary>
-        public static List<List<string>> ReadToCsvRows(Stream xlsxStream)
+        /// <summary>
+        /// Overload sem observações, para quem não precisa delas (ex.: testes antigos).
+        /// </summary>
+        public static List<List<string>> ReadToCsvRows(Stream xlsxStream) =>
+            ReadToCsvRows(xlsxStream, out _);
+
+        /// <summary>
+        /// itemObservations sai com a mesma ordem/comprimento do resultado (uma entrada por linha,
+        /// incluindo a linha 0 de cabeçalho, sempre vazia) — o dicionário campo→texto de cada
+        /// auditoria, lido dos comentários nas células da checklist que BuildXlsx escreveu.
+        /// </summary>
+        public static List<List<string>> ReadToCsvRows(Stream xlsxStream, out List<Dictionary<string, string>> itemObservations)
         {
+            itemObservations = new List<Dictionary<string, string>> { new() }; // linha 0 = cabeçalho
             using var wb = new XLWorkbook(xlsxStream);
             var ws = wb.Worksheets.First();
 
@@ -188,6 +219,20 @@ namespace AHM.Audit.Data
                 cols.Add(GetField("Notes / impact / and reason for possible mismatch", col));
 
                 result.Add(cols);
+
+                var obs = new Dictionary<string, string>();
+                for (int i = 0; i < ChecklistLabels.Length; i++)
+                {
+                    if (!rowByLabel.TryGetValue(ChecklistLabels[i], out var r)) continue;
+                    var cell = ws.Cell(r, col);
+                    if (cell.HasComment)
+                    {
+                        var text = cell.GetComment().Text?.Trim();
+                        if (!string.IsNullOrEmpty(text))
+                            obs[AuditCsvExporter.ChecklistFields[i]] = text;
+                    }
+                }
+                itemObservations.Add(obs);
             }
             return result;
         }

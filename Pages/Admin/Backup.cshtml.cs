@@ -58,33 +58,38 @@ namespace AHM.Audit.Pages.Admin
             // validação (nomes, razões, tudo-ou-nada) não ter de saber qual dos dois foi enviado.
             var isXlsx = System.IO.Path.GetExtension(csvFile.FileName).Equals(".xlsx", StringComparison.OrdinalIgnoreCase);
             List<List<string>> allRows;
+            List<Dictionary<string, string>> allObservations;
             if (isXlsx)
             {
-                allRows = AuditXlsxExporter.ReadToCsvRows(csvFile.OpenReadStream());
+                allRows = AuditXlsxExporter.ReadToCsvRows(csvFile.OpenReadStream(), out allObservations);
             }
             else
             {
+                // O CSV não tem como guardar as observações por item (só o .xlsx, via
+                // comentário na célula) — ficam vazias ao importar de CSV, como já acontecia.
                 string csvContent;
                 using (var reader = new System.IO.StreamReader(csvFile.OpenReadStream()))
                 {
                     csvContent = reader.ReadToEnd();
                 }
                 allRows = ParseCsv(csvContent);
+                allObservations = allRows.Select(_ => new Dictionary<string, string>()).ToList();
             }
-            var dataRows = allRows.Skip(1) // salta o cabeçalho
-                .Where(r => r.Count > 1 || (r.Count == 1 && !string.IsNullOrWhiteSpace(r[0])))
+            var dataRows = allRows.Zip(allObservations, (row, obs) => (row, obs))
+                .Skip(1) // salta o cabeçalho
+                .Where(x => x.row.Count > 1 || (x.row.Count == 1 && !string.IsNullOrWhiteSpace(x.row[0])))
                 .ToList();
 
             var nameErrors = new List<string>();
             var skippedDetails = new List<string>();
-            var rowsToImport = new List<(string[] cols, string ticket, string agent, string officer)>();
+            var rowsToImport = new List<(string[] cols, string ticket, string agent, string officer, Dictionary<string, string> itemObservations)>();
             int rowNum = 1; // linha 1 = cabeçalho, por isso as linhas de dados começam em 2
             const int checklistStartCol = 8; // primeira coluna da checklist (B1) no CSV
 
-            foreach (var row in dataRows)
+            foreach (var (rowData, rowObs) in dataRows)
             {
                 rowNum++;
-                var cols = row.ToArray();
+                var cols = rowData.ToArray();
                 if (cols.Length < 10) { skippedDetails.Add($"Linha {rowNum}: menos colunas do que o esperado."); continue; }
                 var ticket = StripFormulaGuard(cols[0].Trim());
                 if (string.IsNullOrEmpty(ticket)) { skippedDetails.Add($"Linha {rowNum}: sem número de ticket."); continue; }
@@ -119,7 +124,7 @@ namespace AHM.Audit.Pages.Admin
                     }
                 }
 
-                rowsToImport.Add((cols, ticket, agentMatch ?? agentRaw, officerMatch ?? officerRaw));
+                rowsToImport.Add((cols, ticket, agentMatch ?? agentRaw, officerMatch ?? officerRaw, rowObs));
             }
 
             if (nameErrors.Any())
@@ -133,7 +138,7 @@ namespace AHM.Audit.Pages.Admin
 
             int imported = 0;
 
-            foreach (var (cols, ticket, agent, officer) in rowsToImport)
+            foreach (var (cols, ticket, agent, officer, itemObservations) in rowsToImport)
             {
                 try
                 {
@@ -184,6 +189,7 @@ namespace AHM.Audit.Pages.Admin
                         CorrectionsMade=SafeGet(cols,43),
                         AircraftRecertified=SafeGet(cols,44),
                         Notes=SafeGet(cols,45),
+                        ItemObservations = itemObservations.Count == 0 ? "" : System.Text.Json.JsonSerializer.Serialize(itemObservations),
                         CreatedAt=DateTime.UtcNow
                     };
                     _context.Auditorias.Add(a);
