@@ -1,5 +1,28 @@
 # Changelog
 
+## 2026-10-22 (2)
+
+### Correção de segurança — rascunho só pode ser continuado pelo próprio Agent (PR "fix-draft-owner-access")
+- `Pages/Auditorias/Create.cshtml.cs` (`OnGet`/`OnPost`) e `Edit.cshtml.cs` (`OnGet`/`OnPost`):
+  qualquer utilizador autenticado conseguia abrir e continuar o rascunho de **outro** Agent,
+  pelo link "Continuar rascunho" ou diretamente por `/Auditorias/Edit?id=`. Só auditorias
+  finalizadas são (por desenho) editáveis por toda a gente — um rascunho só deve ser
+  continuado pelo próprio Agent ou por um admin.
+- Os três endpoints de autosave (`/api/autosave`, `/api/autosave-field`,
+  `/api/autosave-observation`, `Program.cs`) tinham o mesmo problema — só bloqueavam
+  auditorias já finalizadas, nunca verificavam o dono de um rascunho. Um utilizador
+  conseguia gravar alterações diretamente por AJAX no rascunho de outro Agent, mesmo sem
+  conseguir abrir a página. Corrigido com a mesma regra, partilhada (`IsForbiddenDraftEdit`).
+- **Bug relacionado encontrado ao testar**: todos os `Forbid()`/`Results.Forbid()` da
+  aplicação (9 sítios, incluindo os já existentes antes desta alteração) rebentavam com
+  uma exceção não tratada em vez de devolver um 403 limpo — esta app usa sessão simples,
+  sem nenhum esquema de autenticação registado (`AddAuthentication`), e `Forbid()` precisa
+  de um. Substituídos por `StatusCode(403)`/`Results.StatusCode(403)`.
+- Testado com dois utilizadores não-admin ligados a Agents diferentes, e com o admin:
+  confirmado que um Agent não consegue abrir, gravar nem alterar por AJAX o rascunho de
+  outro (403 limpo, dados na base de dados inalterados), que o próprio Agent continua a
+  conseguir, e que o admin continua a aceder a qualquer rascunho.
+
 ## 2026-10-22
 
 ### Import volta a aceitar o .xlsx do export, além do CSV (PR "feature-xlsx-import")

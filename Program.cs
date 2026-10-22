@@ -136,6 +136,19 @@ app.UseRateLimiter();
 app.UseAuthorization();
 app.MapRazorPages();
 
+// Partilhada pelos três endpoints de autosave abaixo: um rascunho só pode ser alterado
+// pelo próprio Agent que o criou, ou por um admin — mesma regra de Create.cshtml.cs
+// (OnGet/OnPost). Uma auditoria já finalizada segue a regra de sempre (IsFinalized
+// acima, verificado em cada endpoint à parte): qualquer utilizador autenticado edita.
+bool IsForbiddenDraftEdit(Auditoria audit, string username, AuditDbContext db)
+{
+    if (!audit.IsDraft || audit.IsFinalized) return false;
+    var user = db.Users.FirstOrDefault(u => u.Username == username);
+    if (user?.IsAdmin == true) return false;
+    var agentName = user?.PersonId != null ? db.Persons.Find(user.PersonId)?.Name : null;
+    return audit.Agent != agentName;
+}
+
 // ── Endpoint de auto-save (AJAX) ──
 app.MapPost("/api/autosave", async (HttpContext ctx, AuditDbContext db) =>
 {
@@ -182,8 +195,9 @@ app.MapPost("/api/autosave", async (HttpContext ctx, AuditDbContext db) =>
         if (audit.IsFinalized)
         {
             var isAdmin = db.Users.Any(u => u.Username == username && u.IsAdmin);
-            if (!isAdmin) return Results.Forbid();
+            if (!isAdmin) return Results.StatusCode(403);
         }
+        if (IsForbiddenDraftEdit(audit, username, db)) return Results.StatusCode(403);
     }
 
     // Whitelist de campos permitidos na checklist (fonte única em AuditCsvExporter.ChecklistFields)
@@ -249,8 +263,9 @@ app.MapPost("/api/autosave-field", async (HttpContext ctx, AuditDbContext db) =>
     if (audit.IsFinalized)
     {
         var isAdmin = db.Users.Any(u => u.Username == username && u.IsAdmin);
-        if (!isAdmin) return Results.Forbid();
+        if (!isAdmin) return Results.StatusCode(403);
     }
+    if (IsForbiddenDraftEdit(audit, username, db)) return Results.StatusCode(403);
 
     var allowedFields = new[] { "Ticket", "Airline", "Aircraft", "Registration", "Date", "RevisionUpdates",
         "AhmOfficer", "CorrectionTicket", "ReasonForRecertification", "CorrectionsMade", "AircraftRecertified", "Notes" };
@@ -292,8 +307,9 @@ app.MapPost("/api/autosave-observation", async (HttpContext ctx, AuditDbContext 
     if (audit.IsFinalized)
     {
         var isAdmin = db.Users.Any(u => u.Username == username && u.IsAdmin);
-        if (!isAdmin) return Results.Forbid();
+        if (!isAdmin) return Results.StatusCode(403);
     }
+    if (IsForbiddenDraftEdit(audit, username, db)) return Results.StatusCode(403);
 
     if (!AuditCsvExporter.ChecklistFields.Contains(field)) return Results.BadRequest("Campo não permitido");
 
